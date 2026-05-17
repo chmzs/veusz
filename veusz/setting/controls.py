@@ -26,6 +26,7 @@
 """
 
 import re
+import math
 import numpy as N
 
 from .. import qtall as qt
@@ -2043,4 +2044,399 @@ class AxisBound(Choice):
 
         if self.currentText().lower() != 'auto':
             self.setEditText( self.setting.toUIText() )
+
+
+class GradientFill(qt.QWidget):
+    """A control for editing gradient fill settings.
+
+    Allows the user to configure:
+    - Enable/disable gradient
+    - Gradient type (linear/radial)
+    - Angle for linear gradient
+    - Color stops with positions and colors
+    """
+
+    sigSettingChanged = qt.pyqtSignal(qt.QObject, object, object)
+
+    def __init__(self, setting, parent=None):
+        qt.QWidget.__init__(self, parent)
+
+        self.setting = setting
+        self.document = setting.getDocument()
+        self.updating = False
+
+        # Main layout
+        main_layout = qt.QVBoxLayout(self)
+        main_layout.setSpacing(4)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Enable checkbox
+        self.enable_cb = qt.QCheckBox(_('Enable gradient fill'))
+        self.enable_cb.stateChanged.connect(self.slotEnableChanged)
+        main_layout.addWidget(self.enable_cb)
+
+        # Type selection (horizontal layout)
+        type_layout = qt.QHBoxLayout()
+        type_layout.setSpacing(8)
+
+        # Preset selection
+        preset_label = qt.QLabel(_('Preset:'))
+        type_layout.addWidget(preset_label)
+
+        self.preset_combo = qt.QComboBox()
+        self.preset_combo.addItem(_('Custom'), userData=None)
+        # Add presets from gradient module
+        self._get_preset = None
+        try:
+            from ..utils.gradient import list_presets, get_preset
+            self._get_preset = get_preset
+            for name, display_name in list_presets():
+                self.preset_combo.addItem(display_name, userData=name)
+        except ImportError:
+            pass
+        self.preset_combo.currentIndexChanged.connect(self.slotPresetChanged)
+        type_layout.addWidget(self.preset_combo)
+
+        type_label = qt.QLabel(_('Type:'))
+        type_layout.addWidget(type_label)
+
+        self.type_combo = qt.QComboBox()
+        self.type_combo.addItems([_('Linear'), _('Radial')])
+        self.type_combo.currentIndexChanged.connect(self.slotTypeChanged)
+        type_layout.addWidget(self.type_combo)
+
+        # Angle setting for linear
+        self.angle_label = qt.QLabel(_('Angle:'))
+        type_layout.addWidget(self.angle_label)
+
+        self.angle_spin = qt.QSpinBox()
+        self.angle_spin.setRange(0, 360)
+        self.angle_spin.setSuffix('°')
+        self.angle_spin.valueChanged.connect(self.slotAngleChanged)
+        type_layout.addWidget(self.angle_spin)
+
+        type_layout.addStretch()
+        main_layout.addLayout(type_layout)
+
+        # Color stops
+        self.stops_widget = qt.QWidget()
+        stops_layout = qt.QVBoxLayout(self.stops_widget)
+        stops_layout.setSpacing(4)
+        stops_layout.setContentsMargins(0, 0, 0, 0)
+
+        stops_header = qt.QHBoxLayout()
+        stops_title = qt.QLabel(_('Color stops:'))
+        stops_header.addWidget(stops_title)
+        stops_header.addStretch()
+
+        add_btn = qt.QPushButton('+')
+        add_btn.setMaximumWidth(30)
+        add_btn.clicked.connect(self.slotAddStop)
+        stops_header.addWidget(add_btn)
+
+        remove_btn = qt.QPushButton('-')
+        remove_btn.setMaximumWidth(30)
+        remove_btn.clicked.connect(self.slotRemoveStop)
+        stops_header.addWidget(remove_btn)
+
+        stops_layout.addLayout(stops_header)
+
+        # Scroll area for stops
+        self.stops_scroll = qt.QScrollArea()
+        self.stops_scroll.setWidgetResizable(True)
+        self.stops_scroll.setMaximumHeight(150)
+        self.stops_content = qt.QWidget()
+        self.stops_layout = qt.QVBoxLayout(self.stops_content)
+        self.stops_layout.setSpacing(4)
+        self.stops_scroll.setWidget(self.stops_content)
+        stops_layout.addWidget(self.stops_scroll)
+
+        main_layout.addWidget(self.stops_widget)
+
+        # Preview
+        preview_label = qt.QLabel(_('Preview:'))
+        main_layout.addWidget(preview_label)
+
+        self.preview = GradientPreview()
+        self.preview.setMinimumHeight(24)
+        main_layout.addWidget(self.preview)
+
+        self.setting.setOnModified(self.onModified)
+        self.loadFromSetting()
+
+    def loadFromSetting(self):
+        """Load values from setting."""
+        self.updating = True
+        val = self.setting.val
+
+        self.enable_cb.setChecked(val.get('enabled', False))
+        self.type_combo.setCurrentIndex(0 if val.get('type', 'linear') == 'linear' else 1)
+        self.angle_spin.setValue(int(val.get('angle', 90)))
+
+        # Load color stops
+        while self.stops_layout.count():
+            child = self.stops_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        stops = val.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')])
+        self.stop_widgets = []
+        for offset, color in stops:
+            sw = ColorStopWidget(offset, color, self.stops_content)
+            sw.offset_changed.connect(self.slotStopOffsetChanged)
+            sw.color_changed.connect(self.slotStopColorChanged)
+            self.stops_layout.addWidget(sw)
+            self.stop_widgets.append(sw)
+
+        self.updatePreview()
+        self.updating = False
+
+    def saveToSetting(self):
+        """Save values to setting."""
+        if self.updating:
+            return
+
+        enabled = self.enable_cb.isChecked()
+        grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
+        angle = self.angle_spin.value()
+
+        stops = []
+        for sw in self.stop_widgets:
+            stops.append((sw.offset, sw.color))
+
+        val = {
+            'enabled': enabled,
+            'type': grad_type,
+            'angle': angle,
+            'stops': stops
+        }
+
+        self.sigSettingChanged.emit(self, self.setting, val)
+
+    def updatePreview(self):
+        """Update the gradient preview."""
+        enabled = self.enable_cb.isChecked()
+        if not enabled:
+            self.preview.setGradient(None)
+            return
+
+        grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
+        angle = self.angle_spin.value()
+        stops = [(sw.offset, sw.color) for sw in self.stop_widgets]
+
+        self.preview.setGradient(grad_type, angle, stops)
+
+    @qt.pyqtSlot()
+    def slotEnableChanged(self):
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot(int)
+    def slotTypeChanged(self, index):
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot(int)
+    def slotAngleChanged(self, value):
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot(int)
+    def slotPresetChanged(self, index):
+        """Apply selected preset to the gradient."""
+        if self._get_preset is None:
+            return
+
+        preset_name = self.preset_combo.currentData()
+        if preset_name is None:
+            # Custom - don't change anything
+            return
+
+        preset = self._get_preset(preset_name)
+        if preset:
+            self.updating = True
+            self.type_combo.setCurrentIndex(
+                0 if preset.get('type', 'linear') == 'linear' else 1)
+            self.angle_spin.setValue(int(preset.get('angle', 90)))
+
+            # Update color stops
+            stops = preset.get('stops', [])
+            # Remove existing stops
+            for sw in self.stop_widgets:
+                sw.deleteLater()
+            self.stop_widgets = []
+
+            # Add preset stops
+            for offset, color in stops:
+                sw = ColorStopWidget(offset, color, self.stops_content)
+                sw.offset_changed.connect(self.slotStopOffsetChanged)
+                sw.color_changed.connect(self.slotStopColorChanged)
+                self.stops_layout.addWidget(sw)
+                self.stop_widgets.append(sw)
+
+            self.updating = False
+            self.updatePreview()
+            self.saveToSetting()
+
+    @qt.pyqtSlot()
+    def slotAddStop(self):
+        # Add a stop at midpoint
+        new_offset = 0.5
+        new_color = '#808080'
+
+        sw = ColorStopWidget(new_offset, new_color, self.stops_content)
+        sw.offset_changed.connect(self.slotStopOffsetChanged)
+        sw.color_changed.connect(self.slotStopColorChanged)
+        self.stops_layout.addWidget(sw)
+        self.stop_widgets.append(sw)
+
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot()
+    def slotRemoveStop(self):
+        if self.stop_widgets:
+            sw = self.stop_widgets.pop()
+            sw.deleteLater()
+            self.updatePreview()
+            self.saveToSetting()
+
+    def slotStopOffsetChanged(self, offset):
+        self.updatePreview()
+        self.saveToSetting()
+
+    def slotStopColorChanged(self, color):
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot()
+    def onModified(self):
+        """Called when setting is changed remotely."""
+        self.loadFromSetting()
+
+
+class ColorStopWidget(qt.QWidget):
+    """Widget representing a single color stop."""
+
+    offset_changed = qt.pyqtSignal(float)
+    color_changed = qt.pyqtSignal(str)
+
+    def __init__(self, offset, color, parent=None):
+        qt.QWidget.__init__(self, parent)
+
+        self._offset = offset
+        self._color = color
+
+        layout = qt.QHBoxLayout(self)
+        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Position slider
+        self.pos_slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
+        self.pos_slider.setRange(0, 100)
+        self.pos_slider.setValue(int(offset * 100))
+        self.pos_slider.setMaximumWidth(100)
+        self.pos_slider.valueChanged.connect(self.slotPosChanged)
+        layout.addWidget(self.pos_slider)
+
+        # Position label
+        self.pos_label = qt.QLabel(f'{offset:.0%}')
+        self.pos_label.setMinimumWidth(40)
+        layout.addWidget(self.pos_label)
+
+        # Color button
+        self.color_btn = qt.QPushButton()
+        self.color_btn.setMaximumWidth(60)
+        self.color_btn.setText(color)
+        self.color_btn.setStyleSheet(f'background-color: {color}')
+        self.color_btn.clicked.connect(self.slotColorClicked)
+        layout.addWidget(self.color_btn)
+
+        layout.addStretch()
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @property
+    def color(self):
+        return self._color
+
+    @qt.pyqtSlot(int)
+    def slotPosChanged(self, value):
+        self._offset = value / 100.0
+        self.pos_label.setText(f'{self._offset:.0%}')
+        self.offset_changed.emit(self._offset)
+
+    def slotColorClicked(self):
+        col = qt.QColorDialog.getColor(qt.QColor(self._color), self)
+        if col.isValid():
+            self._color = col.name()
+            self.color_btn.setText(self._color)
+            self.color_btn.setStyleSheet(f'background-color: {self._color}')
+            self.color_changed.emit(self._color)
+
+
+class GradientPreview(qt.QWidget):
+    """Widget to preview a gradient."""
+
+    def __init__(self, parent=None):
+        qt.QWidget.__init__(self, parent)
+        self.grad_type = None
+        self.angle = 90
+        self.stops = []
+        self.gradient = None
+
+    def setGradient(self, grad_type, angle=None, stops=None):
+        """Set gradient parameters. Pass None to clear."""
+        if grad_type is None:
+            self.gradient = None
+        else:
+            self.grad_type = grad_type
+            self.angle = angle
+            self.stops = stops
+            self.gradient = self._createGradient()
+        self.update()
+
+    def _createGradient(self):
+        """Create Qt gradient from parameters."""
+        w = self.width() if self.width() > 0 else 200
+        h = self.height() if self.height() > 0 else 24
+
+        if self.grad_type == 'linear':
+            rad = math.radians(self.angle)
+            x1 = w / 2 - math.cos(rad) * w / 2
+            y1 = h / 2 - math.sin(rad) * h / 2
+            x2 = w / 2 + math.cos(rad) * w / 2
+            y2 = h / 2 + math.sin(rad) * h / 2
+            grad = qt.QLinearGradient(x1, y1, x2, y2)
+        else:  # radial
+            grad = qt.QRadialGradient(w / 2, h / 2, max(w, h) / 2)
+
+        for offset, color in self.stops:
+            grad.setColorAt(offset, qt.QColor(color))
+
+        return grad
+
+    def paintEvent(self, event):
+        painter = qt.QPainter(self)
+        painter.setRenderHint(qt.QPainter.RenderHint.Antialiasing)
+
+        if self.gradient is None:
+            # Draw checkered background for no gradient
+            painter.fillRect(self.rect(), qt.QColor('#cccccc'))
+            return
+
+        if self.grad_type == 'linear':
+            self.gradient.setStart(0, self.height() / 2)
+            rad = math.radians(self.angle - 90)
+            x2 = self.width() * math.cos(rad)
+            y2 = self.width() * math.sin(rad)
+            self.gradient.setFinalStop(x2, self.height() / 2 + y2)
+        else:
+            self.gradient.setCenter(self.width() / 2, self.height() / 2)
+            self.gradient.setRadius(max(self.width(), self.height()) / 2)
+
+        brush = qt.QBrush(self.gradient)
+        painter.fillRect(self.rect(), brush)
 

@@ -1,0 +1,700 @@
+diff --git a/veusz/setting/collections.py b/veusz/setting/collections.py
+index 900d41fa..279b023d 100644
+--- a/veusz/setting/collections.py
++++ b/veusz/setting/collections.py
+@@ -248,6 +248,11 @@ class BrushExtended(Settings):
+             descr=_('Hide hatch or pattern background'),
+             usertext=_('Back hide')) )
+ 
++        self.add( setting.GradientFill(
++            'Gradient',
++            descr=_('Gradient fill settings'),
++            usertext=_('Gradient') ) )
++
+ class KeyBrush(BrushExtended):
+     '''Fill used for back of key.'''
+ 
+@@ -305,11 +310,16 @@ class PointFill(BrushExtended):
+ 
+         self.add( setting.Choice(
+             'fillto',
+-            ['top', 'bottom', 'left', 'right'],
++            ['top', 'bottom', 'left', 'right', 'zero', 'custom'],
+             'top',
+             descr=_('Edge to fill towards'),
+             usertext=_('Fill to')), 0)
+ 
++        self.add( setting.FloatOrAuto(
++            'filltoValue', 'Auto',
++            descr=_('Value to fill towards when fillto is custom'),
++            usertext=_('Fill to value')) )
++
+         self.add( setting.Bool(
+             'hideerror', False,
+             descr=_('Hide the filled region inside the error bars'),
+diff --git a/veusz/setting/controls.py b/veusz/setting/controls.py
+index 86156b2c..b5756209 100644
+--- a/veusz/setting/controls.py
++++ b/veusz/setting/controls.py
+@@ -26,6 +26,7 @@
+ """
+ 
+ import re
++import math
+ import numpy as N
+ 
+ from .. import qtall as qt
+@@ -2044,3 +2045,398 @@ class AxisBound(Choice):
+         if self.currentText().lower() != 'auto':
+             self.setEditText( self.setting.toUIText() )
+ 
++
++class GradientFill(qt.QWidget):
++    """A control for editing gradient fill settings.
++
++    Allows the user to configure:
++    - Enable/disable gradient
++    - Gradient type (linear/radial)
++    - Angle for linear gradient
++    - Color stops with positions and colors
++    """
++
++    sigSettingChanged = qt.pyqtSignal(qt.QObject, object, object)
++
++    def __init__(self, setting, parent=None):
++        qt.QWidget.__init__(self, parent)
++
++        self.setting = setting
++        self.document = setting.getDocument()
++        self.updating = False
++
++        # Main layout
++        main_layout = qt.QVBoxLayout(self)
++        main_layout.setSpacing(4)
++        main_layout.setContentsMargins(0, 0, 0, 0)
++
++        # Enable checkbox
++        self.enable_cb = qt.QCheckBox(_('Enable gradient fill'))
++        self.enable_cb.stateChanged.connect(self.slotEnableChanged)
++        main_layout.addWidget(self.enable_cb)
++
++        # Type selection (horizontal layout)
++        type_layout = qt.QHBoxLayout()
++        type_layout.setSpacing(8)
++
++        # Preset selection
++        preset_label = qt.QLabel(_('Preset:'))
++        type_layout.addWidget(preset_label)
++
++        self.preset_combo = qt.QComboBox()
++        self.preset_combo.addItem(_('Custom'), userData=None)
++        # Add presets from gradient module
++        self._get_preset = None
++        try:
++            from ..utils.gradient import list_presets, get_preset
++            self._get_preset = get_preset
++            for name, display_name in list_presets():
++                self.preset_combo.addItem(display_name, userData=name)
++        except ImportError:
++            pass
++        self.preset_combo.currentIndexChanged.connect(self.slotPresetChanged)
++        type_layout.addWidget(self.preset_combo)
++
++        type_label = qt.QLabel(_('Type:'))
++        type_layout.addWidget(type_label)
++
++        self.type_combo = qt.QComboBox()
++        self.type_combo.addItems([_('Linear'), _('Radial')])
++        self.type_combo.currentIndexChanged.connect(self.slotTypeChanged)
++        type_layout.addWidget(self.type_combo)
++
++        # Angle setting for linear
++        self.angle_label = qt.QLabel(_('Angle:'))
++        type_layout.addWidget(self.angle_label)
++
++        self.angle_spin = qt.QSpinBox()
++        self.angle_spin.setRange(0, 360)
++        self.angle_spin.setSuffix('°')
++        self.angle_spin.valueChanged.connect(self.slotAngleChanged)
++        type_layout.addWidget(self.angle_spin)
++
++        type_layout.addStretch()
++        main_layout.addLayout(type_layout)
++
++        # Color stops
++        self.stops_widget = qt.QWidget()
++        stops_layout = qt.QVBoxLayout(self.stops_widget)
++        stops_layout.setSpacing(4)
++        stops_layout.setContentsMargins(0, 0, 0, 0)
++
++        stops_header = qt.QHBoxLayout()
++        stops_title = qt.QLabel(_('Color stops:'))
++        stops_header.addWidget(stops_title)
++        stops_header.addStretch()
++
++        add_btn = qt.QPushButton('+')
++        add_btn.setMaximumWidth(30)
++        add_btn.clicked.connect(self.slotAddStop)
++        stops_header.addWidget(add_btn)
++
++        remove_btn = qt.QPushButton('-')
++        remove_btn.setMaximumWidth(30)
++        remove_btn.clicked.connect(self.slotRemoveStop)
++        stops_header.addWidget(remove_btn)
++
++        stops_layout.addLayout(stops_header)
++
++        # Scroll area for stops
++        self.stops_scroll = qt.QScrollArea()
++        self.stops_scroll.setWidgetResizable(True)
++        self.stops_scroll.setMaximumHeight(150)
++        self.stops_content = qt.QWidget()
++        self.stops_layout = qt.QVBoxLayout(self.stops_content)
++        self.stops_layout.setSpacing(4)
++        self.stops_scroll.setWidget(self.stops_content)
++        stops_layout.addWidget(self.stops_scroll)
++
++        main_layout.addWidget(self.stops_widget)
++
++        # Preview
++        preview_label = qt.QLabel(_('Preview:'))
++        main_layout.addWidget(preview_label)
++
++        self.preview = GradientPreview()
++        self.preview.setMinimumHeight(24)
++        main_layout.addWidget(self.preview)
++
++        self.setting.setOnModified(self.onModified)
++        self.loadFromSetting()
++
++    def loadFromSetting(self):
++        """Load values from setting."""
++        self.updating = True
++        val = self.setting.val
++
++        self.enable_cb.setChecked(val.get('enabled', False))
++        self.type_combo.setCurrentIndex(0 if val.get('type', 'linear') == 'linear' else 1)
++        self.angle_spin.setValue(int(val.get('angle', 90)))
++
++        # Load color stops
++        while self.stops_layout.count():
++            child = self.stops_layout.takeAt(0)
++            if child.widget():
++                child.widget().deleteLater()
++
++        stops = val.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')])
++        self.stop_widgets = []
++        for offset, color in stops:
++            sw = ColorStopWidget(offset, color, self.stops_content)
++            sw.offset_changed.connect(self.slotStopOffsetChanged)
++            sw.color_changed.connect(self.slotStopColorChanged)
++            self.stops_layout.addWidget(sw)
++            self.stop_widgets.append(sw)
++
++        self.updatePreview()
++        self.updating = False
++
++    def saveToSetting(self):
++        """Save values to setting."""
++        if self.updating:
++            return
++
++        enabled = self.enable_cb.isChecked()
++        grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
++        angle = self.angle_spin.value()
++
++        stops = []
++        for sw in self.stop_widgets:
++            stops.append((sw.offset, sw.color))
++
++        val = {
++            'enabled': enabled,
++            'type': grad_type,
++            'angle': angle,
++            'stops': stops
++        }
++
++        self.sigSettingChanged.emit(self, self.setting, val)
++
++    def updatePreview(self):
++        """Update the gradient preview."""
++        enabled = self.enable_cb.isChecked()
++        if not enabled:
++            self.preview.setGradient(None)
++            return
++
++        grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
++        angle = self.angle_spin.value()
++        stops = [(sw.offset, sw.color) for sw in self.stop_widgets]
++
++        self.preview.setGradient(grad_type, angle, stops)
++
++    @qt.pyqtSlot()
++    def slotEnableChanged(self):
++        self.updatePreview()
++        self.saveToSetting()
++
++    @qt.pyqtSlot(int)
++    def slotTypeChanged(self, index):
++        self.updatePreview()
++        self.saveToSetting()
++
++    @qt.pyqtSlot(int)
++    def slotAngleChanged(self, value):
++        self.updatePreview()
++        self.saveToSetting()
++
++    @qt.pyqtSlot(int)
++    def slotPresetChanged(self, index):
++        """Apply selected preset to the gradient."""
++        if self._get_preset is None:
++            return
++
++        preset_name = self.preset_combo.currentData()
++        if preset_name is None:
++            # Custom - don't change anything
++            return
++
++        preset = self._get_preset(preset_name)
++        if preset:
++            self.updating = True
++            self.type_combo.setCurrentIndex(
++                0 if preset.get('type', 'linear') == 'linear' else 1)
++            self.angle_spin.setValue(int(preset.get('angle', 90)))
++
++            # Update color stops
++            stops = preset.get('stops', [])
++            # Remove existing stops
++            for sw in self.stop_widgets:
++                sw.deleteLater()
++            self.stop_widgets = []
++
++            # Add preset stops
++            for offset, color in stops:
++                sw = ColorStopWidget(offset, color, self.stops_content)
++                sw.offset_changed.connect(self.slotStopOffsetChanged)
++                sw.color_changed.connect(self.slotStopColorChanged)
++                self.stops_layout.addWidget(sw)
++                self.stop_widgets.append(sw)
++
++            self.updating = False
++            self.updatePreview()
++            self.saveToSetting()
++
++    @qt.pyqtSlot()
++    def slotAddStop(self):
++        # Add a stop at midpoint
++        new_offset = 0.5
++        new_color = '#808080'
++
++        sw = ColorStopWidget(new_offset, new_color, self.stops_content)
++        sw.offset_changed.connect(self.slotStopOffsetChanged)
++        sw.color_changed.connect(self.slotStopColorChanged)
++        self.stops_layout.addWidget(sw)
++        self.stop_widgets.append(sw)
++
++        self.updatePreview()
++        self.saveToSetting()
++
++    @qt.pyqtSlot()
++    def slotRemoveStop(self):
++        if self.stop_widgets:
++            sw = self.stop_widgets.pop()
++            sw.deleteLater()
++            self.updatePreview()
++            self.saveToSetting()
++
++    def slotStopOffsetChanged(self, offset):
++        self.updatePreview()
++        self.saveToSetting()
++
++    def slotStopColorChanged(self, color):
++        self.updatePreview()
++        self.saveToSetting()
++
++    @qt.pyqtSlot()
++    def onModified(self):
++        """Called when setting is changed remotely."""
++        self.loadFromSetting()
++
++
++class ColorStopWidget(qt.QWidget):
++    """Widget representing a single color stop."""
++
++    offset_changed = qt.pyqtSignal(float)
++    color_changed = qt.pyqtSignal(str)
++
++    def __init__(self, offset, color, parent=None):
++        qt.QWidget.__init__(self, parent)
++
++        self._offset = offset
++        self._color = color
++
++        layout = qt.QHBoxLayout(self)
++        layout.setSpacing(8)
++        layout.setContentsMargins(0, 0, 0, 0)
++
++        # Position slider
++        self.pos_slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
++        self.pos_slider.setRange(0, 100)
++        self.pos_slider.setValue(int(offset * 100))
++        self.pos_slider.setMaximumWidth(100)
++        self.pos_slider.valueChanged.connect(self.slotPosChanged)
++        layout.addWidget(self.pos_slider)
++
++        # Position label
++        self.pos_label = qt.QLabel(f'{offset:.0%}')
++        self.pos_label.setMinimumWidth(40)
++        layout.addWidget(self.pos_label)
++
++        # Color button
++        self.color_btn = qt.QPushButton()
++        self.color_btn.setMaximumWidth(60)
++        self.color_btn.setText(color)
++        self.color_btn.setStyleSheet(f'background-color: {color}')
++        self.color_btn.clicked.connect(self.slotColorClicked)
++        layout.addWidget(self.color_btn)
++
++        layout.addStretch()
++
++    @property
++    def offset(self):
++        return self._offset
++
++    @property
++    def color(self):
++        return self._color
++
++    @qt.pyqtSlot(int)
++    def slotPosChanged(self, value):
++        self._offset = value / 100.0
++        self.pos_label.setText(f'{self._offset:.0%}')
++        self.offset_changed.emit(self._offset)
++
++    def slotColorClicked(self):
++        col = qt.QColorDialog.getColor(qt.QColor(self._color), self)
++        if col.isValid():
++            self._color = col.name()
++            self.color_btn.setText(self._color)
++            self.color_btn.setStyleSheet(f'background-color: {self._color}')
++            self.color_changed.emit(self._color)
++
++
++class GradientPreview(qt.QWidget):
++    """Widget to preview a gradient."""
++
++    def __init__(self, parent=None):
++        qt.QWidget.__init__(self, parent)
++        self.grad_type = None
++        self.angle = 90
++        self.stops = []
++        self.gradient = None
++
++    def setGradient(self, grad_type, angle=None, stops=None):
++        """Set gradient parameters. Pass None to clear."""
++        if grad_type is None:
++            self.gradient = None
++        else:
++            self.grad_type = grad_type
++            self.angle = angle
++            self.stops = stops
++            self.gradient = self._createGradient()
++        self.update()
++
++    def _createGradient(self):
++        """Create Qt gradient from parameters."""
++        w = self.width() if self.width() > 0 else 200
++        h = self.height() if self.height() > 0 else 24
++
++        if self.grad_type == 'linear':
++            rad = math.radians(self.angle)
++            x1 = w / 2 - math.cos(rad) * w / 2
++            y1 = h / 2 - math.sin(rad) * h / 2
++            x2 = w / 2 + math.cos(rad) * w / 2
++            y2 = h / 2 + math.sin(rad) * h / 2
++            grad = qt.QLinearGradient(x1, y1, x2, y2)
++        else:  # radial
++            grad = qt.QRadialGradient(w / 2, h / 2, max(w, h) / 2)
++
++        for offset, color in self.stops:
++            grad.setColorAt(offset, qt.QColor(color))
++
++        return grad
++
++    def paintEvent(self, event):
++        painter = qt.QPainter(self)
++        painter.setRenderHint(qt.QPainter.RenderHint.Antialiasing)
++
++        if self.gradient is None:
++            # Draw checkered background for no gradient
++            painter.fillRect(self.rect(), qt.QColor('#cccccc'))
++            return
++
++        if self.grad_type == 'linear':
++            self.gradient.setStart(0, self.height() / 2)
++            rad = math.radians(self.angle - 90)
++            x2 = self.width() * math.cos(rad)
++            y2 = self.width() * math.sin(rad)
++            self.gradient.setFinalStop(x2, self.height() / 2 + y2)
++        else:
++            self.gradient.setCenter(self.width() / 2, self.height() / 2)
++            self.gradient.setRadius(max(self.width(), self.height()) / 2)
++
++        brush = qt.QBrush(self.gradient)
++        painter.fillRect(self.rect(), brush)
++
+diff --git a/veusz/setting/setting.py b/veusz/setting/setting.py
+index 81aced1d..6b091ac3 100644
+--- a/veusz/setting/setting.py
++++ b/veusz/setting/setting.py
+@@ -2004,6 +2004,54 @@ class Colormap(Str):
+     def makeControl(self, *args):
+         return controls.Colormap(self, self.getDocument(), *args)
+ 
++
++class GradientFill(Setting):
++    """Gradient fill settings with multiple color stops.
++
++    val is a dict with keys:
++      - type: 'linear' or 'radial'
++      - angle: float (0-360) for linear gradient
++      - stops: list of (offset, color) tuples (offset 0-1)
++      - enabled: bool
++    """
++
++    typename = 'gradient-fill'
++
++    def __init__(self, name, val=None, **args):
++        if val is None:
++            val = {'enabled': False, 'type': 'linear', 'angle': 90,
++                   'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
++        Setting.__init__(self, name, val, **args)
++
++    def copy(self):
++        """Make a copy of the setting."""
++        return self._copyHelper((), (), {})
++
++    def normalize(self, val):
++        if not isinstance(val, dict):
++            raise utils.InvalidType
++        return val
++
++    def toUIText(self):
++        """Convert to text representation."""
++        if not self.val.get('enabled', False):
++            return 'Disabled'
++        stops = self.val.get('stops', [])
++        colors = ', '.join([c for _, c in stops])
++        grad_type = self.val.get('type', 'linear')
++        angle = self.val.get('angle', 90)
++        return f'{grad_type} {angle}deg: {colors}'
++
++    def fromUIText(self, text):
++        """Parse from text representation."""
++        if text.lower() == 'disabled':
++            return {'enabled': False, 'type': 'linear', 'angle': 90,
++                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
++        return self.val
++
++    def makeControl(self, *args):
++        return controls.GradientFill(self, *args)
++
+ class AxisBound(FloatOrAuto):
+     """Axis bound - either numeric, Auto or date."""
+ 
+diff --git a/veusz/utils/extbrushfilling.py b/veusz/utils/extbrushfilling.py
+index 304d320f..b1590886 100644
+--- a/veusz/utils/extbrushfilling.py
++++ b/veusz/utils/extbrushfilling.py
+@@ -3,8 +3,8 @@
+ #
+ #    This file is part of Veusz.
+ #
+-#    Veusz is free software: you can redistribute it and/or modify it
+-#    under the terms of the GNU General Public License as published by
++#    Veusz is free software: you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
+ #    the Free Software Foundation, either version 2 of the License, or
+ #    (at your option) any later version.
+ #
+@@ -20,7 +20,7 @@
+ 
+ """Paint fills with extended brush class.
+ 
+-Paints solid, hatching and various qt brushes
++Paints solid, hatching, gradient and various qt brushes
+ """
+ 
+ import math
+@@ -29,6 +29,7 @@ import numpy as N
+ 
+ from .. import qtall as qt
+ from ..helpers.qtloops import plotLinesToPainter, polygonClip
++from . import gradient as gradient_module
+ 
+ def dumppath(p):
+     i =0
+@@ -181,6 +182,46 @@ _fillcnvt = {
+     '6% dense': qt.Qt.BrushStyle.Dense7Pattern
+ }
+ 
++def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
++                               dataindex=0):
++    """Fill a path with a gradient brush.
++
++    Uses the gradient module for gradient creation.
++
++    gradient_setting contains:
++      - type: 'linear' or 'radial'
++      - angle: float (0-360) for linear gradient
++      - stops: list of (offset, color) tuples
++      - enabled: bool
++    """
++    gradient_setting = extbrush.get('Gradient', None)
++    if not gradient_setting:
++        return
++
++    # Get gradient configuration from setting
++    config = gradient_module.get_gradient_config(gradient_setting)
++    if not config.enabled:
++        return
++
++    # Get bounding rect of path for gradient coordinates
++    bb = path.boundingRect()
++
++    # Create gradient based on configuration
++    qt_gradient = gradient_module.create_gradient_from_config(config, bb)
++
++    # Create brush with gradient
++    brush = qt.QBrush(qt_gradient)
++
++    # Apply fill
++    if stroke is None:
++        painter.fillPath(path, brush)
++    else:
++        painter.save()
++        painter.setPen(stroke)
++        painter.setBrush(brush)
++        painter.drawPath(path)
++        painter.restore()
++
+ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
+                      stroke=None, dataindex=0):
+     """Use an BrushExtended settings object to fill a path on painter.
+@@ -193,6 +234,11 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
+             painter.strokePath(path, stroke)
+         return
+ 
++    # Check for gradient fill - if enabled, use gradient rendering
++    if gradient_module.is_gradient_enabled(extbrush.get('Gradient', None)):
++        _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex)
++        return
++
+     style = extbrush.style
+     if style in _fillcnvt:
+         # standard fill: use Qt styles for painting
+@@ -249,4 +295,4 @@ def brushExtFillPolygon(painter, extbrush, cliprect, polygon, ignorehide=False):
+     polygonClip(polygon, cliprect, clipped)
+     path = qt.QPainterPath()
+     path.addPolygon(clipped)
+-    brushExtFillPath(painter, extbrush, path, ignorehide=ignorehide)
++    brushExtFillPath(painter, extbrush, path, ignorehide=ignorehide)
+\ No newline at end of file
+diff --git a/veusz/widgets/point.py b/veusz/widgets/point.py
+index 8820f2d8..09cca4ac 100644
+--- a/veusz/widgets/point.py
++++ b/veusz/widgets/point.py
+@@ -300,8 +300,11 @@ class ErrorBarDraw:
+         'lineverthi': (errorsFilled,),
+     }
+ 
+-def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle):
+-    """Fill points depending on fill mode."""
++def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=None):
++    """Fill points depending on fill mode.
++
++    zero_val is the y-value to fill to when fillto is 'zero' or 'custom'.
++    """
+     ft = fillstyle.fillto
+     if ft == 'top':
+         x1, x2 = pts[0].x(), pts[-1].x()
+@@ -315,6 +318,23 @@ def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle):
+     elif ft == 'right':
+         y1, y2 = pts[0].y(), pts[-1].y()
+         x1 = x2 = posn[2]
++    elif ft == 'zero':
++        if zero_val is not None:
++            x1, x2 = pts[0].x(), pts[-1].x()
++            y1 = y2 = zero_val
++        else:
++            # Fallback to bottom if no zero value
++            x1, x2 = pts[0].x(), pts[-1].x()
++            y1 = y2 = posn[3]
++    elif ft == 'custom':
++        fillto_val = fillstyle.filltoValue
++        if fillto_val != 'Auto' and zero_val is not None:
++            x1, x2 = pts[0].x(), pts[-1].x()
++            y1 = y2 = zero_val
++        else:
++            # Fallback to bottom if no custom value
++            x1, x2 = pts[0].x(), pts[-1].x()
++            y1 = y2 = posn[3]
+     else:
+         raise RuntimeError('Invalid fillto mode')
+ 
+@@ -686,12 +706,28 @@ class PointPlotter(GenericPlotter):
+         # do filling
+         for fillstyle in s.FillBelow, s.FillAbove:
+             if not fillstyle.hide:
+-                x1, y1, x2, y2 = {
+-                    'top': (pts[0].x(), posn[1], pts[-1].x(), posn[1]),
+-                    'bottom': (pts[0].x(), posn[3], pts[-1].x(), posn[3]),
+-                    'left': (posn[0], pts[0].y(), posn[0], pts[-1].y()),
+-                    'right': (posn[2], pts[0].y(), posn[2], pts[-1].y())
+-                }[fillstyle.fillto]
++                ft = fillstyle.fillto
++                if ft == 'zero':
++                    # Get zero position from y-axis
++                    zero_val = self.getScreenPos(self.yAxis, 0)[1]
++                    x1, y1, x2, y2 = pts[0].x(), zero_val, pts[-1].x(), zero_val
++                elif ft == 'custom':
++                    fillto_val = fillstyle.filltoValue
++                    if fillto_val != 'Auto':
++                        zero_val = self.getScreenPos(self.yAxis, fillto_val)[1]
++                        x1, y1, x2, y2 = pts[0].x(), zero_val, pts[-1].x(), zero_val
++                    else:
++                        x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
++                elif ft == 'top':
++                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
++                elif ft == 'bottom':
++                    x1, y1, x2, y2 = pts[0].x(), posn[3], pts[-1].x(), posn[3]
++                elif ft == 'left':
++                    x1, y1, x2, y2 = posn[0], pts[0].y(), posn[0], pts[-1].y()
++                elif ft == 'right':
++                    x1, y1, x2, y2 = posn[2], pts[0].y(), posn[2], pts[-1].y()
++                else:
++                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
+ 
+                 temppath = qt.QPainterPath(path)
+                 temppath.lineTo(x2, y2)
+@@ -713,7 +749,19 @@ class PointPlotter(GenericPlotter):
+         # do filling
+         for fillstyle in s.FillBelow, s.FillAbove:
+             if not fillstyle.hide:
+-                fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
++                ft = fillstyle.fillto
++                if ft == 'zero':
++                    zero_val = self.getScreenPos(self.yAxis, 0)[1]
++                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=zero_val)
++                elif ft == 'custom':
++                    fillto_val = fillstyle.filltoValue
++                    if fillto_val != 'Auto':
++                        zero_val = self.getScreenPos(self.yAxis, fillto_val)[1]
++                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=zero_val)
++                    else:
++                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
++                else:
++                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
+ 
+         # draw line between points
+         if not s.PlotLine.hide:

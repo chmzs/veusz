@@ -248,6 +248,11 @@ class BrushExtended(Settings):
             descr=_('Hide hatch or pattern background'),
             usertext=_('Back hide')) )
 
+        self.add( setting.GradientFill(
+            'Gradient',
+            descr=_('Gradient fill settings'),
+            usertext=_('Gradient') ) )
+
 class KeyBrush(BrushExtended):
     '''Fill used for back of key.'''
 
@@ -305,10 +310,15 @@ class PointFill(BrushExtended):
 
         self.add( setting.Choice(
             'fillto',
-            ['top', 'bottom', 'left', 'right'],
+            ['top', 'bottom', 'left', 'right', 'zero', 'custom'],
             'top',
             descr=_('Edge to fill towards'),
             usertext=_('Fill to')), 0)
+
+        self.add( setting.FloatOrAuto(
+            'filltoValue', 'Auto',
+            descr=_('Value to fill towards when fillto is custom'),
+            usertext=_('Fill to value')) )
 
         self.add( setting.Bool(
             'hideerror', False,

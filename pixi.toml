@@ -1,0 +1,25 @@
+[workspace]
+name = "veusz"
+version = "4.2.1"
+description = "Veusz - Scientific plotting application"
+authors = ["Jeremy Sanders"]
+license = "GPL-2.0-or-later"
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+channels = ["conda-forge"]
+
+[dependencies]
+python = ">=3.10"
+numpy = ">=1.20"
+PyQt6 = ">=6.10.2"
+sip = ">=6.5"
+astropy = ">=2.0"
+h5py = ">=2.6"
+pytest = "*"
+
+[tasks.test]
+description = "Run gradient tests"
+cmd = "python tests/selftests/gradient_test.py"
+
+[tasks.veusz]
+description = "Run Veusz"
+cmd = "python veusz/veusz_main.py"

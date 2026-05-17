@@ -2004,6 +2004,54 @@ class Colormap(Str):
     def makeControl(self, *args):
         return controls.Colormap(self, self.getDocument(), *args)
 
+
+class GradientFill(Setting):
+    """Gradient fill settings with multiple color stops.
+
+    val is a dict with keys:
+      - type: 'linear' or 'radial'
+      - angle: float (0-360) for linear gradient
+      - stops: list of (offset, color) tuples (offset 0-1)
+      - enabled: bool
+    """
+
+    typename = 'gradient-fill'
+
+    def __init__(self, name, val=None, **args):
+        if val is None:
+            val = {'enabled': False, 'type': 'linear', 'angle': 90,
+                   'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
+        Setting.__init__(self, name, val, **args)
+
+    def copy(self):
+        """Make a copy of the setting."""
+        return self._copyHelper((), (), {})
+
+    def normalize(self, val):
+        if not isinstance(val, dict):
+            raise utils.InvalidType
+        return val
+
+    def toUIText(self):
+        """Convert to text representation."""
+        if not self.val.get('enabled', False):
+            return 'Disabled'
+        stops = self.val.get('stops', [])
+        colors = ', '.join([c for _, c in stops])
+        grad_type = self.val.get('type', 'linear')
+        angle = self.val.get('angle', 90)
+        return f'{grad_type} {angle}deg: {colors}'
+
+    def fromUIText(self, text):
+        """Parse from text representation."""
+        if text.lower() == 'disabled':
+            return {'enabled': False, 'type': 'linear', 'angle': 90,
+                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
+        return self.val
+
+    def makeControl(self, *args):
+        return controls.GradientFill(self, *args)
+
 class AxisBound(FloatOrAuto):
     """Axis bound - either numeric, Auto or date."""
 

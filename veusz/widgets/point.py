@@ -300,8 +300,11 @@ class ErrorBarDraw:
         'lineverthi': (errorsFilled,),
     }
 
-def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle):
-    """Fill points depending on fill mode."""
+def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=None):
+    """Fill points depending on fill mode.
+
+    zero_val is the y-value to fill to when fillto is 'zero' or 'custom'.
+    """
     ft = fillstyle.fillto
     if ft == 'top':
         x1, x2 = pts[0].x(), pts[-1].x()
@@ -315,6 +318,23 @@ def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle):
     elif ft == 'right':
         y1, y2 = pts[0].y(), pts[-1].y()
         x1 = x2 = posn[2]
+    elif ft == 'zero':
+        if zero_val is not None:
+            x1, x2 = pts[0].x(), pts[-1].x()
+            y1 = y2 = zero_val
+        else:
+            # Fallback to bottom if no zero value
+            x1, x2 = pts[0].x(), pts[-1].x()
+            y1 = y2 = posn[3]
+    elif ft == 'custom':
+        fillto_val = fillstyle.filltoValue
+        if fillto_val != 'Auto' and zero_val is not None:
+            x1, x2 = pts[0].x(), pts[-1].x()
+            y1 = y2 = zero_val
+        else:
+            # Fallback to bottom if no custom value
+            x1, x2 = pts[0].x(), pts[-1].x()
+            y1 = y2 = posn[3]
     else:
         raise RuntimeError('Invalid fillto mode')
 
@@ -686,12 +706,28 @@ class PointPlotter(GenericPlotter):
         # do filling
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
-                x1, y1, x2, y2 = {
-                    'top': (pts[0].x(), posn[1], pts[-1].x(), posn[1]),
-                    'bottom': (pts[0].x(), posn[3], pts[-1].x(), posn[3]),
-                    'left': (posn[0], pts[0].y(), posn[0], pts[-1].y()),
-                    'right': (posn[2], pts[0].y(), posn[2], pts[-1].y())
-                }[fillstyle.fillto]
+                ft = fillstyle.fillto
+                if ft == 'zero':
+                    # Get zero position from y-axis
+                    zero_val = self.getScreenPos(self.yAxis, 0)[1]
+                    x1, y1, x2, y2 = pts[0].x(), zero_val, pts[-1].x(), zero_val
+                elif ft == 'custom':
+                    fillto_val = fillstyle.filltoValue
+                    if fillto_val != 'Auto':
+                        zero_val = self.getScreenPos(self.yAxis, fillto_val)[1]
+                        x1, y1, x2, y2 = pts[0].x(), zero_val, pts[-1].x(), zero_val
+                    else:
+                        x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
+                elif ft == 'top':
+                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
+                elif ft == 'bottom':
+                    x1, y1, x2, y2 = pts[0].x(), posn[3], pts[-1].x(), posn[3]
+                elif ft == 'left':
+                    x1, y1, x2, y2 = posn[0], pts[0].y(), posn[0], pts[-1].y()
+                elif ft == 'right':
+                    x1, y1, x2, y2 = posn[2], pts[0].y(), posn[2], pts[-1].y()
+                else:
+                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
 
                 temppath = qt.QPainterPath(path)
                 temppath.lineTo(x2, y2)
@@ -713,7 +749,19 @@ class PointPlotter(GenericPlotter):
         # do filling
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
-                fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
+                ft = fillstyle.fillto
+                if ft == 'zero':
+                    zero_val = self.getScreenPos(self.yAxis, 0)[1]
+                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=zero_val)
+                elif ft == 'custom':
+                    fillto_val = fillstyle.filltoValue
+                    if fillto_val != 'Auto':
+                        zero_val = self.getScreenPos(self.yAxis, fillto_val)[1]
+                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=zero_val)
+                    else:
+                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
+                else:
+                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
 
         # draw line between points
         if not s.PlotLine.hide:

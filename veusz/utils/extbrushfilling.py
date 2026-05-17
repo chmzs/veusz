@@ -3,8 +3,8 @@
 #
 #    This file is part of Veusz.
 #
-#    Veusz is free software: you can redistribute it and/or modify it
-#    under the terms of the GNU General Public License as published by
+#    Veusz is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 2 of the License, or
 #    (at your option) any later version.
 #
@@ -20,7 +20,7 @@
 
 """Paint fills with extended brush class.
 
-Paints solid, hatching and various qt brushes
+Paints solid, hatching, gradient and various qt brushes
 """
 
 import math
@@ -29,6 +29,7 @@ import numpy as N
 
 from .. import qtall as qt
 from ..helpers.qtloops import plotLinesToPainter, polygonClip
+from . import gradient as gradient_module
 
 def dumppath(p):
     i =0
@@ -181,6 +182,46 @@ _fillcnvt = {
     '6% dense': qt.Qt.BrushStyle.Dense7Pattern
 }
 
+def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
+                               dataindex=0):
+    """Fill a path with a gradient brush.
+
+    Uses the gradient module for gradient creation.
+
+    gradient_setting contains:
+      - type: 'linear' or 'radial'
+      - angle: float (0-360) for linear gradient
+      - stops: list of (offset, color) tuples
+      - enabled: bool
+    """
+    gradient_setting = extbrush.get('Gradient', None)
+    if not gradient_setting:
+        return
+
+    # Get gradient configuration from setting
+    config = gradient_module.get_gradient_config(gradient_setting)
+    if not config.enabled:
+        return
+
+    # Get bounding rect of path for gradient coordinates
+    bb = path.boundingRect()
+
+    # Create gradient based on configuration
+    qt_gradient = gradient_module.create_gradient_from_config(config, bb)
+
+    # Create brush with gradient
+    brush = qt.QBrush(qt_gradient)
+
+    # Apply fill
+    if stroke is None:
+        painter.fillPath(path, brush)
+    else:
+        painter.save()
+        painter.setPen(stroke)
+        painter.setBrush(brush)
+        painter.drawPath(path)
+        painter.restore()
+
 def brushExtFillPath(painter, extbrush, path, ignorehide=False,
                      stroke=None, dataindex=0):
     """Use an BrushExtended settings object to fill a path on painter.
@@ -191,6 +232,11 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
     if extbrush.hide and not ignorehide:
         if stroke is not None:
             painter.strokePath(path, stroke)
+        return
+
+    # Check for gradient fill - if enabled, use gradient rendering
+    if gradient_module.is_gradient_enabled(extbrush.get('Gradient', None)):
+        _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex)
         return
 
     style = extbrush.style
