@@ -235,7 +235,8 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
         return
 
     # Check for gradient fill - if enabled, use gradient rendering
-    if gradient_module.is_gradient_enabled(extbrush.get('Gradient', None)):
+    gradient_setting = extbrush.get(name='Gradient') if 'Gradient' in extbrush else None
+    if gradient_module.is_gradient_enabled(gradient_setting):
         _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex)
         return
 
