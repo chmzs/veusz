@@ -113,6 +113,9 @@ excluded_tests = set([
         '3d_points.vsz',
         '3d_surface.vsz',
         '3d_volume.vsz',
+
+        # Python unittest file - output is 'OK'/'FAILED' text, not SVG
+        'test_gradient_fill.py',
     ])
 
 class StupidFontMetrics:
