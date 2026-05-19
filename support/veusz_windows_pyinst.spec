@@ -10,8 +10,13 @@ icon = os.path.abspath('icons\\veusz.ico')
 analysis = Analysis(
     ['..\\veusz\\veusz_main.py'],
     hiddenimports=[],
-    hookspath=[],
-    runtime_hooks=[])
+    hookspath=['hooks'],
+    runtime_hooks=[],
+    exclude_binaries=True,
+    )
+
+# Exclude astropy.wcs completely to avoid subprocess crashes with pyinstaller
+analysis.excludedimports = ['astropy.wcs']
 
 # TODO set version
 

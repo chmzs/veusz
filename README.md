@@ -10,6 +10,12 @@ SAMP interfaces to its plotting facilities. It also allows for
 manipulation and editing of datasets. Data can be captured from
 external sources such as Internet sockets or other programs.
 
+Changes in 4.2.1.1:
+  * Add CI column selection for XY plot (PointPlotter)
+  * Add CI column selection for Bar plot
+  * Add Rectangle explicit bounds mode (xmin/xmax/ymin/ymax)
+  * Add gradient fill support (linear/radial gradients)
+
 Changes in 4.2.1:
   * Change tutorial highlight color to magenta
   * Fix missing icon in tutorial
