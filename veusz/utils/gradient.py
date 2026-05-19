@@ -70,14 +70,17 @@ class GradientConfig:
         """Create GradientConfig from a dictionary.
 
         Args:
-            d: Dictionary with gradient configuration
+            d: Dictionary with gradient configuration.
+                Keys: 'enabled', 'type' (or 'grad_type'), 'angle', 'stops', 'transparency'
 
         Returns:
             GradientConfig instance
         """
+        # Support both 'type' and 'grad_type' keys for backward compatibility
+        grad_type = d.get('type') or d.get('grad_type', 'linear')
         return cls(
             enabled=d.get('enabled', False),
-            grad_type=d.get('type', 'linear'),
+            grad_type=grad_type,
             angle=d.get('angle', 90),
             stops=d.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')]),
             transparency=d.get('transparency', 0)
