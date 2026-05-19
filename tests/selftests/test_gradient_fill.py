@@ -1,12 +1,11 @@
 """Unit tests for gradient fill functionality.
 
-These tests can be run standalone without the full Veusz environment.
+These tests can be run standalone or via runselftest.py
 """
 
 import sys
 import os
 import unittest
-import math
 
 # Direct import from utils directory (gradient module is standalone)
 _utils_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'veusz', 'utils')
@@ -178,5 +177,27 @@ class TestGradientUtils(unittest.TestCase):
         self.assertTrue(self.gradient.is_gradient_enabled(config))
 
 
+def main(outfile):
+    """Run tests and write success marker to outfile."""
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromModule(sys.modules[__name__])
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+
+    # Write success marker to outfile
+    with open(outfile, 'w') as f:
+        if result.wasSuccessful():
+            f.write('OK')
+        else:
+            f.write('FAILED')
+
+    sys.exit(0 if result.wasSuccessful() else 1)
+
+
 if __name__ == '__main__':
-    unittest.main(argv=[''], exit=False)
+    if len(sys.argv) > 1:
+        # Called by runselftest.py with outfile argument
+        main(sys.argv[1])
+    else:
+        # Standalone run
+        unittest.main(argv=[''], exit=False)
