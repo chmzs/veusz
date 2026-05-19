@@ -310,7 +310,7 @@ class PointFill(BrushExtended):
 
         self.add( setting.Choice(
             'fillto',
-            ['top', 'bottom', 'left', 'right', 'zero', 'custom'],
+            ['top', 'bottom', 'left', 'right', 'mean', 'custom'],
             'top',
             descr=_('Edge to fill towards'),
             usertext=_('Fill to')), 0)
@@ -324,6 +324,7 @@ class PointFill(BrushExtended):
             'hideerror', False,
             descr=_('Hide the filled region inside the error bars'),
             usertext=_('Hide error fill')) )
+
 
 class ShapeFill(BrushExtended):
     '''Filling used for filling shapes.'''

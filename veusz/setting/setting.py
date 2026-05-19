@@ -37,6 +37,7 @@ from .. import qtall as qt
 from . import controls
 from .settingdb import settingdb, uilocale, ui_floattostring, ui_stringtofloat
 from .reference import ReferenceBase, Reference
+from .settings import Settings
 
 from .. import utils
 from .. import datasets
@@ -1712,7 +1713,8 @@ class FillSet(Setting):
 
         (style, color, hide,
         [optional transparency, linewidth,
-         linestyle, spacing, backcolor, backtrans, backhide]])
+         linestyle, spacing, backcolor, backtrans, backhide,
+         gradient_dict])
 
         """
 
@@ -1751,10 +1753,20 @@ class FillSet(Setting):
             s.style = v[0]
             s.color = v[1]
             s.hide = v[2]
-            if len(v) == 10:
+            if len(v) >= 10:
                 (s.transparency, s.linewidth, s.linestyle,
                  s.patternspacing, s.backcolor,
-                 s.backtransparency, s.backhide) = v[3:]
+                 s.backtransparency, s.backhide) = v[3:10]
+            # Load gradient settings if present (index 10)
+            if len(v) >= 11 and v[10]:
+                s.Gradient = v[10]
+        return s
+
+    def getDefaultBrushExtended(self):
+        """Return default BrushExtended for new rows."""
+        from . import collections
+        s = collections.BrushExtended('tempbrush')
+        s.parent = self
         return s
 
 class Filename(Str):
@@ -2051,6 +2063,7 @@ class GradientFill(Setting):
 
     def makeControl(self, *args):
         return controls.GradientFill(self, *args)
+
 
 class AxisBound(FloatOrAuto):
     """Axis bound - either numeric, Auto or date."""

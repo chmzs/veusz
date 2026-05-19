@@ -29,6 +29,16 @@ from .. import utils
 
 from .plotters import GenericPlotter
 
+
+def _barCiModeShowfn(val):
+    """Show/hide CI settings based on ciMode value."""
+    if val == 'custom':
+        return (('ciYMin', 'ciYMax'), ('ciYError', 'ciMultiplier'))
+    elif val == 'std':
+        return (('ciYError', 'ciMultiplier'), ('ciYMin', 'ciYMax'))
+    else:
+        return ((), ('ciYMin', 'ciYMax', 'ciYError', 'ciMultiplier'))
+
 def _(text, disambiguation=None, context='BarPlotter'):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
@@ -124,6 +134,40 @@ class BarPlotter(GenericPlotter):
             'bar',
             descr=_('Error bar style to show'),
             usertext=_('Error style'),
+            formatting=True) )
+
+        # CI mode for bar plots
+        s.add( setting.ChoiceSwitch(
+            'ciMode',
+            ['', 'custom', 'std'],
+            '',
+            showfn=_barCiModeShowfn,
+            descr=_('Confidence interval mode for bar height'),
+            usertext=_('CI mode'),
+            formatting=True) )
+
+        # Custom dataset mode settings
+        s.add( setting.Str(
+            'ciYMin', '',
+            descr=_('Dataset for minimum y confidence interval'),
+            usertext=_('CI Y min'),
+            formatting=True) )
+        s.add( setting.Str(
+            'ciYMax', '',
+            descr=_('Dataset for maximum y confidence interval'),
+            usertext=_('CI Y max'),
+            formatting=True) )
+
+        # Standard deviation mode settings
+        s.add( setting.Str(
+            'ciYError', '',
+            descr=_('Dataset for Y error (y +/- error * multiplier)'),
+            usertext=_('CI Y error'),
+            formatting=True) )
+        s.add( setting.Float(
+            'ciMultiplier', 1.0,
+            descr=_('Multiplier for error values (e.g. 2 for 2*std)'),
+            usertext=_('CI multiplier'),
             formatting=True) )
 
         s.add(BarFill(
@@ -245,10 +289,34 @@ class BarPlotter(GenericPlotter):
 
         return posns,  maxwidth
 
-    def calculateErrorBars(self, dataset, vals):
+    def calculateErrorBars(self, dataset, vals, ciMode='', ciYMin='', ciYMax='',
+                           ciYError='', ciMultiplier=1.0):
         """Get values for error bars."""
         minval = None
         maxval = None
+
+        if ciMode == 'std' and ciYError:
+            # Use std mode: y +/- error * multiplier
+            err_ds = self.document.getData(ciYError)
+            if err_ds is not None:
+                s = N.nan_to_num(err_ds.data.astype(float)) * ciMultiplier
+                minval = vals - s
+                maxval = vals + s
+                return minval, maxval
+
+        elif ciMode == 'custom':
+            # Use custom datasets for CI bounds
+            if ciYMin:
+                min_ds = self.document.getData(ciYMin)
+                if min_ds is not None:
+                    minval = min_ds.data.astype(float)
+            if ciYMax:
+                max_ds = self.document.getData(ciYMax)
+                if max_ds is not None:
+                    maxval = max_ds.data.astype(float)
+            return minval, maxval
+
+        # Default: use dataset's built-in error columns
         if 'serr' in dataset:
             s = N.nan_to_num(dataset['serr'])
             minval = vals - s
@@ -267,7 +335,14 @@ class BarPlotter(GenericPlotter):
         if s.errorstyle == 'none':
             return
 
-        minval, maxval = self.calculateErrorBars(dataset, yvals)
+        minval, maxval = self.calculateErrorBars(
+            dataset, yvals,
+            ciMode=s.ciMode,
+            ciYMin=s.ciYMin,
+            ciYMax=s.ciYMax,
+            ciYError=s.ciYError,
+            ciMultiplier=s.ciMultiplier
+        )
         if minval is None and maxval is None:
             return
 

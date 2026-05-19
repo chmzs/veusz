@@ -31,6 +31,7 @@ import numpy as N
 
 from .. import qtall as qt
 from .settingdb import settingdb
+from . import setting
 from .. import utils
 
 def _(text, disambiguation=None, context="Setting"):
@@ -2064,7 +2065,7 @@ class GradientFill(qt.QWidget):
         self.setting = setting
         self.document = setting.getDocument()
         self.updating = False
-
+        self.stop_widgets = []  # Initialize before loadFromSetting to avoid AttributeError
         # Main layout
         main_layout = qt.QVBoxLayout(self)
         main_layout.setSpacing(4)
@@ -2075,13 +2076,12 @@ class GradientFill(qt.QWidget):
         self.enable_cb.stateChanged.connect(self.slotEnableChanged)
         main_layout.addWidget(self.enable_cb)
 
-        # Type selection (horizontal layout)
-        type_layout = qt.QHBoxLayout()
-        type_layout.setSpacing(8)
+        # Preset selection (full width)
+        preset_layout = qt.QHBoxLayout()
+        preset_layout.setSpacing(8)
 
-        # Preset selection
         preset_label = qt.QLabel(_('Preset:'))
-        type_layout.addWidget(preset_label)
+        preset_layout.addWidget(preset_label)
 
         self.preset_combo = qt.QComboBox()
         self.preset_combo.addItem(_('Custom'), userData=None)
@@ -2095,7 +2095,13 @@ class GradientFill(qt.QWidget):
         except ImportError:
             pass
         self.preset_combo.currentIndexChanged.connect(self.slotPresetChanged)
-        type_layout.addWidget(self.preset_combo)
+        preset_layout.addWidget(self.preset_combo)
+        preset_layout.addStretch()
+        main_layout.addLayout(preset_layout)
+
+        # Type and Angle (next line)
+        type_layout = qt.QHBoxLayout()
+        type_layout.setSpacing(8)
 
         type_label = qt.QLabel(_('Type:'))
         type_layout.addWidget(type_label)
@@ -2115,18 +2121,26 @@ class GradientFill(qt.QWidget):
         self.angle_spin.valueChanged.connect(self.slotAngleChanged)
         type_layout.addWidget(self.angle_spin)
 
+        # Reverse gradient button
+        self.reverse_btn = qt.QPushButton(_('⟲'))
+        self.reverse_btn.setToolTip(_('Reverse gradient colors'))
+        self.reverse_btn.setMaximumWidth(30)
+        self.reverse_btn.clicked.connect(self.slotReverseClicked)
+        type_layout.addWidget(self.reverse_btn)
+
         type_layout.addStretch()
         main_layout.addLayout(type_layout)
 
-        # Color stops
+        # Color stops (separate line, full width)
+        stops_label = qt.QLabel(_('Color stops:'))
+        main_layout.addWidget(stops_label)
+
         self.stops_widget = qt.QWidget()
         stops_layout = qt.QVBoxLayout(self.stops_widget)
         stops_layout.setSpacing(4)
         stops_layout.setContentsMargins(0, 0, 0, 0)
 
         stops_header = qt.QHBoxLayout()
-        stops_title = qt.QLabel(_('Color stops:'))
-        stops_header.addWidget(stops_title)
         stops_header.addStretch()
 
         add_btn = qt.QPushButton('+')
@@ -2180,6 +2194,8 @@ class GradientFill(qt.QWidget):
                 child.widget().deleteLater()
 
         stops = val.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')])
+        # Normalize: convert [[]] to [()] for consistency
+        stops = [tuple(s) if isinstance(s, (list, tuple)) and len(s) == 2 else s for s in stops]
         self.stop_widgets = []
         for offset, color in stops:
             sw = ColorStopWidget(offset, color, self.stops_content)
@@ -2239,6 +2255,31 @@ class GradientFill(qt.QWidget):
     @qt.pyqtSlot(int)
     def slotAngleChanged(self, value):
         self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot()
+    def slotReverseClicked(self):
+        """Reverse the gradient colors."""
+        val = self.setting.val
+        stops = val.get('stops', [])
+
+        # Reverse the stops list
+        reversed_stops = [(1.0 - offset, color) for offset, color in reversed(stops)]
+        # Re-normalize offsets to [0, 1]
+        if reversed_stops:
+            min_offset = min(offset for offset, _ in reversed_stops)
+            max_offset = max(offset for offset, _ in reversed_stops)
+            if max_offset != min_offset:
+                normalized_stops = []
+                for offset, color in reversed_stops:
+                    norm_offset = (offset - min_offset) / (max_offset - min_offset)
+                    normalized_stops.append((norm_offset, color))
+                reversed_stops = normalized_stops
+
+        val['stops'] = reversed_stops
+        val['reversed'] = not val.get('reversed', False)
+        self.setting.set(val)
+        self.loadFromSetting()
         self.saveToSetting()
 
     @qt.pyqtSlot(int)
@@ -2439,4 +2480,9 @@ class GradientPreview(qt.QWidget):
 
         brush = qt.QBrush(self.gradient)
         painter.fillRect(self.rect(), brush)
+
+
+
+
+
 

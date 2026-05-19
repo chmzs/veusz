@@ -15,7 +15,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Veusz. If not, see <https://www.gnu.org/licenses/>.
-#
+
 ##############################################################################
 
 """Paint fills with extended brush class.
@@ -194,7 +194,7 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
       - stops: list of (offset, color) tuples
       - enabled: bool
     """
-    gradient_setting = extbrush.get('Gradient', None)
+    gradient_setting = extbrush.get('Gradient')
     if not gradient_setting:
         return
 
@@ -235,8 +235,7 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
         return
 
     # Check for gradient fill - if enabled, use gradient rendering
-    gradient_setting = extbrush.get(name='Gradient') if 'Gradient' in extbrush else None
-    if gradient_module.is_gradient_enabled(gradient_setting):
+    if gradient_module.is_gradient_enabled(extbrush.get('Gradient')):
         _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex)
         return
 
@@ -261,7 +260,6 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
 
     elif style in _hatchmap:
         # fill with hatching
-
         if not extbrush.backhide:
             # background brush
             color = extbrush.get('backcolor').color(
@@ -278,7 +276,6 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
         lstyle, dashpattern = extbrush.get('linestyle')._linecnvt[
             extbrush.linestyle]
         pen = qt.QPen(color, width, lstyle)
-
         if dashpattern:
             pen.setDashPattern(dashpattern)
 
