@@ -83,8 +83,11 @@ jobs:
       with:
         name: windows-installer
         path: installer_out
+    - name: Package portable zip
+      run: |
+        powershell -Command "Compress-Archive -Path 'dist\\veusz_main' -DestinationPath 'veusz-4.2.1.1-windows-x64.zip' -Force"
     - name: Upload zip artifact
       uses: actions/upload-artifact@v4
       with:
-        name: portable-zip
-        path: 'dist\veusz_main'
+        name: veusz-4.2.1.1-windows-x64
+        path: veusz-4.2.1.1-windows-x64.zip
