@@ -1,6 +1,6 @@
 [workspace]
 name = "veusz"
-version = "4.2.1"
+version = "4.2.1.1"
 description = "Veusz - Scientific plotting application"
 authors = ["Jeremy Sanders"]
 license = "GPL-2.0-or-later"
