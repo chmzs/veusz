@@ -294,6 +294,18 @@ class PlotterFill(BrushExtended):
 
         self.get('hide').newDefault(True)
 
+        self.add( setting.Choice(
+            'fillto',
+            ['top', 'bottom', 'left', 'right', 'custom'],
+            'bottom',
+            descr=_('Edge to fill towards'),
+            usertext=_('Fill to')))
+
+        self.add( setting.FloatOrAuto(
+            'filltoValue', 0.,
+            descr=_('Value to fill towards when fillto is custom'),
+            usertext=_('Fill to value')) )
+
 class PointFill(BrushExtended):
     '''Filling used for filling above/below line or inside error
     region for xy-point plotters.
@@ -310,13 +322,13 @@ class PointFill(BrushExtended):
 
         self.add( setting.Choice(
             'fillto',
-            ['top', 'bottom', 'left', 'right', 'mean', 'custom'],
-            'top',
+            ['top', 'bottom', 'left', 'right', 'custom'],
+            'bottom',
             descr=_('Edge to fill towards'),
             usertext=_('Fill to')), 0)
 
         self.add( setting.FloatOrAuto(
-            'filltoValue', 'Auto',
+            'filltoValue', 0.,
             descr=_('Value to fill towards when fillto is custom'),
             usertext=_('Fill to value')) )
 

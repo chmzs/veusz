@@ -2373,17 +2373,25 @@ class ColorStopWidget(qt.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Position slider
+        # Position slider (0-10000 for 0.01% precision)
         self.pos_slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
-        self.pos_slider.setRange(0, 100)
-        self.pos_slider.setValue(int(offset * 100))
+        self.pos_slider.setRange(0, 10000)
+        self.pos_slider.setValue(int(offset * 10000))
         self.pos_slider.setMaximumWidth(100)
         self.pos_slider.valueChanged.connect(self.slotPosChanged)
         layout.addWidget(self.pos_slider)
 
-        # Position label
-        self.pos_label = qt.QLabel(f'{offset:.0%}')
-        self.pos_label.setMinimumWidth(40)
-        layout.addWidget(self.pos_label)
+        # Position edit (direct input, supports decimals)
+        self.pos_edit = qt.QLineEdit()
+        self.pos_edit.setText(f'{offset*100:.2f}')
+        self.pos_edit.setMaximumWidth(50)
+        self.pos_edit.setValidator(qt.QDoubleValidator(0, 100, 2, self.pos_edit))
+        self.pos_edit.editingFinished.connect(self.slotEditFinished)
+        layout.addWidget(self.pos_edit)
+
+        # Unit label
+        unit_label = qt.QLabel('%')
+        layout.addWidget(unit_label)
 
         # Color button
         self.color_btn = qt.QPushButton()
@@ -2405,9 +2413,22 @@ class ColorStopWidget(qt.QWidget):
 
     @qt.pyqtSlot(int)
     def slotPosChanged(self, value):
-        self._offset = value / 100.0
-        self.pos_label.setText(f'{self._offset:.0%}')
+        self._offset = value / 10000.0
+        self.pos_edit.setText(f'{self._offset*100:.2f}')
         self.offset_changed.emit(self._offset)
+
+    @qt.pyqtSlot()
+    def slotEditFinished(self):
+        try:
+            val = float(self.pos_edit.text())
+            val = max(0.0, min(100.0, val))
+            self._offset = val / 100.0
+            self.pos_slider.blockSignals(True)
+            self.pos_slider.setValue(int(round(val * 100)))  # 0.5% = 50 on slider
+            self.pos_slider.blockSignals(False)
+            self.offset_changed.emit(self._offset)
+        except ValueError:
+            self.pos_edit.setText(f'{self._offset*100:.2f}')
 
     def slotColorClicked(self):
         col = qt.QColorDialog.getColor(qt.QColor(self._color), self)

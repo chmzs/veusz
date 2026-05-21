@@ -313,50 +313,6 @@ class ErrorBarDraw:
         'linevertlo': (errorsFilled,),
         'lineverthi': (errorsFilled,),
     }
-
-def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=None):
-    """Fill points depending on fill mode.
-
-    zero_val is the y-value to fill to when fillto is 'zero' or 'custom'.
-    """
-    ft = fillstyle.fillto
-    if ft == 'top':
-        x1, x2 = pts[0].x(), pts[-1].x()
-        y1 = y2 = posn[1]
-    elif ft == 'bottom':
-        x1, x2 = pts[0].x(), pts[-1].x()
-        y1 = y2 = posn[3]
-    elif ft == 'left':
-        y1, y2 = pts[0].y(), pts[-1].y()
-        x1 = x2 = posn[0]
-    elif ft == 'right':
-        y1, y2 = pts[0].y(), pts[-1].y()
-        x1 = x2 = posn[2]
-    elif ft == 'zero':
-        if zero_val is not None:
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = zero_val
-        else:
-            # Fallback to bottom if no zero value
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = posn[3]
-    elif ft == 'custom' or ft == 'mean':
-        fillto_val = fillstyle.filltoValue
-        if zero_val is not None:
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = zero_val
-        else:
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = posn[3]
-    else:
-        raise RuntimeError('Invalid fillto mode')
-
-    polypts = qt.QPolygonF([qt.QPointF(x1, y1)])
-    polypts += pts
-    polypts.append(qt.QPointF(x2, y2))
-
-    utils.brushExtFillPolygon(painter, fillstyle, cliprect, polypts)
-
 class MarkerFillBrush(setting.Brush):
     def __init__(self, name, **args):
         setting.Brush.__init__(self, name, **args)
@@ -889,18 +845,19 @@ class PointPlotter(GenericPlotter):
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
                 ft = fillstyle.fillto
+                # Compute fill value if needed for 'custom' or 'mean'
+                fillto_val = None
                 if ft == 'mean':
-                    # Fill to mean of Y plotter values (screen coordinates)
                     mean_val = N.mean(yvals)
-                    val_arr = yAxis.dataToPlotterCoords(posn, N.array([mean_val]))[0]
-                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=val_arr)
+                    fillto_val = yAxis.dataToPlotterCoords(posn, N.array([mean_val]))[0]
                 elif ft == 'custom':
-                    fillto_val = fillstyle.filltoValue
-                    if fillto_val != 'Auto':
-                        val_arr = yAxis.dataToPlotterCoords(posn, N.array([fillto_val]))[0]
-                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=val_arr)
-                else:
-                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
+                    val = fillstyle.filltoValue
+                    if val != 'Auto':
+                        fillto_val = yAxis.dataToPlotterCoords(posn, N.array([val]))[0]
+                
+                # Use unified fillToEdgePolygon helper
+                polypts = utils.fillToEdgePolygon(pts, posn, ft, filltoValue=fillto_val)
+                utils.brushExtFillPolygon(painter, fillstyle, cliprect, polypts)
 
         # draw line between points
         if not s.PlotLine.hide:

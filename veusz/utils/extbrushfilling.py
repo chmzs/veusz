@@ -1,4 +1,4 @@
-#    Copyright (C) 2012 Jeremy S. Sanders
+﻿#    Copyright (C) 2012 Jeremy S. Sanders
 #    Email: Jeremy Sanders <jeremy@jeremysanders.net>
 #
 #    This file is part of Veusz.
@@ -294,3 +294,84 @@ def brushExtFillPolygon(painter, extbrush, cliprect, polygon, ignorehide=False):
     path = qt.QPainterPath()
     path.addPolygon(clipped)
     brushExtFillPath(painter, extbrush, path, ignorehide=ignorehide)
+
+def fillToEdgePolygon(pts, bounds, fillto, filltoValue=None, axes=None):
+    """Create a polygon that fills points to a boundary edge.
+
+    Args:
+        pts: QPolygonF of data points
+        bounds: tuple (x1, y1, x2, y2) defining plot boundaries
+        fillto: 'top', 'bottom', 'left', 'right', 'custom', 'mean'
+        filltoValue: numeric value when fillto='custom', or None for default edge
+        axes: (xAxis, yAxis) tuple for coordinate conversion, or None
+
+    Returns:
+        QPolygonF: polygon ready for filling (includes edge points)
+    """
+    x1, y1, x2, y2 = bounds
+
+    # Determine the fill boundary y/x coordinate
+    if fillto == 'top':
+        fill_y = y1
+        fill_x = None  # horizontal fill
+    elif fillto == 'bottom':
+        fill_y = y2
+        fill_x = None
+    elif fillto == 'left':
+        fill_x = x1
+        fill_y = None  # vertical fill
+    elif fillto == 'right':
+        fill_x = x2
+        fill_y = None
+    elif fillto in ('custom', 'mean') or filltoValue is not None:
+        # Use provided filltoValue (from 'mean' or 'custom') or explicit filltoValue
+        if filltoValue is not None and filltoValue != 'Auto' and filltoValue != 'zero':
+            if axes is not None:
+                # Convert data value to plotter coordinates
+                yAxis = axes[1] if len(axes) > 1 else None
+                if yAxis is not None:
+                    try:
+                        val_arr = yAxis.dataToPlotterCoords(bounds, N.array([filltoValue]))
+                        fill_y = val_arr[0]  # y-axis value in plotter coords
+                        fill_x = None
+                    except (AttributeError, TypeError, IndexError):
+                        # Fallback to default edge
+                        fill_y = y2
+                        fill_x = None
+                else:
+                    # No axes available, use data value directly (assumes plotter coords)
+                    fill_y = filltoValue
+                    fill_x = None
+            else:
+                fill_y = filltoValue
+                fill_x = None
+        else:
+            # Auto or zero: fallback to bottom edge
+            fill_y = y2
+            fill_x = None
+    else:
+        # Default fallback: fill to bottom
+        fill_y = y2
+        fill_x = None
+
+    # Build the polygon with fill boundary
+    polypts = qt.QPolygonF()
+    
+    if fill_x is not None:
+        # Vertical fill (left/right)
+        polypts.append(qt.QPointF(fill_x, pts[0].y()))
+        for pt in pts:
+            polypts.append(pt)
+        polypts.append(qt.QPointF(fill_x, pts[-1].y()))
+    else:
+        # Horizontal fill (top/bottom/custom)
+        polypts.append(qt.QPointF(pts[0].x(), fill_y))
+        for pt in pts:
+            polypts.append(pt)
+        polypts.append(qt.QPointF(pts[-1].x(), fill_y))
+    
+    return polypts
+
+    return polypts
+
+    return polypts

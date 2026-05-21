@@ -2025,6 +2025,8 @@ class GradientFill(Setting):
       - angle: float (0-360) for linear gradient
       - stops: list of (offset, color) tuples (offset 0-1)
       - enabled: bool
+      - midpoint: float (0-1) or None, position of gradient midpoint
+        (when set, stops are remapped so midpoint color aligns to this position)
     """
 
     typename = 'gradient-fill'
@@ -2032,7 +2034,8 @@ class GradientFill(Setting):
     def __init__(self, name, val=None, **args):
         if val is None:
             val = {'enabled': False, 'type': 'linear', 'angle': 90,
-                   'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
+                   'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
+                   'midpoint': None}
         Setting.__init__(self, name, val, **args)
 
     def copy(self):
@@ -2052,13 +2055,23 @@ class GradientFill(Setting):
         colors = ', '.join([c for _, c in stops])
         grad_type = self.val.get('type', 'linear')
         angle = self.val.get('angle', 90)
-        return f'{grad_type} {angle}deg: {colors}'
+        midpoint = self.val.get('midpoint')
+        mid_str = f', mid={midpoint:.0%}' if midpoint is not None else ''
+        return f'{grad_type} {angle}deg{mid_str}: {colors}'
 
     def fromUIText(self, text):
         """Parse from text representation."""
         if text.lower() == 'disabled':
             return {'enabled': False, 'type': 'linear', 'angle': 90,
-                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
+                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
+                    'midpoint': None}
+        # try to parse midpoint from text like "linear 90deg, mid=50%: #ff0000, #0000ff"
+        import re
+        m = re.search(r'mid=([\d.]+)%', text)
+        if m:
+            result = dict(self.val)
+            result['midpoint'] = float(m.group(1)) / 100
+            return result
         return self.val
 
     def makeControl(self, *args):
