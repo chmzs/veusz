@@ -132,14 +132,35 @@ pixi run test
 python tests/selftests/test_gradient_fill.py
 ```
 
-## Building Installers
-Windows:
+## Building Installers (Windows)
+
+All build artifacts go to `support/build/` and `support/dist/` (gitignored).
+The fork builds into `support/dist/`, unlike upstream which uses root `dist/`.
+
 ```bash
-# Requires NSIS and PyInstaller
+# 1. Run tests first
+pixi run test                                    # gradient unit tests
+VEUSZ_INPLACE_TEST=1 pixi run python tests/runselftest.py   # full selftests
+
+# 2. PyInstaller build (from project root, outputs to support/dist + support/build)
+pixi run python -m PyInstaller support/veusz_windows_pyinst.spec \
+  --distpath support/dist --workpath support/build
+
+# 3. Portable zip (optional, no NSIS needed)
+cd support/dist
+powershell -Command "Compress-Archive -Path 'veusz_main' -DestinationPath 'veusz-<VER>-windows-x64-portable.zip' -Force"
+
+# 4. NSIS installer (requires NSIS, e.g. D:\Program Files (x86)\NSIS)
 cd support
-pyinstaller veusz_windows_pyinst.spec
-# Then run veusz_windows_make_nsi.py
+python veusz_windows_make_nsi.py veusz_windows_setup.nsi   # generate .nsi from template
+mkdir -p installer_out
+MSYS_NO_PATHCONV=1 "/d/Program Files (x86)/NSIS/makensis.exe" veusz_windows_setup.nsi
+# Output: support/installer_out/veusz-<VER>-windows-x64-setup.exe
 ```
+
+Requirements: PyInstaller (pixi env), NSIS 3.x, pre-built `veusz/helpers/*.pyd`
+(compile once with `python setup.py build_ext --inplace`). VS2022 only needed
+for recompiling C++ extensions, not for packaging.
 
 ## Git Workflow
 - `dev` branch: Active development
