@@ -282,6 +282,62 @@ class TestGradientRendering(unittest.TestCase):
         self.assertEqual(self._render_center_alpha(100, 0), 0)
 
 
+class TestFillToEdgeTargets(unittest.TestCase):
+    """Test the shared fillToEdgeTargets helper (unified fillto edge logic)."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            from veusz import qtall as qt
+            from veusz.utils import extbrushfilling
+            cls.qt = qt
+            cls.extbrushfilling = extbrushfilling
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack")
+
+    @classmethod
+    def _pts(cls):
+        q = cls.qt
+        return q.QPolygonF([
+            q.QPointF(10, 20), q.QPointF(30, 40), q.QPointF(50, 60)])
+
+    def test_top(self):
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'top')
+        self.assertEqual((x1, y1, x2, y2), (10, 5, 50, 5))
+
+    def test_bottom(self):
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'bottom')
+        self.assertEqual((x1, y1, x2, y2), (10, 95, 50, 95))
+
+    def test_left(self):
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'left')
+        self.assertEqual((x1, y1, x2, y2), (0, 20, 0, 60))
+
+    def test_right(self):
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'right')
+        self.assertEqual((x1, y1, x2, y2), (100, 20, 100, 60))
+
+    def test_custom_numeric(self):
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'custom', filltoValue=50.0)
+        self.assertEqual((x1, y1, x2, y2), (10, 50, 50, 50))
+
+    def test_custom_auto_falls_back_to_bottom(self):
+        # 'Auto' string must not be fed into axis conversion; fall back to bottom
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'custom', filltoValue='Auto')
+        self.assertEqual(y1, 95)
+
+    def test_unknown_falls_back_to_bottom(self):
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'bogus')
+        self.assertEqual((y1, y2), (95, 95))
+
+
 def main(outfile):
     """Run tests and write success marker to outfile."""
     loader = unittest.TestLoader()

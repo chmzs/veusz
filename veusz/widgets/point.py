@@ -559,7 +559,6 @@ class PointPlotter(GenericPlotter):
                     if thin > 1:
                         ymin = ymin[::thin]
                         ymax = ymax[::thin]
-                        yplotter = yplotter[::thin]
                     ymin = axes[1].dataToPlotterCoords(posn, ymin)
                     ymax = axes[1].dataToPlotterCoords(posn, ymax)
 
@@ -574,7 +573,6 @@ class PointPlotter(GenericPlotter):
                     if thin > 1:
                         xmin = xmin[::thin]
                         xmax = xmax[::thin]
-                        xplotter = xplotter[::thin]
                     xmin = axes[0].dataToPlotterCoords(posn, xmin)
                     xmax = axes[0].dataToPlotterCoords(posn, xmax)
 
@@ -801,25 +799,13 @@ class PointPlotter(GenericPlotter):
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
                 ft = fillstyle.fillto
-                if ft == 'mean':
-                    # Fill to mean of Y plotter values (screen coordinates)
-                    mean_val = N.mean(yvals)
-                    val_arr = yAxis.dataToPlotterCoords(posn, N.array([mean_val]))[0]
-                    x1, y1, x2, y2 = pts[0].x(), val_arr, pts[-1].x(), val_arr
-                elif ft == 'custom':
-                    fillto_val = fillstyle.filltoValue
-                    val_arr = yAxis.dataToPlotterCoords(posn, N.array([fillto_val]))[0]
-                    x1, y1, x2, y2 = pts[0].x(), val_arr, pts[-1].x(), val_arr
-                elif ft == 'top':
-                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
-                elif ft == 'bottom':
-                    x1, y1, x2, y2 = pts[0].x(), posn[3], pts[-1].x(), posn[3]
-                elif ft == 'left':
-                    x1, y1, x2, y2 = posn[0], pts[0].y(), posn[0], pts[-1].y()
-                elif ft == 'right':
-                    x1, y1, x2, y2 = posn[2], pts[0].y(), posn[2], pts[-1].y()
-                else:
-                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
+                # Compute fill value if needed for 'custom'
+                fillto_val = None
+                if ft == 'custom' and fillstyle.filltoValue != 'Auto':
+                    fillto_val = yAxis.dataToPlotterCoords(
+                        posn, N.array([fillstyle.filltoValue]))[0]
+                x1, y1, x2, y2 = utils.fillToEdgeTargets(
+                    pts, posn, ft, filltoValue=fillto_val)
 
                 temppath = qt.QPainterPath(path)
                 temppath.lineTo(x2, y2)
@@ -845,16 +831,13 @@ class PointPlotter(GenericPlotter):
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
                 ft = fillstyle.fillto
-                # Compute fill value if needed for 'custom' or 'mean'
+                # Compute fill value if needed for 'custom'
                 fillto_val = None
-                if ft == 'mean':
-                    mean_val = N.mean(yvals)
-                    fillto_val = yAxis.dataToPlotterCoords(posn, N.array([mean_val]))[0]
-                elif ft == 'custom':
+                if ft == 'custom':
                     val = fillstyle.filltoValue
                     if val != 'Auto':
                         fillto_val = yAxis.dataToPlotterCoords(posn, N.array([val]))[0]
-                
+
                 # Use unified fillToEdgePolygon helper
                 polypts = utils.fillToEdgePolygon(pts, posn, ft, filltoValue=fillto_val)
                 utils.brushExtFillPolygon(painter, fillstyle, cliprect, polypts)

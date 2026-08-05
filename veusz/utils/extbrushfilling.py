@@ -308,18 +308,21 @@ def brushExtFillPolygon(painter, extbrush, cliprect, polygon, ignorehide=False):
     path.addPolygon(clipped)
     brushExtFillPath(painter, extbrush, path, ignorehide=ignorehide)
 
-def fillToEdgePolygon(pts, bounds, fillto, filltoValue=None, axes=None):
-    """Create a polygon that fills points to a boundary edge.
+def fillToEdgeTargets(pts, bounds, fillto, filltoValue=None, axes=None):
+    """Return the two closing points (x1, y1, x2, y2) that fill a line to an edge.
+
+    This is the single source of truth for fillto edge computation, shared by
+    fillToEdgePolygon (polygon fills) and bezier/line fills in the widgets.
 
     Args:
         pts: QPolygonF of data points
         bounds: tuple (x1, y1, x2, y2) defining plot boundaries
-        fillto: 'top', 'bottom', 'left', 'right', 'custom', 'mean'
+        fillto: 'top', 'bottom', 'left', 'right', 'custom', 'mean' or 'auto'
         filltoValue: numeric value when fillto='custom', or None for default edge
         axes: (xAxis, yAxis) tuple for coordinate conversion, or None
 
     Returns:
-        QPolygonF: polygon ready for filling (includes edge points)
+        (x1, y1, x2, y2): the start-edge and end-edge closing points
     """
     x1, y1, x2, y2 = bounds
 
@@ -359,32 +362,42 @@ def fillToEdgePolygon(pts, bounds, fillto, filltoValue=None, axes=None):
                 fill_y = filltoValue
                 fill_x = None
         else:
-            # Auto or zero: fallback to bottom edge
+            # 'Auto' or 'zero': fallback to bottom edge
             fill_y = y2
             fill_x = None
     else:
-        # Default fallback: fill to bottom
+        # 'auto' (or unknown): fallback to bottom edge
         fill_y = y2
         fill_x = None
 
-    # Build the polygon with fill boundary
-    polypts = qt.QPolygonF()
-    
     if fill_x is not None:
         # Vertical fill (left/right)
-        polypts.append(qt.QPointF(fill_x, pts[0].y()))
-        for pt in pts:
-            polypts.append(pt)
-        polypts.append(qt.QPointF(fill_x, pts[-1].y()))
-    else:
-        # Horizontal fill (top/bottom/custom)
-        polypts.append(qt.QPointF(pts[0].x(), fill_y))
-        for pt in pts:
-            polypts.append(pt)
-        polypts.append(qt.QPointF(pts[-1].x(), fill_y))
-    
-    return polypts
+        return (fill_x, pts[0].y(), fill_x, pts[-1].y())
+    # Horizontal fill (top/bottom/custom)
+    return (pts[0].x(), fill_y, pts[-1].x(), fill_y)
 
+
+def fillToEdgePolygon(pts, bounds, fillto, filltoValue=None, axes=None):
+    """Create a polygon that fills points to a boundary edge.
+
+    Args:
+        pts: QPolygonF of data points
+        bounds: tuple (x1, y1, x2, y2) defining plot boundaries
+        fillto: 'top', 'bottom', 'left', 'right', 'custom', 'mean'
+        filltoValue: numeric value when fillto='custom', or None for default edge
+        axes: (xAxis, yAxis) tuple for coordinate conversion, or None
+
+    Returns:
+        QPolygonF: polygon ready for filling (includes edge points)
+    """
+    x1, y1, x2, y2 = fillToEdgeTargets(pts, bounds, fillto, filltoValue, axes)
+
+    # Build the polygon with fill boundary
+    polypts = qt.QPolygonF()
+    polypts.append(qt.QPointF(x1, y1))
+    for pt in pts:
+        polypts.append(pt)
+    polypts.append(qt.QPointF(x2, y2))
     return polypts
 
     return polypts

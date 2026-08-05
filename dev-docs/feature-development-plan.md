@@ -181,15 +181,15 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 - 测试：5 个渲染级透明度测试（画渐变 → 查像素 alpha，含复合与全透明跳过）
 - 状态：**完成**
 
-### 批次 2：修复 Point/CI（P1-P6）
+### 批次 2：修复 Point/CI（P1-P6）✅
 **目标**：CI 填充正确、两条填充路径去重、fallback 一致。
-- P1：删 std 分支重复 thin 切片（point.py:560-562,574-577），只在入口切一次
-- P2：`_drawBezierLine` custom 分支加 `val != 'Auto'` 守卫（对齐 `_drawPlotLine:855`）
-- P3/P5：把 `_drawBezierLine` 的 fillto 分支替换为 `fillToEdgePolygon` 调用，统一 fallback
-- P4：从 `PointFill` Choice 移除不可达 'mean' 分支（或加进 Choice，推荐移除死代码）
-- P6：`fillToEdgePolygon` 增加 `'auto'` 分支处理，删多余 return
-- 测试：渲染级测试覆盖 fillto 各模式 + CI std/custom
-- 状态：**未开始**
+- P1：删 std 分支对 xplotter/yplotter 的重复 thin 切片（统一到入口切一次）
+- P2：`_drawBezierLine` custom 分支加 `val != 'Auto'` 守卫
+- P3/P5：新增共享 helper `fillToEdgeTargets`，`fillToEdgePolygon` 与 `_drawBezierLine` 统一使用，fallback 一致
+- P4：删除两处不可达的 'mean' 分支
+- P6：`fillToEdgeTargets` 增加 'auto' 回退注释，删除三重 return
+- 测试：7 个 `fillToEdgeTargets` 单元测试（各模式 + custom/'Auto' 守卫）
+- 状态：**完成**
 
 ### 批次 3：完成渐变对每数据集填充的集成（G1-G2, B1-B4）
 **目标**：bar/点图每个 dataset 可用渐变+透明度。
@@ -248,8 +248,9 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 | 批次 | 内容 | 状态 | 提交 |
 |------|------|------|------|
 | 0 | 交接文档 | ✅ | — |
-| 1 | 修复透明度分裂 | ✅ | 待提交 |
-| 2 | 修复 Point/CI | ⬜ | — |
+| 1 | 修复透明度分裂 | ✅ | 44777600 |
+| 2 | 修复 Point/CI | ✅ | 待提交 |
+| 3 | 渐变集成每数据集 | ⬜ | — |
 | 3 | 渐变集成每数据集 | ⬜ | — |
 | 4 | 渐变全量扩展 | ⬜ | — |
 | 5 | 修复 Rectangle bounds | ⬜ | — |
