@@ -1,6 +1,7 @@
 # files Git should always ignore
 
 *.pyc
+__pycache__/
 build/
 veusz/helpers/*.pyd
 veusz/helpers/*.so
@@ -15,5 +16,26 @@ Documents/man-page/*.1
 Documents/man-page/*.man.txt
 Documents/manual/
 
+# IDE / editor
 .idea/
+posit/
+.posit/
+
+# Python package / env
 veusz.egg-info/
+.pixi/
+
+# pixi environments (large, should not be tracked)
+.pixi/envs/
+
+# build artifacts (support/)
+support/build/
+support/dist/
+
+# dev/debug logs (not part of source)
+bug_log/
+_edit_gradient.py
+aqtinstall.log
+
+# caches
+.pytest_cache/
