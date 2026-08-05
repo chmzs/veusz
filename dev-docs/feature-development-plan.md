@@ -229,11 +229,16 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
   - 测试：FillCI 默认隐藏、_calcCI std/serr 模式
   - 状态：**完成**（37 测试 + 78 selftests）
 
-### 批次 8（延后）：饼图作为散点（比例点）— 详细方案见 `dev-docs/plans/2026-08-05.md`
+### 批次 8（进行中）：饼图作为散点（比例点）— 详细方案见 `dev-docs/plans/2026-08-05.md`
 - **背景**：古植物考古数据——每遗址一个饼图点，多作物占比分片，大小 ∝ 总样本量(√n)
-- **方案**：新 `ProportionalScatter` widget（B 改良版），复用 PointPlotter 骨架，替换"画标记"为逐点 `painter.drawPie`
-- **关键**：Veusz 非 Matplotlib；marker 单路径单色无法多片 → 需独立 widget；`scalePoints`+`equalarea` 复用实现 √n；数据需先行长→宽透视
-- 状态：**未开始**
+- **已实现（MVP）✅**：
+  - 新 `ProportionalScatter` widget（`veusz/widgets/proportions.py`，typename `proportions`）
+  - 三种 glyph：`pie`（drawPie）/ `donut`（内圆孔路径）/ `bar`（微型堆叠条）
+  - `scalePoints` 数据集 → 半径∝√n（面积正比）；`wedgeData` 多占比数据集
+  - 每点循环 `_CATEGORICAL` 调色板分色；0% 片跳过；可设 outline
+  - 5 个测试（√n 半径、三 glyph 渲染、零占比不崩）；42 测试 + 78 selftests 通过
+- **后续增强（待做）**：wedge 用户自定义颜色、n= 标注、`examples/proportional.vsz` 示例 + selftest 基线
+- 状态：**核心完成，增强待续**
 
 ### 渐变 UI 改进（已实施，用户要求优先）✅
 用**交互式渐变条**替换原来的滚动色标列表：
@@ -279,5 +284,5 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 | 4 | 渐变全量扩展（决策：跳过边缘） | ✅ | — |
 | 5 | 修复 Rectangle bounds | ✅ | 批次5提交 |
 | 6 | 测试套件加固 | ✅ | 批次6提交 |
-| 7 | 新增功能（B4 bar CI 带） | ⬜ | — |
-| 8 | 饼图作为散点（比例点） | ⬜ | — |
+| 7 | 新增功能（B4 bar CI 带） | ✅ | 批次7提交 |
+| 8 | 饼图作为散点（比例点）核心 | ✅ | 批次8提交 |
