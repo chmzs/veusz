@@ -147,6 +147,41 @@ class TestGradientHelpers(unittest.TestCase):
         self.assertIsNone(result)
 
 
+class TestFillToDefaults(unittest.TestCase):
+    """Regression test: fillto defaults must preserve FillBelow/FillAbove
+    semantics (see functions.vsz failure where 'bottom' default broke FillAbove).
+
+    Requires full veusz package (PyQt6 + helpers) - skipped otherwise.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Import veusz settings - needs PyQt6 stack."""
+        try:
+            from veusz.setting import collections
+            cls.collections = collections
+        except ImportError:
+            raise unittest.SkipTest("Cannot import veusz.setting.collections")
+
+    def test_plotter_fill_default_is_auto(self):
+        """Function-plot fills must default to 'auto' (preserve belowleft
+        semantics) so FillAbove fills to top and FillBelow fills to bottom."""
+        f = self.collections.PlotterFill('TestPlotterFill')
+        self.assertEqual(f.fillto, 'auto')
+
+    def test_plotter_fill_choices_include_auto(self):
+        """'auto' must be a selectable fillto choice for function plots."""
+        f = self.collections.PlotterFill('TestPlotterFill')
+        choices = f.get('fillto').vallist
+        self.assertIn('auto', choices)
+
+    def test_point_fill_default_is_top(self):
+        """PointPlotter fill class default must stay 'top' so FillAbove
+        (which overrides to 'bottom' via newDefault) keeps upstream behavior."""
+        f = self.collections.PointFill('TestPointFill')
+        self.assertEqual(f.fillto, 'top')
+
+
 class TestGradientUtils(unittest.TestCase):
     """Test gradient utility functions."""
 
