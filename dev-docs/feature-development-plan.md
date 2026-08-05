@@ -226,6 +226,12 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 - **B4**：bar 图 CI 填充带（复用 point 的 errorsFilled 思路，按 bar 几何，含 grouped/stacked + 水平方向）
 - 状态：**未开始**
 
+### 批次 8（延后）：饼图作为散点（比例点）— 详细方案见 `dev-docs/plans/2026-08-05.md`
+- **背景**：古植物考古数据——每遗址一个饼图点，多作物占比分片，大小 ∝ 总样本量(√n)
+- **方案**：新 `ProportionalScatter` widget（B 改良版），复用 PointPlotter 骨架，替换"画标记"为逐点 `painter.drawPie`
+- **关键**：Veusz 非 Matplotlib；marker 单路径单色无法多片 → 需独立 widget；`scalePoints`+`equalarea` 复用实现 √n；数据需先行长→宽透视
+- 状态：**未开始**
+
 ### 渐变 UI 改进（已实施，用户要求优先）✅
 用**交互式渐变条**替换原来的滚动色标列表：
 - 新增 `GradientBar` 组件：点击空白加色标 / 拖拽移动 / 双击换色 / 拖出删除；选中标记高亮
@@ -269,6 +275,6 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 | 3.5 | 渐变 UI 改进 | ✅ | UI提交 |
 | 4 | 渐变全量扩展（决策：跳过边缘） | ✅ | — |
 | 5 | 修复 Rectangle bounds | ✅ | 批次5提交 |
-| 6 | 测试套件加固 | ✅ | 待提交 |
-| 7 | 新增功能（B4） | ⬜ | — |
-| 6 | 测试套件加固 | ⬜ | — |
+| 6 | 测试套件加固 | ✅ | 批次6提交 |
+| 7 | 新增功能（B4 bar CI 带） | ⬜ | — |
+| 8 | 饼图作为散点（比例点） | ⬜ | — |
