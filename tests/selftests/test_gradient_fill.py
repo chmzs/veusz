@@ -368,7 +368,7 @@ class TestGradientControl(unittest.TestCase):
         w = self.controls.GradientFill(s)
         self.assertEqual(w.gradient_bar.stops(),
                          [(0.0, '#ff0000'), (0.5, '#00ff00'), (1.0, '#0000ff')])
-        self.assertEqual(w.transparency_slider.value(), 30)
+        self.assertEqual(w.transparency_spin.value(), 30)
 
     def test_bar_add_set_remove(self):
         w = self.controls.GradientFill(self._make_setting())

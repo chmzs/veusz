@@ -2321,15 +2321,12 @@ class GradientFill(qt.QWidget):
         trans_layout.setSpacing(8)
         trans_label = qt.QLabel(_('Transparency:'))
         trans_layout.addWidget(trans_label)
-        self.transparency_slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
-        self.transparency_slider.setRange(0, 100)
-        self.transparency_slider.valueChanged.connect(self.slotTransparencyChanged)
-        trans_layout.addWidget(self.transparency_slider)
         self.transparency_spin = qt.QSpinBox()
         self.transparency_spin.setRange(0, 100)
         self.transparency_spin.setSuffix('%')
         self.transparency_spin.valueChanged.connect(self.slotTransparencyChanged)
         trans_layout.addWidget(self.transparency_spin)
+        trans_layout.addStretch()
         main_layout.addLayout(trans_layout)
 
         # Color stops — interactive gradient bar (drag/click/dblclick editor)
@@ -2388,7 +2385,6 @@ class GradientFill(qt.QWidget):
         self.enable_cb.setChecked(val.get('enabled', False))
         self.type_combo.setCurrentIndex(0 if val.get('type', 'linear') == 'linear' else 1)
         self.angle_spin.setValue(int(val.get('angle', 90)))
-        self.transparency_slider.setValue(int(val.get('transparency', 0)))
         self.transparency_spin.setValue(int(val.get('transparency', 0)))
 
         # Load color stops into the interactive bar
@@ -2416,7 +2412,7 @@ class GradientFill(qt.QWidget):
             'enabled': enabled,
             'type': grad_type,
             'angle': angle,
-            'transparency': self.transparency_slider.value(),
+            'transparency': self.transparency_spin.value(),
             'stops': self.gradient_bar.stops()
         }
 
@@ -2432,7 +2428,7 @@ class GradientFill(qt.QWidget):
         grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
         angle = self.angle_spin.value()
         stops = self.gradient_bar.stops()
-        transparency = self.transparency_slider.value()
+        transparency = self.transparency_spin.value()
 
         self.preview.setGradient(grad_type, angle, stops, transparency)
 
@@ -2453,11 +2449,6 @@ class GradientFill(qt.QWidget):
 
     @qt.pyqtSlot(int)
     def slotTransparencyChanged(self, value):
-        # keep slider and spin in sync (guard avoids feedback loops)
-        if self.transparency_slider.value() != value:
-            self.transparency_slider.setValue(value)
-        if self.transparency_spin.value() != value:
-            self.transparency_spin.setValue(value)
         self.updatePreview()
         self.saveToSetting()
 
