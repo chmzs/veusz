@@ -6,6 +6,7 @@ These tests can be run standalone or via runselftest.py
 import sys
 import os
 import unittest
+import numpy as N
 
 # Direct import from utils directory (gradient module is standalone)
 _utils_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'veusz', 'utils')
@@ -394,6 +395,84 @@ class TestGradientControl(unittest.TestCase):
         self.assertEqual(s.val['stops'],
                          [(0.0, '#ff0000'), (0.5, '#00ff00'), (1.0, '#0000ff')])
         self.assertTrue(s.val['enabled'])
+
+
+class TestRectangleBounds(unittest.TestCase):
+    """Regression tests for Rectangle explicit-bounds mode (shape.py)."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            import veusz.widgets  # populate the widget registry
+            from veusz.widgets.shape import Rectangle
+            from veusz import qtall as qt
+            app = qt.QApplication.instance() or qt.QApplication([])
+            cls.qt = qt
+            cls.app = app
+            cls.Rectangle = Rectangle
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack for shape test")
+
+    @staticmethod
+    def _make_mock_doc():
+        class MockDoc:
+            def getData(self, name):
+                return None
+        return MockDoc()
+
+    def _make_rect(self, parent=None):
+        r = self.Rectangle(parent, name='rect1')
+        r.document = self._make_mock_doc()
+        r.settings.rectPosition = 'bounds'
+        return r
+
+    def test_fractional_fallback_no_axes(self):
+        """Rect on a page (no graph axes) uses fractional bounds (S4)."""
+        r = self._make_rect()  # parent None -> no getAxes
+        r.settings.xmin = [0.1]
+        r.settings.xmax = [0.6]
+        r.settings.ymin = [0.2]
+        r.settings.ymax = [0.8]
+        xmin, ymin, xmax, ymax = r._getBoundsCoords((0, 0, 300, 200))
+        self.assertAlmostEqual(xmin[0], 30.0)
+        self.assertAlmostEqual(ymin[0], 160.0)
+        self.assertAlmostEqual(xmax[0], 180.0)
+        self.assertAlmostEqual(ymax[0], 40.0)
+
+    def test_data_conversion_with_axes(self):
+        """Rect inside a graph converts data bounds to plotter coords."""
+        r = self._make_rect()
+
+        class MockAxis:
+            def dataToPlotterCoords(self, posn, vals):
+                return N.asarray(vals) * 100
+
+        class MockParent:
+            def getAxes(self, names):
+                return (MockAxis(), MockAxis())
+
+        r.parent = MockParent()
+        r.settings.xmin = [0.1]
+        r.settings.xmax = [0.6]
+        r.settings.ymin = [0.2]
+        r.settings.ymax = [0.8]
+        xmin, ymin, xmax, ymax = r._getBoundsCoords((0, 0, 300, 200))
+        self.assertAlmostEqual(xmin[0], 10.0)
+        self.assertAlmostEqual(ymin[0], 20.0)
+        self.assertAlmostEqual(xmax[0], 60.0)
+        self.assertAlmostEqual(ymax[0], 80.0)
+
+    def test_mismatched_lengths_no_crash(self):
+        """Bounds arrays of different lengths must not raise (S1)."""
+        r = self._make_rect()
+        r.settings.xmin = [0.1, 0.3, 0.5]
+        r.settings.xmax = [0.4, 0.6, 0.8]
+        r.settings.ymin = [0.2]
+        r.settings.ymax = [0.7]
+        xmin, ymin, xmax, ymax = r._getBoundsCoords((0, 0, 300, 200))
+        self.assertEqual(len(xmin), 3)
+        self.assertEqual(len(ymin), 1)
 
 
 def main(outfile):

@@ -199,20 +199,21 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 - 状态：**完成**
 - **B4（bar CI 填充带）延后**：这是新功能而非 bug 修复，且几何复杂（grouped/stacked、水平/垂直）。按"先修后增"原则移到新增功能批次（见批次 7）。
 
-### 批次 4：渐变全量扩展（G3）
-**目标**：箭头、boxplot 标记、3D 等所有 fill 支持渐变。
-- plain `Brush`：`makeQBrush` 加渐变分支（boxplot markers）
-- `ArrowFill`、3D surface/line 属性传递渐变
-- 测试：各扩展点渲染测试
-- 状态：**未开始**
+### 批次 4：渐变全量扩展（G3）✅（决策：跳过边缘）
+**目标**：评估非 BrushExtended 的 fill 渐变扩展。
+- **结论（用户拍板）**：渐变已覆盖 ~95% fill（形状/bar/CI/直方图/contour 等，经 `brushExtFillPath`）。
+  plain Brush（箱线标记/箭头）因 `setBrush`+循环 draw 模型只能跨视口渐变，视觉价值低，跳过。
+  3D 顶点着色渲染模型不同，另行评估。
+- 状态：**完成（无需代码变更）**
 
-### 批次 5：修复 Shape Rectangle bounds（S1-S4）
+### 批次 5：修复 Shape Rectangle bounds（S1-S4）✅
 **目标**：bounds 模式健壮、可交互。
-- S1：draw 循环用 `zip + itertools.cycle` 对齐长度（对齐 BoxShape）
-- S2/S3：补齐 bounds 模式交互控制项（拖拽/缩放），删除 else 死分支
-- S4：page 级（无 getAxes）时退化为 fractional 解释或提示
-- 测试：bounds 模式渲染 + 交互
-- 状态：**未开始**
+- S1：draw 循环用模索引 `arr[i % len(arr)]` 对齐（长度不齐不再 IndexError）
+- S2：bounds 模式为每个 rect 创建 `ControlResizableBox` 控制项（非 dataset 时），可拖拽/缩放
+- S3：`_getBoundsCoords`/`_getBoundsFromGraph` 消除死 else，改为"有 axes 转数据坐标 / 无 axes 用 fractional"单一路径
+- S4：rect 放 page（无 getAxes parent）时退化为 fractional 解释，不再静默失败
+- 测试：3 个 `TestRectangleBounds` 测试（fractional 降级、axes 转换、长度不齐）
+- 状态：**完成**
 
 ### 批次 6：测试套件加固（TE1）
 **目标**：所有新增功能有渲染级回归测试。
@@ -263,9 +264,10 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 | 0 | 交接文档 | ✅ | — |
 | 1 | 修复透明度分裂 | ✅ | 44777600 |
 | 2 | 修复 Point/CI | ✅ | 批次2提交 |
-| 3 | 渐变集成每数据集 (G1-G2) | ✅ | 待提交 |
-| 4 | 渐变全量扩展 | ⬜ | — |
-| 5 | 修复 Rectangle bounds | ⬜ | — |
+| 3 | 渐变集成每数据集 (G1-G2) | ✅ | 批次3提交 |
+| 3.5 | 渐变 UI 改进 | ✅ | UI提交 |
+| 4 | 渐变全量扩展（决策：跳过边缘） | ✅ | — |
+| 5 | 修复 Rectangle bounds | ✅ | 待提交 |
 | 6 | 测试套件加固 | ⬜ | — |
-| 7 | 新增功能（B4 + UI） | ⬜ | — |
+| 7 | 新增功能（B4） | ⬜ | — |
 | 6 | 测试套件加固 | ⬜ | — |

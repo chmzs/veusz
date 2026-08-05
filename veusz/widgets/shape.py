@@ -268,7 +268,13 @@ class Rectangle(BoxShape):
 
     def _getBoundsCoords(self, posn, xsetting='xmin', ysetting='ymin',
                          x2setting='xmax', y2setting='ymax'):
-        """Calculate bounds coordinates from axes or relative values."""
+        """Calculate bounds coordinates from axes or relative values.
+
+        If the rectangle has a graph parent with axes, bounds are converted
+        from data coordinates to plotter coordinates. Otherwise (e.g. the
+        rectangle sits directly on a page) the values are interpreted as
+        fractional coordinates within the plotter position.
+        """
         s = self.settings
         xmin = s.get(xsetting).getFloatArray(self.document)
         ymin = s.get(ysetting).getFloatArray(self.document)
@@ -276,22 +282,19 @@ class Rectangle(BoxShape):
         ymax = s.get(y2setting).getFloatArray(self.document)
         if xmin is None or ymin is None or xmax is None or ymax is None:
             return None, None, None, None
-        if s.rectPosition == 'bounds':
-            if hasattr(self.parent, 'getAxes'):
-                axes = self.parent.getAxes((s.xAxis, s.yAxis))
-            else:
-                return None, None, None, None
-            if axes[0] is None or axes[1] is None:
-                return None, None, None, None
-            xmin = axes[0].dataToPlotterCoords(posn, xmin)
-            ymin = axes[1].dataToPlotterCoords(posn, ymin)
-            xmax = axes[0].dataToPlotterCoords(posn, xmax)
-            ymax = axes[1].dataToPlotterCoords(posn, ymax)
-        else:
-            xmin = posn[0] + (posn[2]-posn[0])*xmin
-            ymin = posn[3] - (posn[3]-posn[1])*ymin
-            xmax = posn[0] + (posn[2]-posn[0])*xmax
-            ymax = posn[3] - (posn[3]-posn[1])*ymax
+        if hasattr(self.parent, 'getAxes'):
+            axes = self.parent.getAxes((s.xAxis, s.yAxis))
+            if axes[0] is not None and axes[1] is not None:
+                xmin = axes[0].dataToPlotterCoords(posn, xmin)
+                ymin = axes[1].dataToPlotterCoords(posn, ymin)
+                xmax = axes[0].dataToPlotterCoords(posn, xmax)
+                ymax = axes[1].dataToPlotterCoords(posn, ymax)
+                return xmin, ymin, xmax, ymax
+        # no graph axes: fractional coordinates within the plot position
+        xmin = posn[0] + (posn[2]-posn[0])*xmin
+        ymin = posn[3] - (posn[3]-posn[1])*ymin
+        xmax = posn[0] + (posn[2]-posn[0])*xmax
+        ymax = posn[3] - (posn[3]-posn[1])*ymax
         return xmin, ymin, xmax, ymax
 
     def _getBoundsFromGraph(self, posn, xmin_plt, xmax_plt, ymin_plt, ymax_plt):
@@ -301,22 +304,19 @@ class Rectangle(BoxShape):
         xmax_plt = N.array(xmax_plt)
         ymin_plt = N.array(ymin_plt)
         ymax_plt = N.array(ymax_plt)
-        if s.rectPosition == 'bounds':
-            if hasattr(self.parent, 'getAxes'):
-                axes = self.parent.getAxes((s.xAxis, s.yAxis))
-            else:
-                return None, None, None, None
-            if axes[0] is None or axes[1] is None:
-                return None, None, None, None
-            xmin = axes[0].plotterToDataCoords(posn, xmin_plt)
-            xmax = axes[0].plotterToDataCoords(posn, xmax_plt)
-            ymin = axes[1].plotterToDataCoords(posn, ymin_plt)
-            ymax = axes[1].plotterToDataCoords(posn, ymax_plt)
-        else:
-            xmin = (xmin_plt - posn[0]) / (posn[2]-posn[0])
-            xmax = (xmax_plt - posn[0]) / (posn[2]-posn[0])
-            ymin = (ymin_plt - posn[3]) / (posn[1]-posn[3])
-            ymax = (ymax_plt - posn[3]) / (posn[1]-posn[3])
+        if hasattr(self.parent, 'getAxes'):
+            axes = self.parent.getAxes((s.xAxis, s.yAxis))
+            if axes[0] is not None and axes[1] is not None:
+                xmin = axes[0].plotterToDataCoords(posn, xmin_plt)
+                xmax = axes[0].plotterToDataCoords(posn, xmax_plt)
+                ymin = axes[1].plotterToDataCoords(posn, ymin_plt)
+                ymax = axes[1].plotterToDataCoords(posn, ymax_plt)
+                return xmin, xmax, ymin, ymax
+        # no graph axes: fractional inverse
+        xmin = (xmin_plt - posn[0]) / (posn[2]-posn[0])
+        xmax = (xmax_plt - posn[0]) / (posn[2]-posn[0])
+        ymin = (ymin_plt - posn[3]) / (posn[1]-posn[3])
+        ymax = (ymax_plt - posn[3]) / (posn[1]-posn[3])
         return xmin, xmax, ymin, ymax
 
     def drawShape(self, painter, rect):
@@ -343,9 +343,10 @@ class Rectangle(BoxShape):
             xmin, ymin, xmax, ymax = self._getBoundsCoords(posn)
             if xmin is None or ymin is None or xmax is None or ymax is None:
                 return
-
-            # Check that all arrays have data
-            if len(xmin) == 0 or len(ymin) == 0 or len(xmax) == 0 or len(ymax) == 0:
+            xmin, ymin = N.atleast_1d(xmin), N.atleast_1d(ymin)
+            xmax, ymax = N.atleast_1d(xmax), N.atleast_1d(ymax)
+            n = max(len(xmin), len(ymin), len(xmax), len(ymax))
+            if n == 0:
                 return
 
             # Get rotation (use default if not provided)
@@ -356,29 +357,48 @@ class Rectangle(BoxShape):
                 clip = qt.QRectF(
                     qt.QPointF(posn[0], posn[1]), qt.QPointF(posn[2], posn[3]))
             painter = phelper.painter(self, posn, clip=clip)
+            rects = []
             with painter:
                 if not s.Border.hide:
                     painter.setPen(s.get('Border').makeQPen(painter))
                 else:
                     painter.setPen(qt.QPen(qt.Qt.PenStyle.NoPen))
 
-                index = 0
-                for i in range(len(xmin)):
-                    x1, y1 = xmin[i], ymin[i]
-                    x2, y2 = xmax[i], ymax[i]
+                # lengths may differ; cycle each array like BoxShape does
+                for i in range(n):
+                    x1 = xmin[i % len(xmin)]
+                    y1 = ymin[i % len(ymin)]
+                    x2 = xmax[i % len(xmax)]
+                    y2 = ymax[i % len(ymax)]
                     wp, hp = abs(x2 - x1), abs(y2 - y1)
                     x_center = (x1 + x2) * 0.5
                     y_center = (y1 + y2) * 0.5
                     r = rotate[i % len(rotate)]
+                    rects.append((x_center, y_center, wp, hp, r))
                     painter.save()
                     painter.translate(x_center, y_center)
                     if r != 0:
                         painter.rotate(r)
-                    self.drawShape(painter, qt.QRectF(-wp*0.5, -hp*0.5, wp, hp))
+                    self.drawShape(
+                        painter, qt.QRectF(-wp*0.5, -hp*0.5, wp, hp))
                     painter.restore()
-                    index += 1
 
+            # interactive control boxes (only when bounds are not datasets)
+            isnotdataset = (
+                not s.get('xmin').isDataset(d) and
+                not s.get('ymin').isDataset(d) and
+                not s.get('xmax').isDataset(d) and
+                not s.get('ymax').isDataset(d)
+            )
             controlgraphitems = []
+            if isnotdataset:
+                for idx, (cx, cy, wp, hp, r) in enumerate(rects):
+                    cgi = controlgraph.ControlResizableBox(
+                        self, phelper, [cx, cy], [wp, hp], r,
+                        allowrotate=True)
+                    cgi.index = idx
+                    cgi.widgetposn = posn
+                    controlgraphitems.append(cgi)
             phelper.setControlGraph(self, controlgraphitems)
         else:
             # Use center + size (original BoxShape behavior)
