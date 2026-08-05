@@ -2131,6 +2131,22 @@ class GradientFill(qt.QWidget):
         type_layout.addStretch()
         main_layout.addLayout(type_layout)
 
+        # Gradient-level transparency (0-100)
+        trans_layout = qt.QHBoxLayout()
+        trans_layout.setSpacing(8)
+        trans_label = qt.QLabel(_('Transparency:'))
+        trans_layout.addWidget(trans_label)
+        self.transparency_slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
+        self.transparency_slider.setRange(0, 100)
+        self.transparency_slider.valueChanged.connect(self.slotTransparencyChanged)
+        trans_layout.addWidget(self.transparency_slider)
+        self.transparency_spin = qt.QSpinBox()
+        self.transparency_spin.setRange(0, 100)
+        self.transparency_spin.setSuffix('%')
+        self.transparency_spin.valueChanged.connect(self.slotTransparencyChanged)
+        trans_layout.addWidget(self.transparency_spin)
+        main_layout.addLayout(trans_layout)
+
         # Color stops (separate line, full width)
         stops_label = qt.QLabel(_('Color stops:'))
         main_layout.addWidget(stops_label)
@@ -2186,6 +2202,8 @@ class GradientFill(qt.QWidget):
         self.enable_cb.setChecked(val.get('enabled', False))
         self.type_combo.setCurrentIndex(0 if val.get('type', 'linear') == 'linear' else 1)
         self.angle_spin.setValue(int(val.get('angle', 90)))
+        self.transparency_slider.setValue(int(val.get('transparency', 0)))
+        self.transparency_spin.setValue(int(val.get('transparency', 0)))
 
         # Load color stops
         while self.stops_layout.count():
@@ -2224,6 +2242,7 @@ class GradientFill(qt.QWidget):
             'enabled': enabled,
             'type': grad_type,
             'angle': angle,
+            'transparency': self.transparency_slider.value(),
             'stops': stops
         }
 
@@ -2254,6 +2273,16 @@ class GradientFill(qt.QWidget):
 
     @qt.pyqtSlot(int)
     def slotAngleChanged(self, value):
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot(int)
+    def slotTransparencyChanged(self, value):
+        # keep slider and spin in sync (guard avoids feedback loops)
+        if self.transparency_slider.value() != value:
+            self.transparency_slider.setValue(value)
+        if self.transparency_spin.value() != value:
+            self.transparency_spin.setValue(value)
         self.updatePreview()
         self.saveToSetting()
 

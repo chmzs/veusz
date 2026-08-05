@@ -203,11 +203,24 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
     if not config.enabled:
         return
 
+    # Composite brush-level and gradient-level transparency so that the
+    # brush's Transparency setting works for gradient fills just as it does
+    # for solid fills (extbrushfilling solid path: transparency -> setAlphaF).
+    brush_transparency = getattr(extbrush, 'transparency', 0) or 0
+    gradient_transparency = getattr(config, 'transparency', 0) or 0
+    if brush_transparency >= 100 or gradient_transparency >= 100:
+        # fully transparent - skip filling (matches solid path)
+        return
+    alpha_eff = ((100 - brush_transparency) / 100.0) * \
+        ((100 - gradient_transparency) / 100.0)
+    eff_transparency = (1.0 - alpha_eff) * 100
+
     # Get bounding rect of path for gradient coordinates
     bb = path.boundingRect()
 
-    # Create gradient based on configuration
-    qt_gradient = gradient_module.create_gradient_from_config(config, bb)
+    # Create gradient based on configuration (composited transparency)
+    qt_gradient = gradient_module.create_gradient_from_config(
+        config, bb, transparency=eff_transparency)
 
     # Create brush with gradient
     brush = qt.QBrush(qt_gradient)

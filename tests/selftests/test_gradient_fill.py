@@ -212,6 +212,76 @@ class TestGradientUtils(unittest.TestCase):
         self.assertTrue(self.gradient.is_gradient_enabled(config))
 
 
+class TestGradientRendering(unittest.TestCase):
+    """Render gradient fills to a QImage and verify transparency behaviour.
+
+    Guards the transparency regression where the gradient render path
+    (extbrushfilling._brushExtFillPathGradient) ignored the brush-level
+    transparency setting, unlike the solid-fill path.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            # need a QGuiApplication to paint; use offscreen platform
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            from veusz import qtall as qt
+            from veusz.utils import extbrushfilling
+            from veusz.setting import collections
+            app = qt.QApplication.instance()
+            if app is None:
+                app = qt.QApplication([])
+            cls.qt = qt
+            cls.extbrushfilling = extbrushfilling
+            cls.collections = collections
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack for rendering")
+
+    def _render_center_alpha(self, brush_transparency, grad_transparency):
+        """Fill a 60x60 rect with a red->blue vertical gradient and return
+        the alpha of the center pixel (0-255)."""
+        qt = self.qt
+        img = qt.QImage(60, 60, qt.QImage.Format.Format_ARGB32)
+        img.fill(qt.QColor(0, 0, 0, 0))
+        painter = qt.QPainter(img)
+        try:
+            brush = self.collections.BrushExtended('testbrush')
+            brush.hide = False
+            brush.transparency = brush_transparency
+            brush.Gradient = {
+                'enabled': True,
+                'type': 'linear',
+                'angle': 90,
+                'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
+                'transparency': grad_transparency,
+            }
+            path = qt.QPainterPath()
+            path.addRect(qt.QRectF(5, 5, 50, 50))
+            self.extbrushfilling.brushExtFillPath(painter, brush, path)
+        finally:
+            painter.end()
+        return img.pixelColor(30, 30).alpha()
+
+    def test_opaque_gradient(self):
+        self.assertEqual(self._render_center_alpha(0, 0), 255)
+
+    def test_brush_transparency_applied(self):
+        alpha = self._render_center_alpha(50, 0)
+        self.assertAlmostEqual(alpha / 255., 0.5, delta=0.15)
+
+    def test_gradient_transparency_applied(self):
+        alpha = self._render_center_alpha(0, 50)
+        self.assertAlmostEqual(alpha / 255., 0.5, delta=0.15)
+
+    def test_composited_transparency(self):
+        # brush 50 * gradient 50 -> effective 75 -> alpha 0.25
+        alpha = self._render_center_alpha(50, 50)
+        self.assertAlmostEqual(alpha / 255., 0.25, delta=0.15)
+
+    def test_full_transparency_skips_fill(self):
+        self.assertEqual(self._render_center_alpha(100, 0), 0)
+
+
 def main(outfile):
     """Run tests and write success marker to outfile."""
     loader = unittest.TestLoader()

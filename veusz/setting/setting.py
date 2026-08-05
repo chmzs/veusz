@@ -2025,6 +2025,7 @@ class GradientFill(Setting):
       - angle: float (0-360) for linear gradient
       - stops: list of (offset, color) tuples (offset 0-1)
       - enabled: bool
+      - transparency: int (0-100) gradient-level transparency
       - midpoint: float (0-1) or None, position of gradient midpoint
         (when set, stops are remapped so midpoint color aligns to this position)
     """
@@ -2035,7 +2036,7 @@ class GradientFill(Setting):
         if val is None:
             val = {'enabled': False, 'type': 'linear', 'angle': 90,
                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
-                   'midpoint': None}
+                   'transparency': 0, 'midpoint': None}
         Setting.__init__(self, name, val, **args)
 
     def copy(self):
@@ -2055,24 +2056,29 @@ class GradientFill(Setting):
         colors = ', '.join([c for _, c in stops])
         grad_type = self.val.get('type', 'linear')
         angle = self.val.get('angle', 90)
+        transparency = self.val.get('transparency', 0)
         midpoint = self.val.get('midpoint')
         mid_str = f', mid={midpoint:.0%}' if midpoint is not None else ''
-        return f'{grad_type} {angle}deg{mid_str}: {colors}'
+        trans_str = f', trans={transparency}%' if transparency else ''
+        return f'{grad_type} {angle}deg{mid_str}{trans_str}: {colors}'
 
     def fromUIText(self, text):
         """Parse from text representation."""
         if text.lower() == 'disabled':
             return {'enabled': False, 'type': 'linear', 'angle': 90,
                     'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
-                    'midpoint': None}
+                    'transparency': 0, 'midpoint': None}
         # try to parse midpoint from text like "linear 90deg, mid=50%: #ff0000, #0000ff"
+        # and transparency like ", trans=30%"
         import re
+        result = dict(self.val)
         m = re.search(r'mid=([\d.]+)%', text)
         if m:
-            result = dict(self.val)
             result['midpoint'] = float(m.group(1)) / 100
-            return result
-        return self.val
+        m = re.search(r'trans=(\d+)%', text)
+        if m:
+            result['transparency'] = int(m.group(1))
+        return result
 
     def makeControl(self, *args):
         return controls.GradientFill(self, *args)

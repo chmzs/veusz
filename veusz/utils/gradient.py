@@ -181,26 +181,30 @@ def calculate_linear_endpoints(bbox, angle):
     return x1, y1, x2, y2
 
 
-def create_gradient_from_config(config, bbox):
+def create_gradient_from_config(config, bbox, transparency=None):
     """Create a Qt gradient from GradientConfig.
 
     Args:
         config: GradientConfig object
         bbox: QRectF with bounding box
+        transparency: Optional transparency percentage (0-100) to override
+            config.transparency. Used to composite brush-level transparency.
 
     Returns:
         Qt gradient object (QLinearGradient or QRadialGradient)
     """
+    if transparency is None:
+        transparency = config.transparency
     if config.type == 'linear':
         x1, y1, x2, y2 = calculate_linear_endpoints(bbox, config.angle)
         return create_linear_gradient(x1, y1, x2, y2,
-                                      config.stops, config.transparency)
+                                      config.stops, transparency)
     else:  # radial
         cx = bbox.x() + bbox.width() / 2
         cy = bbox.y() + bbox.height() / 2
         radius = max(bbox.width(), bbox.height()) / 2
         return create_radial_gradient(cx, cy, radius,
-                                       config.stops, config.transparency)
+                                      config.stops, transparency)
 
 
 def is_gradient_enabled(gradient_setting):
