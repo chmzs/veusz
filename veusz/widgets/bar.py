@@ -52,6 +52,12 @@ class BarFill(setting.Settings):
             descr = _('Fill styles for dataset bars'),
             usertext=_('Fill styles')) )
 
+class BarCIFill(setting.BrushExtended):
+    '''Filled band showing the confidence interval around bars.'''
+    def __init__(self, name, **args):
+        setting.BrushExtended.__init__(self, name, **args)
+        self.get('hide').newDefault(True)
+
 class BarLine(setting.Settings):
     '''Edges of bars.'''
     def __init__(self, name, **args):
@@ -175,6 +181,11 @@ class BarPlotter(GenericPlotter):
             pixmap='settings_bgfill')
         s.add(BarLine('BarLine', descr=_('Bar line'), usertext=_('Line')),
             pixmap='settings_border')
+
+        s.add(BarCIFill(
+            'FillCI', descr=_('Confidence interval fill band'),
+            usertext=_('CI fill')),
+            pixmap='settings_plotfillbelow')
 
         s.add( setting.ErrorBarLine(
             'ErrorBarLine',
@@ -380,6 +391,40 @@ class BarPlotter(GenericPlotter):
                 utils.plotLinesToPainter(
                     painter, posns-w, maxcoord, posns+w, maxcoord)
 
+    def drawCIBand(self, painter, posns1, posns2, minvals, maxvals,
+                   axes, widgetposn):
+        """Draw a filled band showing the confidence interval per bar."""
+        s = self.settings
+        ishorz = s.direction == 'horizontal'
+        valax = axes[not ishorz]
+        mincoord = valax.dataToPlotterCoords(widgetposn, minvals)
+        maxcoord = valax.dataToPlotterCoords(widgetposn, maxvals)
+        for i in range(len(posns1)):
+            lo, hi = mincoord[i], maxcoord[i]
+            if lo > hi:
+                lo, hi = hi, lo
+            x1, x2 = posns1[i], posns2[i]
+            if ishorz:
+                rect = qt.QRectF(qt.QPointF(lo, x1), qt.QPointF(hi, x2))
+            else:
+                rect = qt.QRectF(qt.QPointF(x1, lo), qt.QPointF(x2, hi))
+            path = qt.QPainterPath()
+            path.addRect(rect)
+            utils.brushExtFillPath(painter, s.FillCI, path)
+
+    def _calcCI(self, dataset, vals):
+        """Return (minval, maxval) confidence bounds for a dataset row."""
+        s = self.settings
+        mn, mx = self.calculateErrorBars(
+            dataset, vals, ciMode=s.ciMode, ciYMin=s.ciYMin,
+            ciYMax=s.ciYMax, ciYError=s.ciYError,
+            ciMultiplier=s.ciMultiplier)
+        if mn is None:
+            mn = vals
+        if mx is None:
+            mx = vals
+        return mn, mx
+
     def plotBars(self, painter, s, dsnum, clip, corners):
         """Plot a set of boxes."""
         # get style
@@ -442,6 +487,12 @@ class BarPlotter(GenericPlotter):
                 )
 
             self.plotBars(painter, s, dsnum, clip, p)
+
+            # draw confidence interval fill band
+            if not s.FillCI.hide:
+                mn, mx = self._calcCI(dataset, dataset['data'])
+                self.drawCIBand(
+                    painter, posns1, posns2, mn, mx, axes, widgetposn)
 
             # draw error bars
             self.drawErrorBars(

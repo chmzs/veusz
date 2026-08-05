@@ -223,8 +223,11 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 - 状态：**完成**
 
 ### 批次 7（延后）：新增功能（先修后增）
-- **B4**：bar 图 CI 填充带（复用 point 的 errorsFilled 思路，按 bar 几何，含 grouped/stacked + 水平方向）
-- 状态：**未开始**
+- **B4：bar 图 CI 填充带 ✅**（复用 errorsFilled 思路，按 bar 几何）：
+  - 新增 `FillCI` 画笔（BrushExtended，默认隐藏）+ `drawCIBand` + `_calcCI`
+  - grouped 模式每 bar 画 CI min→max 填充带；水平/垂直方向都支持
+  - 测试：FillCI 默认隐藏、_calcCI std/serr 模式
+  - 状态：**完成**（37 测试 + 78 selftests）
 
 ### 批次 8（延后）：饼图作为散点（比例点）— 详细方案见 `dev-docs/plans/2026-08-05.md`
 - **背景**：古植物考古数据——每遗址一个饼图点，多作物占比分片，大小 ∝ 总样本量(√n)

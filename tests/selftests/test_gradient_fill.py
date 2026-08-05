@@ -535,6 +535,31 @@ class TestBarCI(unittest.TestCase):
         self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
         self.assertEqual(mx.tolist(), [11.0, 21.0, 31.0])
 
+    def test_fillci_default_hidden(self):
+        """The CI fill band must be hidden unless the user enables it."""
+        bp = self._make_plotter()
+        self.assertTrue(bp.settings.FillCI.hide)
+
+    def test_calc_ci_std(self):
+        """_calcCI wires the bar's ciMode settings into the bounds."""
+        bp = self._make_plotter()
+        bp.settings.ciMode = 'std'
+        bp.settings.ciYError = 'errds'
+        bp.settings.ciMultiplier = 2.0
+        vals = N.array([10.0, 20.0, 30.0])
+        mn, mx = bp._calcCI({}, vals)
+        self.assertEqual(mn.tolist(), [8.0, 16.0, 24.0])
+        self.assertEqual(mx.tolist(), [12.0, 24.0, 36.0])
+
+    def test_calc_ci_default_serr(self):
+        """_calcCI falls back to dataset serr columns when no ciMode."""
+        bp = self._make_plotter()
+        vals = N.array([10.0, 20.0, 30.0])
+        dset = {'serr': N.array([1.0, 1.0, 1.0])}
+        mn, mx = bp._calcCI(dset, vals)
+        self.assertIsNotNone(mn)
+        self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
+
 
 def main(outfile):
     """Run tests and write success marker to outfile."""
