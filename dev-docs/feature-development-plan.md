@@ -215,11 +215,12 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 - 测试：3 个 `TestRectangleBounds` 测试（fractional 降级、axes 转换、长度不齐）
 - 状态：**完成**
 
-### 批次 6：测试套件加固（TE1）
-**目标**：所有新增功能有渲染级回归测试。
-- 渲染到 image → 校验像素；SVG 对比测试补新增功能
-- 全量 `pixi run test` + `runselftest.py` 通过
-- 状态：**未开始**
+### 批次 6：测试套件加固（TE1）✅
+**目标**：所有新增功能有回归测试。
+- 各批次已增量添加：透明度渲染(5)、fillToEdgeTargets(7)、渐变 UI 控件(3)、Rectangle bounds(3)、bar CI(3)
+- 本次补：`TestBarCI` 覆盖 bar 图 CI 数学（std/custom/serr 三种模式）
+- 全量：34 渐变+功能测试 + 78/78 selftests 通过
+- 状态：**完成**
 
 ### 批次 7（延后）：新增功能（先修后增）
 - **B4**：bar 图 CI 填充带（复用 point 的 errorsFilled 思路，按 bar 几何，含 grouped/stacked + 水平方向）
@@ -267,7 +268,7 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 | 3 | 渐变集成每数据集 (G1-G2) | ✅ | 批次3提交 |
 | 3.5 | 渐变 UI 改进 | ✅ | UI提交 |
 | 4 | 渐变全量扩展（决策：跳过边缘） | ✅ | — |
-| 5 | 修复 Rectangle bounds | ✅ | 待提交 |
-| 6 | 测试套件加固 | ⬜ | — |
+| 5 | 修复 Rectangle bounds | ✅ | 批次5提交 |
+| 6 | 测试套件加固 | ✅ | 待提交 |
 | 7 | 新增功能（B4） | ⬜ | — |
 | 6 | 测试套件加固 | ⬜ | — |

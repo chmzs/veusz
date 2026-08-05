@@ -475,6 +475,67 @@ class TestRectangleBounds(unittest.TestCase):
         self.assertEqual(len(ymin), 1)
 
 
+class TestBarCI(unittest.TestCase):
+    """Test bar-chart confidence-interval error computation (bar.py)."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            import veusz.widgets
+            from veusz.widgets.bar import BarPlotter
+            from veusz import qtall as qt
+            app = qt.QApplication.instance() or qt.QApplication([])
+            cls.qt = qt
+            cls.app = app
+            cls.BarPlotter = BarPlotter
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack for bar test")
+
+    @staticmethod
+    def _make_plotter():
+        class DS:
+            def __init__(self, data):
+                self.data = N.array(data, dtype=float)
+
+        class MockDoc:
+            def __init__(self):
+                self.data = {'errds': DS([1.0, 2.0, 3.0]),
+                             'mind': DS([0.5, 0.6]),
+                             'maxd': DS([1.5, 1.6])}
+
+            def getData(self, name):
+                return self.data.get(name)
+
+        bp = TestBarCI.BarPlotter(None, name='bar1')
+        bp.document = MockDoc()
+        return bp
+
+    def test_std_mode(self):
+        bp = self._make_plotter()
+        vals = N.array([10.0, 20.0, 30.0])
+        mn, mx = bp.calculateErrorBars(
+            {}, vals, ciMode='std', ciYError='errds', ciMultiplier=2.0)
+        self.assertEqual(mn.tolist(), [8.0, 16.0, 24.0])
+        self.assertEqual(mx.tolist(), [12.0, 24.0, 36.0])
+
+    def test_custom_mode(self):
+        bp = self._make_plotter()
+        vals = N.array([10.0, 20.0, 30.0])
+        mn, mx = bp.calculateErrorBars(
+            {}, vals, ciMode='custom', ciYMin='mind', ciYMax='maxd')
+        self.assertEqual(mn.tolist(), [0.5, 0.6])
+        self.assertEqual(mx.tolist(), [1.5, 1.6])
+
+    def test_default_serr(self):
+        bp = self._make_plotter()
+        vals = N.array([10.0, 20.0, 30.0])
+        dset = {'serr': N.array([1.0, 1.0, 1.0])}
+        mn, mx = bp.calculateErrorBars(dset, vals)
+        self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
+        self.assertEqual(mx.tolist(), [11.0, 21.0, 31.0])
+
+
 def main(outfile):
     """Run tests and write success marker to outfile."""
     loader = unittest.TestLoader()
