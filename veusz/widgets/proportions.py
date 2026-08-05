@@ -97,16 +97,17 @@ class ProportionalScatter(plotters.GenericPlotter):
             descr=_('Draw a border around the glyph'),
             usertext=_('Outline')), 9)
 
+    def affectsAxisRange(self):
+        """This widget provides range information about these axes."""
+        s = self.settings
+        return ((s.xAxis, 'sx'), (s.yAxis, 'sy'))
+
     def getRange(self, axis, depname, axrange):
         """Update axis range from x/y data."""
         dataname = {'sx': 'xData', 'sy': 'yData'}[depname]
         data = self.settings.get(dataname).getData(self.document)
         if data:
             data.updateRangeAuto(axrange, axis.settings.log)
-
-    def requiresAxisRange(self):
-        """The x and y axes need ranges from these datasets."""
-        return (('sx', 'xData'), ('sy', 'yData'))
 
     def getNumberKeys(self):
         if self.settings.key:

@@ -1,0 +1,47 @@
+# Example: proportional scatter (pie / donut / bar glyphs)
+#
+# Each point is drawn as a pie whose slices show the proportion of several
+# datasets (here: millet vs foxtail millet at archaeological sites). The glyph
+# size is proportional to the total sample size (radius ~ sqrt(n)).
+#
+# To switch the glyph style, change the "glyph" setting to:
+#   pie   - full circle slices
+#   donut - hollow centre (adjust "innerRadius")
+#   bar   - a mini stacked bar at each point
+
+SetData('age', [5800, 5600, 5300, 5200, 5100, 4950, 4750, 4600])
+SetData('baseline', [0, 0, 0, 0, 0, 0, 0, 0])
+SetData('n', [1033, 488, 444, 2350, 499, 1502, 78, 1875])
+SetData('pctMillet', [95, 75, 30, 25, 20, 15, 15, 20])
+SetData('pctFoxtail', [5, 25, 70, 75, 80, 85, 85, 80])
+
+Add('page', name='page1', autoadd=False)
+To('page1')
+Add('graph', name='graph1', autoadd=False)
+To('graph1')
+Add('axis', name='x', autoadd=False)
+To('x')
+Set('label', 'Age (cal BP)')
+Set('min', 4500)
+Set('max', 6000)
+To('..')
+Add('axis', name='y', autoadd=False)
+To('y')
+Set('label', 'Proportion of millet / foxtail millet')
+Set('min', -1.0)
+Set('max', 1.0)
+Set('direction', 'vertical')
+To('..')
+
+Add('proportions', name='prop1', autoadd=False)
+To('prop1')
+Set('xData', 'age')
+Set('yData', 'baseline')
+Set('scalePoints', 'n')
+Set('wedgeData', ('pctMillet', 'pctFoxtail'))
+Set('markerSize', '8pt')
+Set('glyph', 'pie')
+To('..')
+
+To('..')
+To('..')
