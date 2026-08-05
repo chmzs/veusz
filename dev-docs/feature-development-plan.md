@@ -222,8 +222,16 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 
 ### 批次 7（延后）：新增功能（先修后增）
 - **B4**：bar 图 CI 填充带（复用 point 的 errorsFilled 思路，按 bar 几何，含 grouped/stacked + 水平方向）
-- **渐变 UI 改进**：见下方"渐变 UI 设计改进"小节
 - 状态：**未开始**
+
+### 渐变 UI 改进（已实施，用户要求优先）✅
+用**交互式渐变条**替换原来的滚动色标列表：
+- 新增 `GradientBar` 组件：点击空白加色标 / 拖拽移动 / 双击换色 / 拖出删除；选中标记高亮
+- 新增"选中色标"微调行：Position % + 颜色按钮（精确控制）
+- 预览加大到 32px，加棋盘格底纹以显示透明度，预览反映渐变透明度
+- 删除废弃的 `ColorStopWidget` 滚动列表
+- 测试：3 个 UI 控件测试（load、bar add/set/remove、save round-trip）
+- 状态：**完成**
 
 ---
 

@@ -228,9 +228,8 @@ class TestGradientRendering(unittest.TestCase):
             from veusz import qtall as qt
             from veusz.utils import extbrushfilling
             from veusz.setting import collections
-            app = qt.QApplication.instance()
-            if app is None:
-                app = qt.QApplication([])
+            # keep the app referenced on the class so it is not garbage-collected
+            cls.app = qt.QApplication.instance() or qt.QApplication([])
             cls.qt = qt
             cls.extbrushfilling = extbrushfilling
             cls.collections = collections
@@ -336,6 +335,65 @@ class TestFillToEdgeTargets(unittest.TestCase):
         x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
             self._pts(), (0, 5, 100, 95), 'bogus')
         self.assertEqual((y1, y2), (95, 95))
+
+
+class TestGradientControl(unittest.TestCase):
+    """Test the GradientFill editor control + interactive GradientBar."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            from veusz import qtall as qt
+            from veusz.setting import controls
+            from veusz.setting.setting import GradientFill
+            # keep the app referenced on the class so it is not garbage-collected
+            cls.app = qt.QApplication.instance() or qt.QApplication([])
+            cls.qt = qt
+            cls.controls = controls
+            cls.GradientFill = GradientFill
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack for control test")
+
+    def _make_setting(self):
+        return self.GradientFill(
+            'test',
+            {'enabled': True, 'type': 'linear', 'angle': 90,
+             'transparency': 30,
+             'stops': [(0.0, '#ff0000'), (0.5, '#00ff00'), (1.0, '#0000ff')]})
+
+    def test_control_loads_setting(self):
+        s = self._make_setting()
+        w = self.controls.GradientFill(s)
+        self.assertEqual(w.gradient_bar.stops(),
+                         [(0.0, '#ff0000'), (0.5, '#00ff00'), (1.0, '#0000ff')])
+        self.assertEqual(w.transparency_slider.value(), 30)
+
+    def test_bar_add_set_remove(self):
+        w = self.controls.GradientFill(self._make_setting())
+        bar = w.gradient_bar
+        # add at occupied 0.5 -> snaps to a free spot
+        self.assertTrue(bar.addStopAt(0.5))
+        self.assertEqual(len(bar.stops()), 4)
+        self.assertGreaterEqual(bar.selectedIndex(), 0)
+        # move selected stop
+        bar.setStop(bar.selectedIndex(), offset=0.25)
+        self.assertIn(0.25, [o for o, _ in bar.stops()])
+        # remove selected
+        self.assertTrue(bar.removeSelected())
+        self.assertEqual(len(bar.stops()), 3)
+        # cannot go below two stops
+        bar.removeSelected()
+        self.assertEqual(len(bar.stops()), 3)
+
+    def test_save_round_trip(self):
+        s = self._make_setting()
+        w = self.controls.GradientFill(s)
+        w.saveToSetting()
+        self.assertEqual(s.val['transparency'], 30)
+        self.assertEqual(s.val['stops'],
+                         [(0.0, '#ff0000'), (0.5, '#00ff00'), (1.0, '#0000ff')])
+        self.assertTrue(s.val['enabled'])
 
 
 def main(outfile):

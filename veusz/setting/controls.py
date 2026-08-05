@@ -2053,6 +2053,185 @@ class AxisBound(Choice):
             self.setEditText( self.setting.toUIText() )
 
 
+class GradientBar(qt.QWidget):
+    """Interactive gradient bar editor.
+
+    Renders the current stops as a horizontal gradient. Interactions:
+      - left-click on empty area: add a stop there (grey)
+      - drag a stop marker: move its position
+      - double-click a marker: change its colour
+      - drag a marker up/down out of the bar: remove it
+    """
+
+    stopsChanged = qt.pyqtSignal(list)       # list of (offset, color)
+    selectionChanged = qt.pyqtSignal(int)    # selected stop index, -1 if none
+
+    def __init__(self, parent=None):
+        qt.QWidget.__init__(self, parent)
+        self._stops = [(0.0, '#ff0000'), (1.0, '#0000ff')]
+        self._selected = -1
+        self._dragging = -1
+        self.setMinimumHeight(30)
+        self.setMouseTracking(True)
+
+    def stops(self):
+        return list(self._stops)
+
+    def setStops(self, stops):
+        self._stops = [(float(o), c) for o, c in stops]
+        if self._selected >= len(self._stops):
+            self._selected = -1
+        self.update()
+
+    def selectedIndex(self):
+        return self._selected
+
+    def addStopAt(self, offset):
+        """Add a grey stop at (or near) the given offset. Returns False if no free spot."""
+        offsets = [o for o, _ in self._stops]
+        for cand in (offset, 0.5, 0.25, 0.75):
+            if not any(abs(o - cand) < 0.005 for o in offsets):
+                off = cand
+                break
+        else:
+            return False
+        self._stops.append((round(off, 4), '#808080'))
+        self._stops.sort(key=lambda s: s[0])
+        self._selected = next(
+            i for i, (o, _) in enumerate(self._stops) if o == off)
+        self.update()
+        self.selectionChanged.emit(self._selected)
+        self.stopsChanged.emit(list(self._stops))
+        return True
+
+    def removeSelected(self):
+        """Remove the selected stop (keeps at least two). Returns False if none."""
+        if self._selected < 0 or len(self._stops) <= 2:
+            return False
+        self._stops.pop(self._selected)
+        self._selected = -1
+        self.update()
+        self.selectionChanged.emit(-1)
+        self.stopsChanged.emit(list(self._stops))
+        return True
+
+    def setStop(self, index, offset=None, color=None):
+        """Update a stop's position/colour and keep it selected."""
+        if not (0 <= index < len(self._stops)):
+            return
+        off, col = self._stops[index]
+        if offset is not None:
+            off = round(offset, 4)
+        if color is not None:
+            col = color
+        self._stops[index] = (off, col)
+        self._stops.sort(key=lambda s: s[0])
+        self._selected = next(
+            i for i, (o, _) in enumerate(self._stops) if o == off)
+        self.update()
+        self.stopsChanged.emit(list(self._stops))
+
+    def _offsetFromX(self, x):
+        w = max(self.width() - 2, 1)
+        return max(0.0, min(1.0, (x - 1.0) / w))
+
+    def _stopX(self, offset):
+        return 1.0 + offset * (self.width() - 2)
+
+    def _stopHit(self, pos):
+        for i, (off, _) in enumerate(self._stops):
+            if abs(pos.x() - self._stopX(off)) <= 6:
+                return i
+        return -1
+
+    def paintEvent(self, event):
+        painter = qt.QPainter(self)
+        rect = qt.QRectF(1, 1, self.width() - 2, self.height() - 10)
+
+        # checkerboard underlay to make alpha visible
+        checker = qt.QPixmap(8, 8)
+        checker.fill(qt.QColor('#ffffff'))
+        cp = qt.QPainter(checker)
+        cp.fillRect(0, 0, 4, 4, qt.QColor('#c0c0c0'))
+        cp.fillRect(4, 4, 4, 4, qt.QColor('#c0c0c0'))
+        cp.end()
+        painter.drawTiledPixmap(rect.toRect(), checker)
+
+        # gradient body
+        grad = qt.QLinearGradient(rect.topLeft(), rect.topRight())
+        for off, color in self._stops:
+            grad.setColorAt(off, qt.QColor(color))
+        painter.fillRect(rect, grad)
+        painter.setPen(qt.QPen(qt.QColor('#777777')))
+        painter.drawRect(rect)
+
+        # stop markers (triangles)
+        for i, (off, color) in enumerate(self._stops):
+            x = self._stopX(off)
+            tri = qt.QPolygonF([
+                qt.QPointF(x - 5, rect.bottom()),
+                qt.QPointF(x + 5, rect.bottom()),
+                qt.QPointF(x, rect.bottom() - 8)])
+            painter.setBrush(
+                qt.QColor(color) if i != self._selected else qt.QColor('#ffffff'))
+            painter.setPen(qt.QPen(qt.QColor('#000000')))
+            painter.drawPolygon(tri)
+        painter.end()
+
+    def mousePressEvent(self, event):
+        if event.button() == qt.Qt.MouseButton.LeftButton:
+            hit = self._stopHit(event.position())
+            if hit >= 0:
+                self._dragging = hit
+                self._selected = hit
+                self.update()
+                self.selectionChanged.emit(hit)
+            else:
+                # add a new stop at click position
+                off = round(self._offsetFromX(event.position().x()), 4)
+                self._stops.append((off, '#808080'))
+                self._stops.sort(key=lambda s: s[0])
+                self._selected = next(
+                    i for i, (o, _) in enumerate(self._stops) if o == off)
+                self._dragging = self._selected
+                self.update()
+                self.selectionChanged.emit(self._selected)
+                self.stopsChanged.emit(list(self._stops))
+
+    def mouseMoveEvent(self, event):
+        if self._dragging >= 0:
+            off = round(self._offsetFromX(event.position().x()), 4)
+            color = self._stops[self._dragging][1]
+            self._stops[self._dragging] = (off, color)
+            self._stops.sort(key=lambda s: s[0])
+            self._dragging = next(
+                i for i, (o, _) in enumerate(self._stops) if o == off)
+            self.update()
+            self.stopsChanged.emit(list(self._stops))
+
+    def mouseReleaseEvent(self, event):
+        if self._dragging >= 0:
+            # dragged out of the bar -> remove stop
+            if event.position().y() < -10 or event.position().y() > self.height() + 10:
+                if len(self._stops) > 2:
+                    self._stops.pop(self._dragging)
+                self._selected = -1
+                self.update()
+                self.selectionChanged.emit(-1)
+                self.stopsChanged.emit(list(self._stops))
+            self._dragging = -1
+
+    def mouseDoubleClickEvent(self, event):
+        hit = self._stopHit(event.position())
+        if hit >= 0:
+            col = qt.QColorDialog.getColor(
+                qt.QColor(self._stops[hit][1]), self)
+            if col.isValid():
+                self._stops[hit] = (self._stops[hit][0], col.name())
+                self.update()
+                self.stopsChanged.emit(list(self._stops))
+
+
 class GradientFill(qt.QWidget):
     """A control for editing gradient fill settings.
 
@@ -2071,7 +2250,7 @@ class GradientFill(qt.QWidget):
         self.setting = setting
         self.document = setting.getDocument()
         self.updating = False
-        self.stop_widgets = []  # Initialize before loadFromSetting to avoid AttributeError
+        self._selsetting = False  # suppress valueChanged while syncing
         # Main layout
         main_layout = qt.QVBoxLayout(self)
         main_layout.setSpacing(4)
@@ -2153,48 +2332,49 @@ class GradientFill(qt.QWidget):
         trans_layout.addWidget(self.transparency_spin)
         main_layout.addLayout(trans_layout)
 
-        # Color stops (separate line, full width)
+        # Color stops — interactive gradient bar (drag/click/dblclick editor)
         stops_label = qt.QLabel(_('Color stops:'))
         main_layout.addWidget(stops_label)
 
-        self.stops_widget = qt.QWidget()
-        stops_layout = qt.QVBoxLayout(self.stops_widget)
-        stops_layout.setSpacing(4)
-        stops_layout.setContentsMargins(0, 0, 0, 0)
+        self.gradient_bar = GradientBar()
+        self.gradient_bar.stopsChanged.connect(self.slotStopsChanged)
+        self.gradient_bar.selectionChanged.connect(self.slotStopSelected)
+        main_layout.addWidget(self.gradient_bar)
 
-        stops_header = qt.QHBoxLayout()
-        stops_header.addStretch()
+        # Selected-stop fine-control row + add/remove buttons
+        sel_layout = qt.QHBoxLayout()
+        sel_layout.setSpacing(8)
 
-        add_btn = qt.QPushButton('+')
-        add_btn.setMaximumWidth(30)
+        add_btn = qt.QPushButton(_('Add'))
+        add_btn.setToolTip(_('Add a stop in the middle'))
         add_btn.clicked.connect(self.slotAddStop)
-        stops_header.addWidget(add_btn)
+        sel_layout.addWidget(add_btn)
 
-        remove_btn = qt.QPushButton('-')
-        remove_btn.setMaximumWidth(30)
+        remove_btn = qt.QPushButton(_('Del'))
+        remove_btn.setToolTip(_('Remove the selected stop'))
         remove_btn.clicked.connect(self.slotRemoveStop)
-        stops_header.addWidget(remove_btn)
+        sel_layout.addWidget(remove_btn)
 
-        stops_layout.addLayout(stops_header)
+        sel_layout.addSpacing(8)
+        sel_layout.addWidget(qt.QLabel(_('Pos:')))
+        self.sel_offset_spin = qt.QDoubleSpinBox()
+        self.sel_offset_spin.setRange(0.0, 100.0)
+        self.sel_offset_spin.setDecimals(2)
+        self.sel_offset_spin.setSuffix('%')
+        self.sel_offset_spin.setMaximumWidth(75)
+        self.sel_offset_spin.valueChanged.connect(self.slotSelectedOffsetChanged)
+        sel_layout.addWidget(self.sel_offset_spin)
 
-        # Scroll area for stops
-        self.stops_scroll = qt.QScrollArea()
-        self.stops_scroll.setWidgetResizable(True)
-        self.stops_scroll.setMaximumHeight(150)
-        self.stops_content = qt.QWidget()
-        self.stops_layout = qt.QVBoxLayout(self.stops_content)
-        self.stops_layout.setSpacing(4)
-        self.stops_scroll.setWidget(self.stops_content)
-        stops_layout.addWidget(self.stops_scroll)
+        self.sel_color_btn = qt.QPushButton(_('Color'))
+        self.sel_color_btn.clicked.connect(self.slotSelectedColorClicked)
+        sel_layout.addWidget(self.sel_color_btn)
 
-        main_layout.addWidget(self.stops_widget)
+        sel_layout.addStretch()
+        main_layout.addLayout(sel_layout)
 
-        # Preview
-        preview_label = qt.QLabel(_('Preview:'))
-        main_layout.addWidget(preview_label)
-
+        # Preview (larger, reflects transparency)
         self.preview = GradientPreview()
-        self.preview.setMinimumHeight(24)
+        self.preview.setMinimumHeight(32)
         main_layout.addWidget(self.preview)
 
         self.setting.setOnModified(self.onModified)
@@ -2211,22 +2391,14 @@ class GradientFill(qt.QWidget):
         self.transparency_slider.setValue(int(val.get('transparency', 0)))
         self.transparency_spin.setValue(int(val.get('transparency', 0)))
 
-        # Load color stops
-        while self.stops_layout.count():
-            child = self.stops_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
+        # Load color stops into the interactive bar
         stops = val.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')])
         # Normalize: convert [[]] to [()] for consistency
         stops = [tuple(s) if isinstance(s, (list, tuple)) and len(s) == 2 else s for s in stops]
-        self.stop_widgets = []
-        for offset, color in stops:
-            sw = ColorStopWidget(offset, color, self.stops_content)
-            sw.offset_changed.connect(self.slotStopOffsetChanged)
-            sw.color_changed.connect(self.slotStopColorChanged)
-            self.stops_layout.addWidget(sw)
-            self.stop_widgets.append(sw)
+        self.gradient_bar.setStops(stops)
+        self._selsetting = True
+        self.sel_offset_spin.setValue(0.0)
+        self._selsetting = False
 
         self.updatePreview()
         self.updating = False
@@ -2240,16 +2412,12 @@ class GradientFill(qt.QWidget):
         grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
         angle = self.angle_spin.value()
 
-        stops = []
-        for sw in self.stop_widgets:
-            stops.append((sw.offset, sw.color))
-
         val = {
             'enabled': enabled,
             'type': grad_type,
             'angle': angle,
             'transparency': self.transparency_slider.value(),
-            'stops': stops
+            'stops': self.gradient_bar.stops()
         }
 
         self.sigSettingChanged.emit(self, self.setting, val)
@@ -2263,9 +2431,10 @@ class GradientFill(qt.QWidget):
 
         grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
         angle = self.angle_spin.value()
-        stops = [(sw.offset, sw.color) for sw in self.stop_widgets]
+        stops = self.gradient_bar.stops()
+        transparency = self.transparency_slider.value()
 
-        self.preview.setGradient(grad_type, angle, stops)
+        self.preview.setGradient(grad_type, angle, stops, transparency)
 
     @qt.pyqtSlot()
     def slotEnableChanged(self):
@@ -2334,144 +2503,76 @@ class GradientFill(qt.QWidget):
             self.type_combo.setCurrentIndex(
                 0 if preset.get('type', 'linear') == 'linear' else 1)
             self.angle_spin.setValue(int(preset.get('angle', 90)))
-
-            # Update color stops
-            stops = preset.get('stops', [])
-            # Remove existing stops
-            for sw in self.stop_widgets:
-                sw.deleteLater()
-            self.stop_widgets = []
-
-            # Add preset stops
-            for offset, color in stops:
-                sw = ColorStopWidget(offset, color, self.stops_content)
-                sw.offset_changed.connect(self.slotStopOffsetChanged)
-                sw.color_changed.connect(self.slotStopColorChanged)
-                self.stops_layout.addWidget(sw)
-                self.stop_widgets.append(sw)
-
+            self.gradient_bar.setStops(preset.get('stops', []))
             self.updating = False
             self.updatePreview()
             self.saveToSetting()
 
     @qt.pyqtSlot()
     def slotAddStop(self):
-        # Add a stop at midpoint
-        new_offset = 0.5
-        new_color = '#808080'
-
-        sw = ColorStopWidget(new_offset, new_color, self.stops_content)
-        sw.offset_changed.connect(self.slotStopOffsetChanged)
-        sw.color_changed.connect(self.slotStopColorChanged)
-        self.stops_layout.addWidget(sw)
-        self.stop_widgets.append(sw)
-
-        self.updatePreview()
-        self.saveToSetting()
-
-    @qt.pyqtSlot()
-    def slotRemoveStop(self):
-        if self.stop_widgets:
-            sw = self.stop_widgets.pop()
-            sw.deleteLater()
+        """Add a stop at the midpoint (nearest free spot)."""
+        if self.gradient_bar.addStopAt(0.5):
             self.updatePreview()
             self.saveToSetting()
 
-    def slotStopOffsetChanged(self, offset):
+    @qt.pyqtSlot()
+    def slotRemoveStop(self):
+        """Remove the selected stop."""
+        if self.gradient_bar.removeSelected():
+            self.updatePreview()
+            self.saveToSetting()
+
+    @qt.pyqtSlot(list)
+    def slotStopsChanged(self, stops):
+        """Called when the gradient bar edits the stop list."""
+        self._syncSelectedEditor()
         self.updatePreview()
         self.saveToSetting()
 
-    def slotStopColorChanged(self, color):
-        self.updatePreview()
-        self.saveToSetting()
+    @qt.pyqtSlot(int)
+    def slotStopSelected(self, index):
+        """Called when the selected stop in the bar changes."""
+        self._syncSelectedEditor()
+
+    def _syncSelectedEditor(self):
+        """Sync the selected-stop fine-control row with the bar selection."""
+        idx = self.gradient_bar.selectedIndex()
+        self._selsetting = True
+        if idx >= 0:
+            off, color = self.gradient_bar.stops()[idx]
+            self.sel_offset_spin.setEnabled(True)
+            self.sel_color_btn.setEnabled(True)
+            self.sel_offset_spin.setValue(off * 100.0)
+            self.sel_color_btn.setText(color)
+            self.sel_color_btn.setStyleSheet(f'background-color: {color}')
+        else:
+            self.sel_offset_spin.setEnabled(False)
+            self.sel_color_btn.setEnabled(False)
+        self._selsetting = False
+
+    @qt.pyqtSlot(float)
+    def slotSelectedOffsetChanged(self, value):
+        """Fine-tune the selected stop position (percent)."""
+        if self._selsetting:
+            return
+        idx = self.gradient_bar.selectedIndex()
+        if idx >= 0:
+            self.gradient_bar.setStop(idx, offset=value / 100.0)
+
+    @qt.pyqtSlot()
+    def slotSelectedColorClicked(self):
+        """Change the selected stop colour."""
+        idx = self.gradient_bar.selectedIndex()
+        if idx >= 0:
+            current = self.gradient_bar.stops()[idx][1]
+            col = qt.QColorDialog.getColor(qt.QColor(current), self)
+            if col.isValid():
+                self.gradient_bar.setStop(idx, color=col.name())
 
     @qt.pyqtSlot()
     def onModified(self):
         """Called when setting is changed remotely."""
         self.loadFromSetting()
-
-
-class ColorStopWidget(qt.QWidget):
-    """Widget representing a single color stop."""
-
-    offset_changed = qt.pyqtSignal(float)
-    color_changed = qt.pyqtSignal(str)
-
-    def __init__(self, offset, color, parent=None):
-        qt.QWidget.__init__(self, parent)
-
-        self._offset = offset
-        self._color = color
-
-        layout = qt.QHBoxLayout(self)
-        layout.setSpacing(8)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        # Position slider
-        # Position slider (0-10000 for 0.01% precision)
-        self.pos_slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
-        self.pos_slider.setRange(0, 10000)
-        self.pos_slider.setValue(int(offset * 10000))
-        self.pos_slider.setMaximumWidth(100)
-        self.pos_slider.valueChanged.connect(self.slotPosChanged)
-        layout.addWidget(self.pos_slider)
-
-        # Position edit (direct input, supports decimals)
-        self.pos_edit = qt.QLineEdit()
-        self.pos_edit.setText(f'{offset*100:.2f}')
-        self.pos_edit.setMaximumWidth(50)
-        self.pos_edit.setValidator(qt.QDoubleValidator(0, 100, 2, self.pos_edit))
-        self.pos_edit.editingFinished.connect(self.slotEditFinished)
-        layout.addWidget(self.pos_edit)
-
-        # Unit label
-        unit_label = qt.QLabel('%')
-        layout.addWidget(unit_label)
-
-        # Color button
-        self.color_btn = qt.QPushButton()
-        self.color_btn.setMaximumWidth(60)
-        self.color_btn.setText(color)
-        self.color_btn.setStyleSheet(f'background-color: {color}')
-        self.color_btn.clicked.connect(self.slotColorClicked)
-        layout.addWidget(self.color_btn)
-
-        layout.addStretch()
-
-    @property
-    def offset(self):
-        return self._offset
-
-    @property
-    def color(self):
-        return self._color
-
-    @qt.pyqtSlot(int)
-    def slotPosChanged(self, value):
-        self._offset = value / 10000.0
-        self.pos_edit.setText(f'{self._offset*100:.2f}')
-        self.offset_changed.emit(self._offset)
-
-    @qt.pyqtSlot()
-    def slotEditFinished(self):
-        try:
-            val = float(self.pos_edit.text())
-            val = max(0.0, min(100.0, val))
-            self._offset = val / 100.0
-            self.pos_slider.blockSignals(True)
-            self.pos_slider.setValue(int(round(val * 100)))  # 0.5% = 50 on slider
-            self.pos_slider.blockSignals(False)
-            self.offset_changed.emit(self._offset)
-        except ValueError:
-            self.pos_edit.setText(f'{self._offset*100:.2f}')
-
-    def slotColorClicked(self):
-        col = qt.QColorDialog.getColor(qt.QColor(self._color), self)
-        if col.isValid():
-            self._color = col.name()
-            self.color_btn.setText(self._color)
-            self.color_btn.setStyleSheet(f'background-color: {self._color}')
-            self.color_changed.emit(self._color)
 
 
 class GradientPreview(qt.QWidget):
@@ -2482,9 +2583,10 @@ class GradientPreview(qt.QWidget):
         self.grad_type = None
         self.angle = 90
         self.stops = []
+        self.transparency = 0
         self.gradient = None
 
-    def setGradient(self, grad_type, angle=None, stops=None):
+    def setGradient(self, grad_type, angle=None, stops=None, transparency=0):
         """Set gradient parameters. Pass None to clear."""
         if grad_type is None:
             self.gradient = None
@@ -2492,6 +2594,7 @@ class GradientPreview(qt.QWidget):
             self.grad_type = grad_type
             self.angle = angle
             self.stops = stops
+            self.transparency = transparency
             self.gradient = self._createGradient()
         self.update()
 
@@ -2510,8 +2613,13 @@ class GradientPreview(qt.QWidget):
         else:  # radial
             grad = qt.QRadialGradient(w / 2, h / 2, max(w, h) / 2)
 
+        alpha = 1.0 if self.transparency >= 100 else \
+            (100 - self.transparency) / 100.0
         for offset, color in self.stops:
-            grad.setColorAt(offset, qt.QColor(color))
+            qc = qt.QColor(color)
+            if alpha < 1.0:
+                qc.setAlphaF(alpha)
+            grad.setColorAt(offset, qc)
 
         return grad
 
@@ -2523,6 +2631,15 @@ class GradientPreview(qt.QWidget):
             # Draw checkered background for no gradient
             painter.fillRect(self.rect(), qt.QColor('#cccccc'))
             return
+
+        # checkerboard underlay so transparency is visible
+        checker = qt.QPixmap(8, 8)
+        checker.fill(qt.QColor('#ffffff'))
+        cp = qt.QPainter(checker)
+        cp.fillRect(0, 0, 4, 4, qt.QColor('#c0c0c0'))
+        cp.fillRect(4, 4, 4, 4, qt.QColor('#c0c0c0'))
+        cp.end()
+        painter.drawTiledPixmap(self.rect(), checker)
 
         if self.grad_type == 'linear':
             self.gradient.setStart(0, self.height() / 2)
