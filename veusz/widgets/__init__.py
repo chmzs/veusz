@@ -29,6 +29,7 @@ from .grid import Grid
 from .plotters import GenericPlotter, FreePlotter
 from .pickable import PickInfo
 from .point import PointPlotter
+from .proportions import ProportionalScatter
 from .function import FunctionPlotter
 from .histo import Histo
 from .textlabel import TextLabel

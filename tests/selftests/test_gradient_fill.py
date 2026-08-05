@@ -561,6 +561,104 @@ class TestBarCI(unittest.TestCase):
         self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
 
 
+class TestProportionalScatter(unittest.TestCase):
+    """Test the ProportionalScatter widget (pie/donut/bar glyphs)."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            import veusz.widgets
+            from veusz import qtall as qt
+            from veusz import document as docmod
+            from veusz.datasets import oned
+            from veusz.widgets.proportions import ProportionalScatter
+            cls.app = qt.QApplication.instance() or qt.QApplication([])
+            cls.qt = qt
+            cls.docmod = docmod
+            cls.oned = oned
+            cls.ProportionalScatter = ProportionalScatter
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack for proportions")
+
+    def _make_widget(self):
+        d = self.docmod.Document()
+        for name, arr in [('x', [1, 2, 3]), ('y', [10, 20, 30]),
+                          ('n', [100, 400, 900]),
+                          ('pctA', [95, 75, 30]), ('pctB', [5, 25, 70])]:
+            d.setData(name, self.oned.Dataset(N.array(arr, dtype=float)))
+        prop = self.ProportionalScatter(None, name='p1')
+        prop.document = d
+        prop.settings.xData = 'x'
+        prop.settings.yData = 'y'
+        prop.settings.scalePoints = 'n'
+        prop.settings.wedgeData = ('pctA', 'pctB')
+        prop.settings.markerSize = '10pt'
+        return prop
+
+    @staticmethod
+    def _axes():
+        class MockAxis:
+            def __init__(self, isx):
+                self.isx = isx
+
+            def dataToPlotterCoords(self, posn, vals):
+                return N.asarray(vals, float) * (80 if self.isx else 4)
+
+            def log(self):
+                return False
+        return MockAxis(True), MockAxis(False)
+
+    def _render_nonwhite(self, prop, glyph):
+        prop.settings.glyph = glyph
+        img = self.qt.QImage(300, 300, self.qt.QImage.Format.Format_ARGB32)
+        img.fill(self.qt.QColor(255, 255, 255))
+        p = self.qt.QPainter(img)
+        p.setRenderHint(self.qt.QPainter.RenderHint.Antialiasing)
+        p.pixperpt = 1.0
+        ax, ay = self._axes()
+        prop.dataDraw(p, (ax, ay), (0, 0, 300, 300),
+                      self.qt.QRectF(0, 0, 300, 300))
+        p.end()
+        white = self.qt.QColor(255, 255, 255)
+        return sum(1 for y in range(0, 300, 2) for x in range(0, 300, 2)
+                   if img.pixelColor(x, y) != white)
+
+    def test_radii_sqrt_scaling(self):
+        prop = self._make_widget()
+        radii = prop._getRadii(3, 10.0)
+        # n=[100,400,900] -> sqrt=[10,20,30], max 30 -> radii=[3.33,6.67,10]
+        self.assertAlmostEqual(radii[0], 10 * 10.0 / 30.0, places=3)
+        self.assertAlmostEqual(radii[1], 10 * 20.0 / 30.0, places=3)
+        self.assertAlmostEqual(radii[2], 10 * 30.0 / 30.0, places=3)
+
+    def test_pie_renders(self):
+        self.assertGreater(self._render_nonwhite(self._make_widget(), 'pie'), 0)
+
+    def test_donut_renders(self):
+        self.assertGreater(
+            self._render_nonwhite(self._make_widget(), 'donut'), 0)
+
+    def test_bar_renders(self):
+        self.assertGreater(
+            self._render_nonwhite(self._make_widget(), 'bar'), 0)
+
+    def test_zero_wedge_no_crash(self):
+        """A wedge dataset with all zeros must not crash and draws nothing."""
+        d = self.docmod.Document()
+        d.setData('x', self.oned.Dataset(N.array([1.0])))
+        d.setData('y', self.oned.Dataset(N.array([2.0])))
+        d.setData('a', self.oned.Dataset(N.array([0.0])))
+        d.setData('b', self.oned.Dataset(N.array([0.0])))
+        prop = self.ProportionalScatter(None, name='p1')
+        prop.document = d
+        prop.settings.xData = 'x'
+        prop.settings.yData = 'y'
+        prop.settings.wedgeData = ('a', 'b')
+        prop.settings.markerSize = '10pt'
+        self.assertEqual(self._render_nonwhite(prop, 'pie'), 0)
+
+
 def main(outfile):
     """Run tests and write success marker to outfile."""
     loader = unittest.TestLoader()
