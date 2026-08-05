@@ -1731,7 +1731,7 @@ class FillSet(Setting):
             if ( not isinstance(color, str) or
                  style not in utils.extfillstyles or
                  type(hide) not in (int, bool) or
-                 len(fill) not in (3, 10) ):
+                 len(fill) not in (3, 10, 11) ):
                 raise utils.InvalidType
 
         return val

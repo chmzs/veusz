@@ -191,13 +191,13 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 - 测试：7 个 `fillToEdgeTargets` 单元测试（各模式 + custom/'Auto' 守卫）
 - 状态：**完成**
 
-### 批次 3：完成渐变对每数据集填充的集成（G1-G2, B1-B4）
+### 批次 3：完成渐变对每数据集填充的集成（G1-G2）✅
 **目标**：bar/点图每个 dataset 可用渐变+透明度。
 - G1：`FillSet.normalize` 允许 11 元素（`len(fill) in (3,10,11)`）
-- G2：`_FillBox.onSettingChanged` 把 `e.Gradient` 序列化进 rowdata
-- B4：bar 图加 CI 填充带（复用 point 的 errorsFilled 思路，按 bar 几何）
-- 测试：bar 渐变渲染、每 dataset 不同渐变/透明度
-- 状态：**未开始**
+- G2：`_FillBox.onSettingChanged` 把 `e.Gradient` 序列化进 rowdata（index 10）
+- 测试：25 渐变测试 + 78 selftests 通过
+- 状态：**完成**
+- **B4（bar CI 填充带）延后**：这是新功能而非 bug 修复，且几何复杂（grouped/stacked、水平/垂直）。按"先修后增"原则移到新增功能批次（见批次 7）。
 
 ### 批次 4：渐变全量扩展（G3）
 **目标**：箭头、boxplot 标记、3D 等所有 fill 支持渐变。
@@ -218,6 +218,11 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 **目标**：所有新增功能有渲染级回归测试。
 - 渲染到 image → 校验像素；SVG 对比测试补新增功能
 - 全量 `pixi run test` + `runselftest.py` 通过
+- 状态：**未开始**
+
+### 批次 7（延后）：新增功能（先修后增）
+- **B4**：bar 图 CI 填充带（复用 point 的 errorsFilled 思路，按 bar 几何，含 grouped/stacked + 水平方向）
+- **渐变 UI 改进**：见下方"渐变 UI 设计改进"小节
 - 状态：**未开始**
 
 ---
@@ -249,9 +254,10 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 |------|------|------|------|
 | 0 | 交接文档 | ✅ | — |
 | 1 | 修复透明度分裂 | ✅ | 44777600 |
-| 2 | 修复 Point/CI | ✅ | 待提交 |
-| 3 | 渐变集成每数据集 | ⬜ | — |
-| 3 | 渐变集成每数据集 | ⬜ | — |
+| 2 | 修复 Point/CI | ✅ | 批次2提交 |
+| 3 | 渐变集成每数据集 (G1-G2) | ✅ | 待提交 |
 | 4 | 渐变全量扩展 | ⬜ | — |
 | 5 | 修复 Rectangle bounds | ⬜ | — |
+| 6 | 测试套件加固 | ⬜ | — |
+| 7 | 新增功能（B4 + UI） | ⬜ | — |
 | 6 | 测试套件加固 | ⬜ | — |

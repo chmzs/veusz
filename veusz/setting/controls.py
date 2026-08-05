@@ -1484,11 +1484,17 @@ class _FillBox(qt.QScrollArea):
         # get value of brush and get data for row
         e = self.extbrush
         rowdata = [e.style, e.color, e.hide]
-        if e.style != 'solid' or e.transparency > 0:
+        # gradient dict (e.Gradient returns the val dict for a Setting)
+        gradient = e.Gradient if e.Gradient is not None else {}
+        grad_enabled = bool(gradient.get('enabled', False))
+        if e.style != 'solid' or e.transparency > 0 or grad_enabled:
             rowdata += [
                 e.transparency, e.linewidth, e.linestyle,
                 e.patternspacing, e.backcolor,
                 e.backtransparency, e.backhide ]
+            # gradient dict goes at index 10 (11-element row)
+            if grad_enabled:
+                rowdata.append(gradient)
         rowdata = tuple(rowdata)
 
         if self.setting.val[self.row] != rowdata:
