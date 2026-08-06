@@ -321,6 +321,12 @@ class TestFillToEdgeTargets(unittest.TestCase):
             self._pts(), (0, 5, 100, 95), 'right')
         self.assertEqual((x1, y1, x2, y2), (100, 20, 100, 60))
 
+    def test_mean(self):
+        # mean of plotted y values [20,40,60] is 40
+        x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
+            self._pts(), (0, 5, 100, 95), 'mean')
+        self.assertEqual((x1, y1, x2, y2), (10, 40, 50, 40))
+
     def test_custom_numeric(self):
         x1, y1, x2, y2 = self.extbrushfilling.fillToEdgeTargets(
             self._pts(), (0, 5, 100, 95), 'custom', filltoValue=50.0)

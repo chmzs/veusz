@@ -349,7 +349,14 @@ def fillToEdgeTargets(pts, bounds, fillto, filltoValue=None, axes=None):
     x1, y1, x2, y2 = bounds
 
     # Determine the fill boundary y/x coordinate
-    if fillto == 'top':
+    if fillto == 'mean':
+        # fill to the mean of the plotted y values (plotter coords)
+        if len(pts) > 0:
+            fill_y = sum(p.y() for p in pts) / len(pts)
+        else:
+            fill_y = y2
+        fill_x = None  # horizontal fill
+    elif fillto == 'top':
         fill_y = y1
         fill_x = None  # horizontal fill
     elif fillto == 'bottom':
