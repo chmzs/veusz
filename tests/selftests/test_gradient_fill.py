@@ -560,6 +560,62 @@ class TestBarCI(unittest.TestCase):
         self.assertIsNotNone(mn)
         self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
 
+    def test_stacked_calls_drawCIBand(self):
+        """barDrawStacked must render CI bands anchored to each stacked segment."""
+        bp = self._make_plotter()
+        bp.settings.FillCI.hide = False
+        dsvals = [{'data': N.array([2.0, 2.0])},
+                  {'data': N.array([3.0, 3.0])}]
+
+        class MockAxis:
+            def __init__(self, isx):
+                self.isx = isx
+
+            def dataToPlotterCoords(self, posn, vals):
+                return N.asarray(vals, dtype=float) * (1.0 if self.isx else 10.0)
+
+        axes = [MockAxis(True), MockAxis(False)]
+        posns = N.array([1.0, 2.0])
+        calls = []
+
+        def fake_drawCIBand(painter, p1, p2, mn, mx, axes_, wp):
+            calls.append(N.array(mn))
+
+        bp.plotBars = lambda *a, **k: None
+        bp.drawErrorBars = lambda *a, **k: None
+        bp.drawCIBand = fake_drawCIBand
+        bp.barDrawStacked(
+            object(), posns, 4.0, dsvals, axes,
+            (0, 0, 100, 100), self.qt.QRectF(0, 0, 100, 100))
+        self.assertEqual(len(calls), 2)
+        # ds0 sits on its own base -> band [2,2]; ds1 on top -> band [5,5]
+        self.assertEqual(N.array(calls[0]).tolist(), [2.0, 2.0])
+        self.assertEqual(N.array(calls[1]).tolist(), [5.0, 5.0])
+
+    def test_drawCIBand_short_bounds_no_crash(self):
+        """drawCIBand must not IndexError when custom bounds are shorter than bars."""
+        import veusz.widgets.bar as bar_mod
+        bp = self._make_plotter()
+
+        class MockAxis:
+            def dataToPlotterCoords(self, posn, vals):
+                return N.asarray(vals, dtype=float) * 10.0
+
+        axes = [MockAxis(), MockAxis()]
+        painted = []
+        orig = bar_mod.utils.brushExtFillPath
+        bar_mod.utils.brushExtFillPath = lambda *a, **k: painted.append(1)
+        try:
+            posns1 = N.array([0.0, 1.0, 2.0])
+            posns2 = N.array([4.0, 5.0, 6.0])
+            mn = N.array([0.5, 0.6])  # shorter than the 3 bars
+            mx = N.array([1.5, 1.6])
+            bp.drawCIBand(
+                object(), posns1, posns2, mn, mx, axes, (0, 0, 100, 100))
+        finally:
+            bar_mod.utils.brushExtFillPath = orig
+        self.assertEqual(len(painted), 2)
+
 
 class TestProportionalScatter(unittest.TestCase):
     """Test the ProportionalScatter widget (pie/donut/bar glyphs)."""
@@ -657,6 +713,136 @@ class TestProportionalScatter(unittest.TestCase):
         prop.settings.wedgeData = ('a', 'b')
         prop.settings.markerSize = '10pt'
         self.assertEqual(self._render_nonwhite(prop, 'pie'), 0)
+
+    def test_key_symbol_multirow_no_crash(self):
+        """drawKeySymbol must not crash when wedge datasets have >1 row."""
+        prop = self._make_widget()
+        img = self.qt.QImage(80, 80, self.qt.QImage.Format.Format_ARGB32)
+        img.fill(self.qt.QColor(255, 255, 255))
+        p = self.qt.QPainter(img)
+        p.setRenderHint(self.qt.QPainter.RenderHint.Antialiasing)
+        p.pixperpt = 1.0
+        try:
+            prop.drawKeySymbol(0, p, 0, 0, 80, 80)
+        finally:
+            p.end()
+
+
+class TestCSVSidecar(unittest.TestCase):
+    """Test CSV sidecar generation for used datasets."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            import veusz.widgets  # noqa: F401  (registers widgets)
+            from veusz.document import Document
+            from veusz import qtall as qt
+            from veusz.windows.mainwindow import MainWindow
+            app = qt.QApplication.instance() or qt.QApplication([])
+            cls.app = app
+            cls.Document = Document
+            cls.MainWindow = MainWindow
+        except Exception:
+            raise unittest.SkipTest("Cannot import Qt stack for CSV sidecar test")
+
+    def _make_doc_with_xy(self):
+        """Create document with x,y,z datasets and an xy widget using x,y."""
+        d = self.Document()
+        from veusz.datasets import oned
+        import numpy as N
+
+        d.setData('x', oned.Dataset(N.array([1, 2, 3])))
+        d.setData('y', oned.Dataset(N.array([10, 20, 30])))
+        d.setData('z', oned.Dataset(N.array([100, 200, 300])))
+        d.setData('unused', oned.Dataset(N.array([999])))
+
+        from veusz.document import widgetfactory
+        # Graph must be child of Page, not Root
+        page = widgetfactory.thefactory.makeWidget('page', d.basewidget, d)
+        graph = widgetfactory.thefactory.makeWidget('graph', page, d)
+        xy = widgetfactory.thefactory.makeWidget('xy', graph, d)
+        xy.settings.xData = 'x'
+        xy.settings.yData = 'y'
+
+        d.basewidget.addChild(page)
+        page.addChild(graph)
+        graph.addChild(xy)
+        return d
+
+    def test_getUsedDatasetNames(self):
+        """MainWindow.getUsedDatasetNames returns only datasets used by widgets."""
+        d = self._make_doc_with_xy()
+        win = self.MainWindow(None)
+        win.document = d
+        names = win.getUsedDatasetNames()
+        self.assertEqual(set(names), {'x', 'y'})
+
+    def test_saveUsedDataAsCSV_creates_file(self):
+        """saveUsedDataAsCSV writes a CSV file with used columns and provenance."""
+        import tempfile
+        import csv
+
+        d = self._make_doc_with_xy()
+        win = self.MainWindow(None)
+        win.document = d
+
+        with tempfile.NamedTemporaryFile(suffix='.vsz', delete=False) as tf:
+            docpath = tf.name
+        try:
+            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
+            win.saveUsedDataAsCSV(docpath)
+
+            self.assertTrue(os.path.exists(sidecar))
+            with open(sidecar, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            # First two lines are provenance comments
+            self.assertTrue(lines[0].startswith('# x; source ='))
+            self.assertTrue(lines[1].startswith('# y; source ='))
+            # Header line
+            self.assertEqual(lines[2].strip(), 'x,y')
+            # Three data rows
+            self.assertEqual(len(lines), 5)
+            # Check data values
+            self.assertIn('1', lines[3])
+            self.assertIn('10', lines[3])
+        finally:
+            if os.path.exists(docpath):
+                os.unlink(docpath)
+            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
+            if os.path.exists(sidecar):
+                os.unlink(sidecar)
+
+    def test_saveUsedDataAsCSV_provenance_linked(self):
+        """Linked datasets record their source file in provenance."""
+        import tempfile
+        import csv
+
+        d = self._make_doc_with_xy()
+        # Make y linked
+        y_ds = d.getData('y')
+        y_ds.linked = type('LF', (), {'filename': '/path/to/source.csv'})()
+        win = self.MainWindow(None)
+        win.document = d
+
+        with tempfile.NamedTemporaryFile(suffix='.vsz', delete=False) as tf:
+            docpath = tf.name
+        try:
+            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
+            win.saveUsedDataAsCSV(docpath)
+
+            with open(sidecar, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            # y line should show the linked file
+            self.assertTrue(any('source = /path/to/source.csv' in ln for ln in lines))
+            # x should be embedded
+            self.assertTrue(any('source = embedded, no link' in ln for ln in lines))
+        finally:
+            if os.path.exists(docpath):
+                os.unlink(docpath)
+            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
+            if os.path.exists(sidecar):
+                os.unlink(sidecar)
 
 
 def main(outfile):

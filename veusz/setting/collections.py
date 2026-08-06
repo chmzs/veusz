@@ -253,6 +253,13 @@ class BrushExtended(Settings):
             descr=_('Gradient fill settings'),
             usertext=_('Gradient') ) )
 
+        # Gradient center value - the data value that maps to the gradient midpoint (white)
+        # Similar to filltoValue: 'Auto', 'zero', or a numeric value
+        self.add( setting.Str(
+            'gradientCenterValue', 'Auto',
+            descr=_('Data value at which gradient center (midpoint) appears'),
+            usertext=_('Gradient center value')) )
+
 class KeyBrush(BrushExtended):
     '''Fill used for back of key.'''
 

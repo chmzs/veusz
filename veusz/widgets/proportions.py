@@ -79,7 +79,8 @@ class ProportionalScatter(plotters.GenericPlotter):
             usertext=_('Wedge labels')), 5)
         s.add(setting.DatasetOrStr(
             'labels', '',
-            descr=_('Dataset or string giving axis labels for each point'),
+            descr=_('Dataset or string giving axis labels for each point. '
+                    'Requires the corresponding axis to be in "labels" mode.'),
             usertext=_('Axis labels')), 6)
 
         s.add(setting.DistancePt(
@@ -97,13 +98,18 @@ class ProportionalScatter(plotters.GenericPlotter):
             usertext=_('Donut inner radius')), 8)
         s.add(setting.Choice(
             'barDirection', ('horizontal', 'vertical'), 'horizontal',
-            descr=_('Direction of the mini bar glyph'),
+            descr=_('Direction of the mini bar glyph (stacked mode)'),
             usertext=_('Bar direction')), 9)
+        s.add(setting.Choice(
+            'barMode', ('stacked', 'grouped'), 'stacked',
+            descr=_('Bar glyph mode: stacked (segments in one bar) or '
+                    'grouped (separate bars side by side)'),
+            usertext=_('Bar mode')), 10)
 
         s.add(setting.Bool(
             'outline', True,
             descr=_('Draw a border around the glyph'),
-            usertext=_('Outline')), 10)
+            usertext=_('Outline')), 11)
 
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
@@ -271,6 +277,11 @@ class ProportionalScatter(plotters.GenericPlotter):
                 continue
             span = int(-360.0 * abs(v) / total * 16)
             path = qt.QPainterPath()
+            # Use arcMoveTo for the first segment to avoid line from (0,0)
+            if start == 90 * 16:
+                path.arcMoveTo(outer, start / 16.0)
+            else:
+                path.arcTo(outer, start / 16.0, 0)
             path.arcTo(outer, start / 16.0, span / 16.0)
             path.arcTo(inner, (start + span) / 16.0, -span / 16.0)
             path.closeSubpath()
@@ -283,24 +294,64 @@ class ProportionalScatter(plotters.GenericPlotter):
         if total <= 0:
             return
         horizontal = self.settings.barDirection == 'horizontal'
+        grouped = self.settings.barMode == 'grouped'
         size = radius * 2
-        x0 = cx - size / 2
-        y0 = cy - size / 2
-        acc = 0.0
-        for color, v in zip(self._wedgeColors(len(vals)), vals):
-            if not N.isfinite(v) or v == 0:
-                continue
-            frac = abs(v) / total
-            painter.setBrush(color)
-            if horizontal:
-                w = size * frac
-                rect = qt.QRectF(x0 + acc, y0, w, size)
-                acc += w
+        n = len(vals)
+
+        if horizontal:
+            # Horizontal bars (stacked or grouped)
+            if grouped:
+                bar_h = size / max(1, n)
+                y0 = cy - size / 2
+                for idx, (color, v) in enumerate(zip(self._wedgeColors(len(vals)), vals)):
+                    if not N.isfinite(v) or v == 0:
+                        continue
+                    frac = abs(v) / total
+                    w = size * frac
+                    rect = qt.QRectF(cx - w / 2, y0 + idx * bar_h, w, bar_h)
+                    painter.setBrush(color)
+                    painter.drawRect(rect)
             else:
-                h = size * frac
-                rect = qt.QRectF(x0, y0 + acc, size, h)
-                acc += h
-            painter.drawRect(rect)
+                # Stacked horizontal
+                x0 = cx - size / 2
+                y0 = cy - size / 2
+                acc = 0.0
+                for color, v in zip(self._wedgeColors(len(vals)), vals):
+                    if not N.isfinite(v) or v == 0:
+                        continue
+                    frac = abs(v) / total
+                    w = size * frac
+                    rect = qt.QRectF(x0 + acc, y0, w, size)
+                    acc += w
+                    painter.setBrush(color)
+                    painter.drawRect(rect)
+        else:
+            # Vertical bars (stacked or grouped)
+            if grouped:
+                bar_w = size / max(1, n)
+                x0 = cx - size / 2
+                for idx, (color, v) in enumerate(zip(self._wedgeColors(len(vals)), vals)):
+                    if not N.isfinite(v) or v == 0:
+                        continue
+                    frac = abs(v) / total
+                    h = size * frac
+                    rect = qt.QRectF(x0 + idx * bar_w, cy - h / 2, bar_w, h)
+                    painter.setBrush(color)
+                    painter.drawRect(rect)
+            else:
+                # Stacked vertical
+                x0 = cx - size / 2
+                y0 = cy - size / 2
+                acc = 0.0
+                for color, v in zip(self._wedgeColors(len(vals)), vals):
+                    if not N.isfinite(v) or v == 0:
+                        continue
+                    frac = abs(v) / total
+                    h = size * frac
+                    rect = qt.QRectF(x0, y0 + acc, size, h)
+                    acc += h
+                    painter.setBrush(color)
+                    painter.drawRect(rect)
 
 
 document.thefactory.register(ProportionalScatter)

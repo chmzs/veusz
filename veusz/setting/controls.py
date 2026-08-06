@@ -1006,6 +1006,7 @@ class Color(qt.QWidget):
     """A control which lets the user choose a color.
 
     A drop down list and a button to bring up a dialog are used
+    Supports explicit colors and axis references (@axis:x:Line/color, etc.)
     """
 
     sigSettingChanged = qt.pyqtSignal(qt.QObject, object, object)
@@ -1030,22 +1031,64 @@ class Color(qt.QWidget):
         b.setMaximumWidth(24)
         b.clicked.connect(self.slotButtonClicked)
 
+        # Context menu for axis references
+        self.axis_ref_menu = qt.QMenu(self)
+        self._populateAxisReferenceMenu()
+        self.axis_ref_menu.aboutToShow.connect(self._populateAxisReferenceMenu)
+
+        # Add a button to open axis reference menu
+        self.axis_btn = qt.QToolButton()
+        self.axis_btn.setText('▼')
+        self.axis_btn.setPopupMode(qt.QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.axis_btn.setMenu(self.axis_ref_menu)
+        self.axis_btn.setMaximumHeight(24)
+        self.axis_btn.setMaximumWidth(24)
+        self.axis_btn.setToolTip(_('Select axis reference color'))
+
         c.setModel(self.colors.model)
         self.setColor(self.setting.val)
 
         if setting.readonly:
             c.setEnabled(False)
             b.setEnabled(False)
+            self.axis_btn.setEnabled(False)
 
         layout = qt.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(c)
         layout.addWidget(b)
+        layout.addWidget(self.axis_btn)
 
         self.setColor(setting.toUIText())
         self.setLayout(layout)
         self.setting.setOnModified(self.onModified)
+
+    def _populateAxisReferenceMenu(self):
+        """Populate the axis reference menu."""
+        self.axis_ref_menu.clear()
+        setting_obj = self.setting
+        if hasattr(setting_obj, 'AXIS_REF_PATHS'):
+            for label, path in setting_obj.AXIS_REF_PATHS.items():
+                action = self.axis_ref_menu.addAction(label)
+                action.setData(f"@axis:{path}")
+                action.triggered.connect(self._onAxisRefSelected)
+
+        # Add separator and "Clear reference" option
+        self.axis_ref_menu.addSeparator()
+        clear_action = self.axis_ref_menu.addAction(_("Clear axis reference"))
+        clear_action.triggered.connect(self._onClearAxisRef)
+
+    def _onAxisRefSelected(self):
+        """Handle axis reference selection from menu."""
+        action = self.sender()
+        if action:
+            ref_value = action.data()
+            self.sigSettingChanged.emit(self, self.setting, ref_value)
+
+    def _onClearAxisRef(self):
+        """Clear axis reference, fall back to 'auto'."""
+        self.sigSettingChanged.emit(self, self.setting, 'auto')
 
     def slotButtonClicked(self):
         """Open dialog to edit color."""
@@ -1079,7 +1122,7 @@ class Color(qt.QWidget):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.setColor( self.setting.toUIText() )
+        self.setColor(self.setting.toUIText())
 
 class WidgetSelector(Choice):
     """For choosing from a list of widgets."""
@@ -2329,6 +2372,21 @@ class GradientFill(qt.QWidget):
         trans_layout.addStretch()
         main_layout.addLayout(trans_layout)
 
+        # Gradient midpoint (0-100%) - offset where middle color appears
+        mid_layout = qt.QHBoxLayout()
+        mid_layout.setSpacing(8)
+        mid_label = qt.QLabel(_('Midpoint:'))
+        mid_layout.addWidget(mid_label)
+        self.midpoint_spin = qt.QSpinBox()
+        self.midpoint_spin.setRange(0, 100)
+        self.midpoint_spin.setSuffix('%')
+        self.midpoint_spin.setToolTip(_('Gradient offset where the middle color appears. Empty = automatic.'))
+        self.midpoint_spin.setSpecialValueText(_('Auto'))
+        self.midpoint_spin.valueChanged.connect(self.slotMidpointChanged)
+        mid_layout.addWidget(self.midpoint_spin)
+        mid_layout.addStretch()
+        main_layout.addLayout(mid_layout)
+
         # Color stops — interactive gradient bar (drag/click/dblclick editor)
         stops_label = qt.QLabel(_('Color stops:'))
         main_layout.addWidget(stops_label)
@@ -2387,6 +2445,13 @@ class GradientFill(qt.QWidget):
         self.angle_spin.setValue(int(val.get('angle', 90)))
         self.transparency_spin.setValue(int(val.get('transparency', 0)))
 
+        # Load midpoint
+        midpoint = val.get('midpoint')
+        if midpoint is not None:
+            self.midpoint_spin.setValue(int(midpoint * 100))
+        else:
+            self.midpoint_spin.setValue(0)  # Auto
+
         # Load color stops into the interactive bar
         stops = val.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')])
         # Normalize: convert [[]] to [()] for consistency
@@ -2416,6 +2481,10 @@ class GradientFill(qt.QWidget):
             'stops': self.gradient_bar.stops()
         }
 
+        # Save midpoint
+        if self.midpoint_spin.value() > 0:
+            val['midpoint'] = self.midpoint_spin.value() / 100.0
+
         self.sigSettingChanged.emit(self, self.setting, val)
 
     def updatePreview(self):
@@ -2429,8 +2498,9 @@ class GradientFill(qt.QWidget):
         angle = self.angle_spin.value()
         stops = self.gradient_bar.stops()
         transparency = self.transparency_spin.value()
+        midpoint = self.midpoint_spin.value() / 100.0 if self.midpoint_spin.value() > 0 else None
 
-        self.preview.setGradient(grad_type, angle, stops, transparency)
+        self.preview.setGradient(grad_type, angle, stops, transparency, midpoint)
 
     @qt.pyqtSlot()
     def slotEnableChanged(self):
@@ -2449,6 +2519,11 @@ class GradientFill(qt.QWidget):
 
     @qt.pyqtSlot(int)
     def slotTransparencyChanged(self, value):
+        self.updatePreview()
+        self.saveToSetting()
+
+    @qt.pyqtSlot(int)
+    def slotMidpointChanged(self, value):
         self.updatePreview()
         self.saveToSetting()
 
@@ -2575,9 +2650,10 @@ class GradientPreview(qt.QWidget):
         self.angle = 90
         self.stops = []
         self.transparency = 0
+        self.midpoint = None
         self.gradient = None
 
-    def setGradient(self, grad_type, angle=None, stops=None, transparency=0):
+    def setGradient(self, grad_type, angle=None, stops=None, transparency=0, midpoint=None):
         """Set gradient parameters. Pass None to clear."""
         if grad_type is None:
             self.gradient = None
@@ -2586,6 +2662,7 @@ class GradientPreview(qt.QWidget):
             self.angle = angle
             self.stops = stops
             self.transparency = transparency
+            self.midpoint = midpoint
             self.gradient = self._createGradient()
         self.update()
 
@@ -2606,7 +2683,16 @@ class GradientPreview(qt.QWidget):
 
         alpha = 1.0 if self.transparency >= 100 else \
             (100 - self.transparency) / 100.0
-        for offset, color in self.stops:
+
+        # Apply midpoint remapping if configured
+        stops = self.stops
+        if self.midpoint is not None:
+            from ..utils.gradient import remap_stops_for_midpoint
+            stops = remap_stops_for_midpoint(stops, self.midpoint)
+        else:
+            stops = self.stops
+
+        for offset, color in stops:
             qc = qt.QColor(color)
             if alpha < 1.0:
                 qc.setAlphaF(alpha)

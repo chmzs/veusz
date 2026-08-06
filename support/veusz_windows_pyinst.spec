@@ -26,7 +26,8 @@ exe = EXE(
     upx=False,
     console=False,
     contents_directory='.', # do not use _internal
-    )
+    icon=icon,
+)
 
 # add necessary documentation, licence
 data_glob = [

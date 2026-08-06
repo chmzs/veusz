@@ -639,6 +639,20 @@ class PointPlotter(GenericPlotter):
         if thin>1:
             xplotter, yplotter = xplotter[::thin], yplotter[::thin]
 
+        # align custom/std CI bound arrays to the plotted point count so a
+        # shorter custom dataset doesn't silently truncate or misalign the
+        # error band; trailing points simply get no bounds
+        nx = len(xplotter)
+        if xmin is not None and len(xmin) > nx:
+            xmin = xmin[:nx]
+        if xmax is not None and len(xmax) > nx:
+            xmax = xmax[:nx]
+        ny = len(yplotter)
+        if ymin is not None and len(ymin) > ny:
+            ymin = ymin[:ny]
+        if ymax is not None and len(ymax) > ny:
+            ymax = ymax[:ny]
+
         markersize = s.get('markerSize').convert(painter)
         ebp = ErrorBarDraw(
             s.errorStyle, s.ErrorBarLine, s.FillAbove, s.FillBelow, markersize)

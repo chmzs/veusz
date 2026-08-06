@@ -1367,9 +1367,34 @@ class DatasetOrStr(Dataset):
         return self._copyHelper((), (), {})
 
 class Color(ChoiceOrMore):
-    """A color setting."""
+    """A color setting.
+
+    Supports explicit colors (hex/named) and axis references.
+    Axis reference format: @axis:x:Line/color, @axis:y:MajorTicks/color, etc.
+    """
 
     typename = 'color'
+
+    # Axis reference prefix
+    AXIS_REF_PREFIX = '@axis:'
+
+    # Available axis reference paths
+    AXIS_REF_PATHS = {
+        'X Axis Line': 'x:Line/color',
+        'X Axis Major Ticks': 'x:MajorTicks/color',
+        'X Axis Minor Ticks': 'x:MinorTicks/color',
+        'X Axis Grid Lines': 'x:GridLines/color',
+        'X Axis Minor Grid Lines': 'x:MinorGridLines/color',
+        'X Axis Label': 'x:Label/color',
+        'X Axis Tick Labels': 'x:TickLabels/color',
+        'Y Axis Line': 'y:Line/color',
+        'Y Axis Major Ticks': 'y:MajorTicks/color',
+        'Y Axis Minor Ticks': 'y:MinorTicks/color',
+        'Y Axis Grid Lines': 'y:GridLines/color',
+        'Y Axis Minor Grid Lines': 'y:MinorGridLines/color',
+        'Y Axis Label': 'y:Label/color',
+        'Y Axis Tick Labels': 'y:TickLabels/color',
+    }
 
     def __init__(self, name, value, **args):
         """Initialise the color setting with the given name, default
@@ -1380,13 +1405,22 @@ class Color(ChoiceOrMore):
         """Make a copy of the setting."""
         return self._copyHelper((), (), {})
 
+    def isAxisReference(self):
+        """Check if current value is an axis reference."""
+        return isinstance(self.val, str) and self.val.startswith(self.AXIS_REF_PREFIX)
+
+    def getAxisReferencePath(self):
+        """Return the axis reference path if value is a reference."""
+        if self.isAxisReference():
+            return self.val[len(self.AXIS_REF_PREFIX):]
+        return None
+
     def color(self, painter, dataindex=0):
         """Return QColor from color.
 
         painter is a Veusz Painter
         dataindex is index for automatically getting colors for subdatasets.
         """
-
         if self.val.lower() == 'auto':
             # lookup widget
             w = self.parent
@@ -1396,8 +1430,66 @@ class Color(ChoiceOrMore):
                 return qt.QColor()
             # get automatic color
             return painter.docColor(w.autoColor(painter, dataindex=dataindex))
-        else:
-            return painter.docColor(self.val)
+
+        # Check for axis reference
+        if self.isAxisReference():
+            return self._resolveAxisReference(painter)
+
+        # Explicit color
+        return painter.docColor(self.val)
+
+    def _resolveAxisReference(self, painter):
+        """Resolve axis reference to actual color."""
+        ref_path = self.getAxisReferencePath()
+        if not ref_path:
+            return qt.QColor()
+
+        # Parse axis:name/path
+        try:
+            axis_part, setting_path = ref_path.split(':', 1)
+            # Find the axis widget
+            # Search up from this setting's widget
+            w = self.parent
+            while w is not None and not w.iswidget:
+                w = w.parent
+            if w is None:
+                return qt.QColor()
+
+            # Find the graph/page to get axes
+            graph_widget = w
+            while graph_widget is not None and not hasattr(graph_widget, 'getAxes'):
+                graph_widget = graph_widget.parent
+            if graph_widget is None:
+                return qt.QColor()
+
+            # Get the axis
+            axes = graph_widget.getAxes()
+            axis_idx = 0 if axis_part == 'x' else 1
+            if axis_idx >= len(axes):
+                return qt.QColor()
+            axis = axes[axis_idx]
+
+            # Traverse the setting path on the axis
+            # e.g., "Line/color" -> axis.settings.Line.color
+            parts = setting_path.split('/')
+            current = axis.settings
+            for part in parts:
+                if hasattr(current, part):
+                    current = getattr(current, part)
+                else:
+                    return qt.QColor()
+
+            # Now current should be a Color setting
+            if hasattr(current, 'color'):
+                return current.color(painter)
+            elif hasattr(current, 'val'):
+                # Direct color value
+                return painter.docColor(current.val)
+
+        except (AttributeError, ValueError):
+            pass
+
+        return qt.QColor()
 
     def makeControl(self, *args):
         return controls.Color(self, *args)

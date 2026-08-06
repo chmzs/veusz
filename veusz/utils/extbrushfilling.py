@@ -183,7 +183,7 @@ _fillcnvt = {
 }
 
 def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
-                               dataindex=0):
+                               dataindex=0, axes=None, fill_bounds=None):
     """Fill a path with a gradient brush.
 
     Uses the gradient module for gradient creation.
@@ -218,9 +218,31 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
     # Get bounding rect of path for gradient coordinates
     bb = path.boundingRect()
 
+    # Handle gradientCenterValue - map data value to gradient offset
+    center_value = extbrush.get('gradientCenterValue')
+    midpoint = config.midpoint  # visual midpoint override from GradientFill
+    if center_value and center_value not in ('Auto', '', None):
+        # Convert data value to plotter coordinate, then to 0-1 offset
+        if axes is not None and fill_bounds is not None:
+            yAxis = axes[1] if len(axes) > 1 else None
+            xAxis = axes[0] if len(axes) > 0 else None
+            if yAxis is not None:
+                try:
+                    val = float(center_value)
+                    val_arr = yAxis.dataToPlotterCoords(fill_bounds, N.array([val]))
+                    plotter_y = val_arr[0]
+                    # Map plotter_y to 0-1 offset within fill_bounds
+                    y1, y2 = fill_bounds[1], fill_bounds[3]
+                    if y2 != y1:
+                        midpoint = (plotter_y - y1) / (y2 - y1)
+                        # Clamp to [0, 1]
+                        midpoint = max(0.0, min(1.0, midpoint))
+                except (ValueError, TypeError, AttributeError, IndexError):
+                    pass  # fall back to config.midpoint or None
+
     # Create gradient based on configuration (composited transparency)
     qt_gradient = gradient_module.create_gradient_from_config(
-        config, bb, transparency=eff_transparency)
+        config, bb, transparency=eff_transparency, midpoint=midpoint)
 
     # Create brush with gradient
     brush = qt.QBrush(qt_gradient)
@@ -236,7 +258,7 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
         painter.restore()
 
 def brushExtFillPath(painter, extbrush, path, ignorehide=False,
-                     stroke=None, dataindex=0):
+                     stroke=None, dataindex=0, axes=None, fill_bounds=None):
     """Use an BrushExtended settings object to fill a path on painter.
     If ignorehide is True, ignore the hide setting on the brush object.
     stroke is an optional QPen for stroking outline of path
@@ -249,7 +271,7 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
 
     # Check for gradient fill - if enabled, use gradient rendering
     if gradient_module.is_gradient_enabled(extbrush.get('Gradient')):
-        _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex)
+        _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex, axes, fill_bounds)
         return
 
     style = extbrush.style

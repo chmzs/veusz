@@ -35,6 +35,7 @@ jobs:
       run: |
         pip install PyQt6==6.10.2
         pip install -r requirements.txt
+        pip install pytest
     - name: Build
       run: |
         python setup.py build_ext --inplace
@@ -45,4 +46,10 @@ jobs:
         python tests/runselftest.py
       env:
         VEUSZ_INPLACE_TEST: '1'
+        VEUSZ_REMOVE_FROM_ENV: 'QT_PLUGIN_PATH QML2_IMPORT_PATH'
+    - name: Run feature unit tests
+      run: |
+        set QT_QPA_PLATFORM=offscreen
+        python -m pytest tests/selftests/test_gradient_fill.py
+      env:
         VEUSZ_REMOVE_FROM_ENV: 'QT_PLUGIN_PATH QML2_IMPORT_PATH'

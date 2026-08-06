@@ -285,7 +285,8 @@ class FunctionPlotter(GenericPlotter):
         utils.polygonClip(pts, clip, clipped)
         path = qt.QPainterPath()
         path.addPolygon(clipped)
-        utils.brushExtFillPath(painter, brush, path)
+        axes = self.parent.getAxes((self.settings.xAxis, self.settings.yAxis))
+        utils.brushExtFillPath(painter, brush, path, axes=axes, fill_bounds=bounds)
 
     def drawKeySymbol(self, number, painter, x, y, width, height):
         """Draw the plot symbol and/or line."""

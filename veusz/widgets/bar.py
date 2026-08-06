@@ -399,7 +399,10 @@ class BarPlotter(GenericPlotter):
         valax = axes[not ishorz]
         mincoord = valax.dataToPlotterCoords(widgetposn, minvals)
         maxcoord = valax.dataToPlotterCoords(widgetposn, maxvals)
-        for i in range(len(posns1)):
+        # custom bounds may be shorter than the bar positions; skip leftover
+        # bars rather than raising IndexError
+        n = min(len(posns1), len(mincoord), len(maxcoord))
+        for i in range(n):
             lo, hi = mincoord[i], maxcoord[i]
             if lo > hi:
                 lo, hi = hi, lo
@@ -564,6 +567,16 @@ class BarPlotter(GenericPlotter):
                 p = (posns1, zerocoords, posns2, coords)
             self.plotBars(painter, s, dsnum, clip, p)
 
+        # draw confidence interval fill band around each stacked segment
+        if not s.FillCI.hide:
+            for dsnum, dataset in enumerate(dsvals):
+                # anchor this dataset's band at its own cumulative base
+                base = stackedvals[dsnum] - dataset['data']
+                mn, mx = self._calcCI(dataset, dataset['data'])
+                self.drawCIBand(
+                    painter, posns1, posns2, base + mn, base + mx,
+                    axes, widgetposn)
+
         # draw error bars
         for barval, dsval in zip(stackedvals, dsvals):
             self.drawErrorBars(
@@ -627,6 +640,18 @@ class BarPlotter(GenericPlotter):
             pen = s.BarLine.get('lines').makePen(painter, dsnum)
             painter.setPen(pen)
             utils.plotClippedPolyline(painter, clip, poly)
+
+        # draw confidence interval fill band around each stacked segment
+        if not s.FillCI.hide:
+            barwidth = maxwidth * s.barfill
+            posns1 = posns - barwidth*0.5
+            posns2 = posns1 + barwidth
+            for dsnum, dataset in enumerate(dsvals):
+                base = stackedvals[dsnum] - dataset['data']
+                mn, mx = self._calcCI(dataset, dataset['data'])
+                self.drawCIBand(
+                    painter, posns1, posns2, base + mn, base + mx,
+                    axes, widgetposn)
 
         # draw error bars
         barwidth = maxwidth * s.barfill

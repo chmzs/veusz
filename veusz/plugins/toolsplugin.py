@@ -607,6 +607,130 @@ class FontSize(ToolsPlugin):
         fromwidget = ifc.Root.fromPath(fields['widget'])
         walkNodes(fromwidget)
 
+class FontSizeDecrease(FontSize):
+    menu = (_('General'), _('Decrease font sizes'))
+    name = 'Decrease font sizes'
+    description_short = _('Decrease font sizes')
+    description_full = _('Decrease font sizes by number of points given')
+
+    def __init__(self):
+        FontSize.__init__(self, -1)
+
+
+class GridGraphLabels(ToolsPlugin):
+    """Add sequential text labels to each Graph in a Grid."""
+
+    menu = (_('General'), _('Add labels to grid graphs'))
+    name = 'Add labels to grid graphs'
+    description_short = _('Add sequential labels (a, b, c...) to each Graph in a Grid')
+    description_full = _(
+        'Adds a text label to each Graph widget inside a Grid widget. '
+        'Labels are sequential (a, b, c... or 1, 2, 3...) with optional '
+        'prefix/suffix. Position is relative to each Graph.'
+    )
+
+    def __init__(self):
+        self.fields = [
+            field.FieldWidget(
+                "grid", descr=_("Grid widget containing graphs"),
+                default="/"),
+            field.FieldChoice(
+                "label_type", ('lowercase', 'uppercase', 'numbers'),
+                'lowercase',
+                descr=_('Label sequence type'),
+                usertext=_('Label type')),
+            field.FieldText(
+                "prefix", '',
+                descr=_('Text before label (e.g. "(")'),
+                usertext=_('Prefix')),
+            field.FieldText(
+                "suffix", '',
+                descr=_('Text after label (e.g. ")")'),
+                usertext=_('Suffix')),
+            field.FieldChoice(
+                "position",
+                ('top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'),
+                'top-left',
+                descr=_('Relative position in each graph'),
+                usertext=_('Position')),
+            field.FieldDistancePt(
+                "offset", '4pt',
+                descr=_('Margin from graph edge'),
+                usertext=_('Offset')),
+            field.FieldBool(
+                "use_graph_coords", True,
+                descr=_('Use graph coordinates (0-1) instead of page coordinates'),
+                usertext=_('Graph-relative position')),
+        ]
+
+    def apply(self, ifc, fields):
+        from ..widgets import grid as grid_module
+        from ..widgets import textlabel
+        from ..document import OperationWidgetAdd
+
+        grid_widget = ifc.Root.fromPath(fields['grid'])
+        if not isinstance(grid_widget, grid_module.Grid):
+            raise ToolsPluginException(_('Selected widget is not a Grid'))
+
+        # Find all Graph children in the grid
+        graphs = []
+        for child in grid_widget.children:
+            if child.widgettype == 'graph':
+                graphs.append(child)
+
+        if not graphs:
+            raise ToolsPluginException(_('No Graph widgets found in Grid'))
+
+        # Generate labels
+        label_type = fields['label_type']
+        if label_type == 'lowercase':
+            base_labels = [chr(ord('a') + i) for i in range(len(graphs))]
+        elif label_type == 'uppercase':
+            base_labels = [chr(ord('A') + i) for i in range(len(graphs))]
+        else:
+            base_labels = [str(i + 1) for i in range(len(graphs))]
+
+        prefix = fields['prefix']
+        suffix = fields['suffix']
+        full_labels = [f"{prefix}{lbl}{suffix}" for lbl in base_labels]
+
+        # Position mapping
+        pos_map = {
+            'top-left': (0.02, 0.98, 'left', 'top'),
+            'top-right': (0.98, 0.98, 'right', 'top'),
+            'bottom-left': (0.02, 0.02, 'left', 'bottom'),
+            'bottom-right': (0.98, 0.02, 'right', 'bottom'),
+            'center': (0.5, 0.5, 'centre', 'centre'),
+        }
+        x_frac, y_frac, halign, valign = pos_map[fields['position']]
+        offset = fields['offset']
+
+        # Add TextLabel to each graph
+        for i, graph in enumerate(graphs):
+            label_text = full_labels[i]
+
+            # Create TextLabel widget
+            label_widget = textlabel.TextLabel(graph, name=f'label_{i+1}')
+            label_widget.settings.label = label_text
+            label_widget.settings.alignHorz = halign
+            label_widget.settings.alignVert = valign
+
+            if fields['use_graph_coords']:
+                label_widget.settings.xPos = x_frac
+                label_widget.settings.yPos = y_frac
+            else:
+                label_widget.settings.xPos = x_frac
+                label_widget.settings.yPos = y_frac
+
+            label_widget.settings.margin = fields['offset']
+
+            # Add to document
+            ifc.document.applyOperation(
+                OperationWidgetAdd(graph, 'label', autoadd=True, name=f'label_{i+1}'))
+
+        return f'Added labels to {len(graphs)} graphs'
+
+
 class FontSizeIncrease(FontSize):
     menu = (_('General'), _('Increase font sizes'))
     name = 'Increase font sizes'
@@ -635,4 +759,5 @@ toolspluginregistry += [
     WidgetsClone,
     FontSizeIncrease,
     FontSizeDecrease,
+    GridGraphLabels,
 ]

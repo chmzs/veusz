@@ -995,6 +995,7 @@ class TreeEditDock(qt.QDockWidget):
                 'line', 'polygon', 'polar', 'ternary',
                 'nonorthpoint', 'nonorthfunc',
                 'covariance',
+                'proportions',
                 'scene3d',
                 'graph3d', 'function3d', 'point3d', 'axis3d',
                 'surface3d', 'volume3d'
@@ -1096,6 +1097,7 @@ class TreeEditDock(qt.QDockWidget):
             'add.graph3d',
             'add.covariance',
             'add.shapemenu',
+            'add.proportions',
         )
 
         # separate menus for adding shapes and axis types
