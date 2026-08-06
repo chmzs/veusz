@@ -1006,7 +1006,6 @@ class Color(qt.QWidget):
     """A control which lets the user choose a color.
 
     A drop down list and a button to bring up a dialog are used
-    Supports explicit colors and axis references (@axis:x:Line/color, etc.)
     """
 
     sigSettingChanged = qt.pyqtSignal(qt.QObject, object, object)
@@ -1031,64 +1030,22 @@ class Color(qt.QWidget):
         b.setMaximumWidth(24)
         b.clicked.connect(self.slotButtonClicked)
 
-        # Context menu for axis references
-        self.axis_ref_menu = qt.QMenu(self)
-        self._populateAxisReferenceMenu()
-        self.axis_ref_menu.aboutToShow.connect(self._populateAxisReferenceMenu)
-
-        # Add a button to open axis reference menu
-        self.axis_btn = qt.QToolButton()
-        self.axis_btn.setText('▼')
-        self.axis_btn.setPopupMode(qt.QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.axis_btn.setMenu(self.axis_ref_menu)
-        self.axis_btn.setMaximumHeight(24)
-        self.axis_btn.setMaximumWidth(24)
-        self.axis_btn.setToolTip(_('Select axis reference color'))
-
         c.setModel(self.colors.model)
         self.setColor(self.setting.val)
 
         if setting.readonly:
             c.setEnabled(False)
             b.setEnabled(False)
-            self.axis_btn.setEnabled(False)
 
         layout = qt.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0,0,0,0)
         layout.addWidget(c)
         layout.addWidget(b)
-        layout.addWidget(self.axis_btn)
 
         self.setColor(setting.toUIText())
         self.setLayout(layout)
         self.setting.setOnModified(self.onModified)
-
-    def _populateAxisReferenceMenu(self):
-        """Populate the axis reference menu."""
-        self.axis_ref_menu.clear()
-        setting_obj = self.setting
-        if hasattr(setting_obj, 'AXIS_REF_PATHS'):
-            for label, path in setting_obj.AXIS_REF_PATHS.items():
-                action = self.axis_ref_menu.addAction(label)
-                action.setData(f"@axis:{path}")
-                action.triggered.connect(self._onAxisRefSelected)
-
-        # Add separator and "Clear reference" option
-        self.axis_ref_menu.addSeparator()
-        clear_action = self.axis_ref_menu.addAction(_("Clear axis reference"))
-        clear_action.triggered.connect(self._onClearAxisRef)
-
-    def _onAxisRefSelected(self):
-        """Handle axis reference selection from menu."""
-        action = self.sender()
-        if action:
-            ref_value = action.data()
-            self.sigSettingChanged.emit(self, self.setting, ref_value)
-
-    def _onClearAxisRef(self):
-        """Clear axis reference, fall back to 'auto'."""
-        self.sigSettingChanged.emit(self, self.setting, 'auto')
 
     def slotButtonClicked(self):
         """Open dialog to edit color."""
@@ -1122,7 +1079,7 @@ class Color(qt.QWidget):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.setColor(self.setting.toUIText())
+        self.setColor( self.setting.toUIText() )
 
 class WidgetSelector(Choice):
     """For choosing from a list of widgets."""

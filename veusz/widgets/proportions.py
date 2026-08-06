@@ -33,12 +33,6 @@ from .. import document
 from .. import utils
 from . import plotters
 
-# default categorical palette, cycled across wedges
-_CATEGORICAL = (
-    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-)
-
 
 def _(text, disambiguation=None, context='ProportionalScatter'):
     """Translate text."""
@@ -111,6 +105,41 @@ class ProportionalScatter(plotters.GenericPlotter):
             descr=_('Draw a border around the glyph'),
             usertext=_('Outline')), 11)
 
+        s.add(setting.FillSet(
+            'Fill',
+            [('solid', '#1f77b4', False), ('solid', '#ff7f0e', False),
+             ('solid', '#2ca02c', False), ('solid', '#d62728', False),
+             ('solid', '#9467bd', False), ('solid', '#8c564b', False),
+             ('solid', '#e377c2', False), ('solid', '#7f7f7f', False),
+             ('solid', '#bcbd22', False), ('solid', '#17becf', False)],
+            descr=_('Fill styles per wedge (cycled)'),
+            usertext=_('Fill styles')), 12)
+
+        s.add(setting.Line(
+            'Line',
+            descr=_('Outline line for each wedge'),
+            usertext=_('Outline line')), 13)
+
+        s.add(setting.Bool(
+            'wedgeLabelShow', False,
+            descr=_('Show wedge labels'),
+            usertext=_('Show labels')), 14)
+
+        s.add(setting.Choice(
+            'labelPosnHorz', ('left', 'centre', 'right'), 'centre',
+            descr=_('Horizontal alignment of wedge labels'),
+            usertext=_('Label align horiz')), 15)
+
+        s.add(setting.Choice(
+            'labelPosnVert', ('top', 'centre', 'bottom'), 'centre',
+            descr=_('Vertical alignment of wedge labels'),
+            usertext=_('Label align vert')), 16)
+
+        s.add(setting.Text(
+            'Font',
+            descr=_('Font for wedge labels'),
+            usertext=_('Label font')), 17)
+
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
         s = self.settings
@@ -161,14 +190,13 @@ class ProportionalScatter(plotters.GenericPlotter):
 
     def drawKeySymbol(self, number, painter, x, y, width, height):
         """Draw a small colored swatch for one wedge in the key."""
-        n = len(self._wedgeColors(max(number + 1, 1)))
+        n = len(self._wedgeNames())
         if number >= n:
             return
-        color = self._wedgeColors(n)[number]
         swatch = qt.QRectF(x, y + height * 0.1, width, height * 0.8)
-        painter.setPen(qt.QPen(qt.QColor('#000000'), 0.5))
-        painter.setBrush(color)
-        painter.drawRect(swatch)
+        path = qt.QPainterPath()
+        path.addRect(swatch)
+        self._fillWedge(painter, number, path)
 
     def _getWedgeData(self):
         """Resolve wedge datasets into a list of numeric arrays (or None).
@@ -222,10 +250,6 @@ class ProportionalScatter(plotters.GenericPlotter):
         radii = self._getRadii(npts, markersize)
 
         painter.save()
-        pen = qt.QPen(qt.QColor('#000000'), 0.5)
-        if not s.outline:
-            pen.setStyle(qt.Qt.PenStyle.NoPen)
-        painter.setPen(pen)
 
         for i in range(npts):
             vals = [w[i] if i < len(w) else N.nan for w in wedges]
@@ -245,49 +269,82 @@ class ProportionalScatter(plotters.GenericPlotter):
         else:
             self._drawPieGlyph(painter, cx, cy, radius, vals)
 
-    def _wedgeColors(self, n):
-        """Return n distinct colours (cycled categorical palette)."""
-        return [qt.QColor(_CATEGORICAL[i % len(_CATEGORICAL)])
-                for i in range(n)]
+    def _wedgeBrush(self, idx):
+        """Return the BrushExtended fill for wedge idx (cycles)."""
+        return self.settings.get('Fill').returnBrushExtended(idx)
 
-    def _drawPieGlyph(self, painter, cx, cy, radius, vals):
-        rect = qt.QRectF(cx - radius, cy - radius, 2 * radius, 2 * radius)
-        total = float(N.nansum(N.abs(vals)))
-        if total <= 0:
-            return
-        start = 90 * 16  # 12 o'clock; Qt angles in 1/16 degree
-        for color, v in zip(self._wedgeColors(len(vals)), vals):
-            if not N.isfinite(v) or v == 0:
-                continue
-            span = int(-360.0 * abs(v) / total * 16)
-            painter.setBrush(color)
-            painter.drawPie(rect, start, span)
-            start += span
+    def _outlinePen(self, painter):
+        """QPen for glyph outline (NoPen when hidden)."""
+        try:
+            return self.settings.Line.makeQPenWHide(painter)
+        except setting.ReferenceBase.ResolveException:
+            # fall back when not attached to a document tree
+            return qt.QPen(qt.QColor('#000000'), 0.5)
 
-    def _drawDonutGlyph(self, painter, cx, cy, radius, vals):
-        outer = qt.QRectF(cx - radius, cy - radius, 2 * radius, 2 * radius)
-        ir = radius * float(self.settings.innerRadius)
-        inner = qt.QRectF(cx - ir, cy - ir, 2 * ir, 2 * ir)
-        total = float(N.nansum(N.abs(vals)))
-        if total <= 0:
-            return
-        start = 90 * 16
-        for color, v in zip(self._wedgeColors(len(vals)), vals):
-            if not N.isfinite(v) or v == 0:
-                continue
-            span = int(-360.0 * abs(v) / total * 16)
-            path = qt.QPainterPath()
-            # Use arcMoveTo for the first segment to avoid line from (0,0)
-            if start == 90 * 16:
-                path.arcMoveTo(outer, start / 16.0)
-            else:
-                path.arcTo(outer, start / 16.0, 0)
-            path.arcTo(outer, start / 16.0, span / 16.0)
-            path.arcTo(inner, (start + span) / 16.0, -span / 16.0)
-            path.closeSubpath()
+    def _fillWedge(self, painter, idx, path):
+        """Fill a wedge path with its brush and outline.
+
+        Uses brushExtFillPath when the painter supports docColor (Veusz
+        Painter) so gradients/hatching work; falls back to a plain solid
+        fill for bare QPainter instances (e.g. unit tests).
+        """
+        pen = self._outlinePen(painter)
+        if hasattr(painter, 'docColor'):
+            utils.brushExtFillPath(painter, self._wedgeBrush(idx), path,
+                                   stroke=pen)
+        else:
+            brush = self._wedgeBrush(idx)
+            color = qt.QColor(brush.get('color').val)
+            if brush.transparency > 0:
+                color.setAlphaF((100 - brush.transparency) / 100.)
             painter.setBrush(color)
+            painter.setPen(pen)
             painter.drawPath(path)
-            start += span
+
+    def _renderLabel(self, painter, x, y, label):
+        """Render a wedge/bar label at (x, y) with the Font settings."""
+        pen = self.settings.Font.makeQPen(painter)
+        painter.setPen(pen)
+        font = self.settings.Font.makeQFont(painter)
+        ah = {'left': 1, 'centre': 0, 'right': -1}[self.settings.labelPosnHorz]
+        av = {'top': -1, 'centre': 0, 'bottom': 1}[self.settings.labelPosnVert]
+        utils.Renderer(painter, font, x, y, label, ah, av, 0.0,
+                       doc=self.document).render()
+
+    def _drawWedgeLabel(self, painter, cx, cy, radius, inner_frac,
+                        start16, span16, idx):
+        """Render the label for a pie/donut wedge at its sector centroid."""
+        label = self._wedgeLabel(idx)
+        if not (self.settings.wedgeLabelShow and label):
+            return
+        painter.save()
+        try:
+            delta = abs(span16 / 16.0) * N.pi / 180.0
+            mid = (start16 + span16 / 2.0) / 16.0 * N.pi / 180.0
+            ro = radius
+            ri = radius * float(inner_frac)
+            if delta < 1e-9 or not N.isfinite(delta):
+                return
+            if ro > ri:
+                factor = (ro ** 3 - ri ** 3) / (ro ** 2 - ri ** 2)
+            else:
+                factor = ro
+            rcen = (2.0 / 3.0) * factor * (N.sin(delta / 2.0) / (delta / 2.0))
+            lx = cx + rcen * N.cos(mid)
+            ly = cy - rcen * N.sin(mid)
+            self._renderLabel(painter, lx, ly, label)
+        finally:
+            painter.restore()
+
+    def _drawBarLabel(self, painter, rect, label):
+        """Draw a label centred in a bar segment rectangle."""
+        if not (self.settings.wedgeLabelShow and label):
+            return
+        painter.save()
+        try:
+            self._renderLabel(painter, rect.center().x(), rect.center().y(), label)
+        finally:
+            painter.restore()
 
     def _drawBarGlyph(self, painter, cx, cy, radius, vals):
         total = float(N.nansum(N.abs(vals)))
@@ -303,55 +360,108 @@ class ProportionalScatter(plotters.GenericPlotter):
             if grouped:
                 bar_h = size / max(1, n)
                 y0 = cy - size / 2
-                for idx, (color, v) in enumerate(zip(self._wedgeColors(len(vals)), vals)):
+                for idx, v in enumerate(vals):
                     if not N.isfinite(v) or v == 0:
                         continue
                     frac = abs(v) / total
                     w = size * frac
                     rect = qt.QRectF(cx - w / 2, y0 + idx * bar_h, w, bar_h)
-                    painter.setBrush(color)
-                    painter.drawRect(rect)
+                    path = qt.QPainterPath()
+                    path.addRect(rect)
+                    self._fillWedge(painter, idx, path)
+                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
             else:
                 # Stacked horizontal
                 x0 = cx - size / 2
                 y0 = cy - size / 2
                 acc = 0.0
-                for color, v in zip(self._wedgeColors(len(vals)), vals):
+                for idx, v in enumerate(vals):
                     if not N.isfinite(v) or v == 0:
                         continue
                     frac = abs(v) / total
                     w = size * frac
                     rect = qt.QRectF(x0 + acc, y0, w, size)
+                    path = qt.QPainterPath()
+                    path.addRect(rect)
+                    self._fillWedge(painter, idx, path)
+                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
                     acc += w
-                    painter.setBrush(color)
-                    painter.drawRect(rect)
         else:
             # Vertical bars (stacked or grouped)
             if grouped:
                 bar_w = size / max(1, n)
                 x0 = cx - size / 2
-                for idx, (color, v) in enumerate(zip(self._wedgeColors(len(vals)), vals)):
+                for idx, v in enumerate(vals):
                     if not N.isfinite(v) or v == 0:
                         continue
                     frac = abs(v) / total
                     h = size * frac
                     rect = qt.QRectF(x0 + idx * bar_w, cy - h / 2, bar_w, h)
-                    painter.setBrush(color)
-                    painter.drawRect(rect)
+                    path = qt.QPainterPath()
+                    path.addRect(rect)
+                    self._fillWedge(painter, idx, path)
+                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
             else:
                 # Stacked vertical
                 x0 = cx - size / 2
                 y0 = cy - size / 2
                 acc = 0.0
-                for color, v in zip(self._wedgeColors(len(vals)), vals):
+                for idx, v in enumerate(vals):
                     if not N.isfinite(v) or v == 0:
                         continue
                     frac = abs(v) / total
                     h = size * frac
                     rect = qt.QRectF(x0, y0 + acc, size, h)
+                    path = qt.QPainterPath()
+                    path.addRect(rect)
+                    self._fillWedge(painter, idx, path)
+                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
                     acc += h
-                    painter.setBrush(color)
-                    painter.drawRect(rect)
+
+    def _drawPieGlyph(self, painter, cx, cy, radius, vals):
+        """Draw a pie glyph (full circle slices)."""
+        total = float(N.nansum(N.abs(vals)))
+        if total <= 0:
+            return
+        start16 = 90 * 16  # Qt starts at 3 o'clock; 90° = 12 o'clock
+        for idx, v in enumerate(vals):
+            if not N.isfinite(v) or v == 0:
+                continue
+            frac = abs(v) / total
+            span16 = int(-frac * 360 * 16)  # negative = clockwise
+            rect = qt.QRectF(cx - radius, cy - radius, radius * 2, radius * 2)
+            path = qt.QPainterPath()
+            path.moveTo(cx, cy)
+            path.arcTo(rect, start16 / 16.0, span16 / 16.0)
+            path.lineTo(cx, cy)
+            self._fillWedge(painter, idx, path)
+            self._drawWedgeLabel(painter, cx, cy, radius, 0.0, start16, span16, idx)
+            start16 += span16
+
+    def _drawDonutGlyph(self, painter, cx, cy, radius, vals):
+        """Draw a donut glyph (pie with hollow centre)."""
+        total = float(N.nansum(N.abs(vals)))
+        if total <= 0:
+            return
+        inner_frac = self.settings.innerRadius
+        inner_r = radius * inner_frac
+        start16 = 90 * 16
+        for idx, v in enumerate(vals):
+            if not N.isfinite(v) or v == 0:
+                continue
+            frac = abs(v) / total
+            span16 = int(-frac * 360 * 16)
+            outer_rect = qt.QRectF(cx - radius, cy - radius, radius * 2, radius * 2)
+            inner_rect = qt.QRectF(cx - inner_r, cy - inner_r, inner_r * 2, inner_r * 2)
+            path = qt.QPainterPath()
+            path.arcMoveTo(outer_rect, start16 / 16.0)
+            path.arcTo(outer_rect, start16 / 16.0, span16 / 16.0)
+            path.arcTo(inner_rect, (start16 + span16) / 16.0, -span16 / 16.0)
+            path.closeSubpath()
+            self._fillWedge(painter, idx, path)
+            self._drawWedgeLabel(painter, cx, cy, radius, inner_frac,
+                                 start16, span16, idx)
+            start16 += span16
 
 
 document.thefactory.register(ProportionalScatter)
