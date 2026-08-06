@@ -447,6 +447,13 @@ class Axis(widget.Widget):
             descr=_('Axis line settings'),
             usertext=_('Axis line')),
             pixmap='settings_axisline' )
+        s.add( setting.Choice(
+            'colorMode',
+            ('explicit', 'fromPlotters'),
+            'explicit',
+            descr=_('Color mode: explicit colors or automatically from plotters'),
+            usertext=_('Color mode')),
+            pixmap='settings_axisline' )
         s.add( AxisLabel(
             'Label',
             descr=_('Axis label settings'),
@@ -851,7 +858,16 @@ class Axis(widget.Widget):
     def _drawAxisLine(self, painter, posn):
         """Draw the line of the axis."""
 
-        pen = self.settings.get('Line').makeQPen(painter)
+        # Get color from plotters if colorMode is 'fromPlotters'
+        if self.settings.get('colorMode') == 'fromPlotters':
+            color = self._getColorFromPlotters()
+            if color.isValid():
+                pen = qt.QPen(color,
+                    self.settings.get('Line').get('width').convert(painter),
+                    self.settings.get('Line').get('style').qtStyle())
+        else:
+            pen = self.settings.get('Line').makeQPen(painter)
+
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         self.swapline(
