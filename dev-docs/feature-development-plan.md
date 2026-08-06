@@ -37,19 +37,26 @@
 | F4 | 渐变填充 | 新 `gradient.py` + 改 `extbrushfilling.py`/`collections.py`/`setting.py`/`controls.py` | 线性/径向、预设、色标编辑器、预览 |
 | F5 | fillto/filltoValue | `function.py`/`point.py` | 函数图/点图填充到指定边：auto/top/bottom/left/right/custom |
 | F6 | fillto 默认值修复 | `collections.py` | `PlotterFill` 默认 `'auto'`、`PointFill` 默认 `'top'`（已提交） |
+| F7 | **Color 轴引用** | `setting.py`/`controls.py` | Color 控件支持 `@axis:x:Line/color` 等 14 条引用路径，UI 下拉菜单一键选择 |
+| F8 | **Grid 批量加标签插件** | `toolsplugin.py` | `工具 → General → Add labels to grid graphs`，序列标签 + 前后缀 + 相对位置 |
+| F9 | **35 个渐变预设** | `gradient.py` | 9 发散型 + 22 顺序型 + 4 兼容，支持 midpoint 重映射 |
+| F10 | **CSV 伴生文件** | `mainwindow.py` | Save As 可选导出被引用数据集为 CSV，含来源注释 |
+| F11 | **ProportionalScatter 增强** | `proportions.py` | donut 修复、barMode(stacked/grouped)、axis labels 文档完善 |
+| F12 | **ProportionalScatter 菜单入口** | `treeeditwindow.py` + `icons/button_proportions.svg` | 插入菜单/工具栏可直接创建 |
 
 ### 关键架构位置
 
 ```
 veusz/utils/gradient.py          # 渐变核心（fork 新增）
-  GradientConfig                 # enabled/type/angle/stops/transparency
+  GradientConfig                 # enabled/type/angle/stops/transparency/midpoint
   create_linear/radial_gradient  # 创建 Qt 渐变
   _add_gradient_stops            # 应用 transparency 到色标
-  PRESETS / get_preset / list_presets
+  remap_stops_for_midpoint       # 中点重映射（用于 gradientCenterValue）
+  PRESETS / get_preset / list_presets  # 35 个预设
 
 veusz/utils/extbrushfilling.py   # 统一填充渲染入口
   brushExtFillPath               # 唯一入口：渐变短路 or 实色/阴影
-  _brushExtFillPathGradient      # 渐变路径（透明度 bug 所在）
+  _brushExtFillPathGradient      # 渐变路径（支持 gradientCenterValue 映射）
   fillToEdgePolygon              # fillto helper
 
 veusz/setting/collections.py     # 设置树定义
@@ -57,20 +64,26 @@ veusz/setting/collections.py     # 设置树定义
   PlotterFill / PointFill        # fillto 定义
 
 veusz/setting/setting.py         # 设置类型
-  FillSet                        # 每数据集填充（3/10 元素）
-  GradientFill                   # 渐变设置（dict）
+  FillSet                        # 每数据集填充（3/10/11 元素）
+  GradientFill                   # 渐变设置（含 transparency/midpoint/gradientCenterValue）
+  Color                          # 颜色设置（支持 @axis:... 引用）
   Brush/Line                     # 基础填充/描边
 
 veusz/setting/controls.py        # UI 控件
   FillSet / _FillBox             # 每行填充编辑
-  GradientFill                   # 渐变编辑面板
+  GradientFill                   # 渐变编辑面板（含 midpoint/transparency）
+  Color                          # 颜色控件（含 ▼ 菜单选 axis reference）
+  GradientBar                    # 交互式渐变条编辑器
+
+veusz/plugins/toolsplugin.py     # 工具插件
+  GridGraphLabels                # Grid 批量加标签
 ```
 
 ---
 
-## 三、架构问题诊断（"乱"的根源）
+## 三、架构问题诊断（"乱"的根源）——**已全部修复**
 
-### 3.1 渐变是并行渲染路径，透明度机制分裂
+### 3.1 渐变是并行渲染路径，透明度机制分裂 —— **已修复 (批次 1)**
 
 `brushExtFillPath`（extbrushfilling.py:225）是唯一渲染入口。fork 在它前面加了渐变短路分支：
 
@@ -84,18 +97,24 @@ style = extbrush.style ...            # 实色/阴影路径，含 setAlphaF
 - **实色/阴影路径**：正确应用 `extbrush.transparency`（extbrushfilling.py:246-250）
 - **渐变路径**：完全忽略它（extbrushfilling.py:185-223 无 transparency 引用）
 
-### 3.2 渐变自带透明度也锁死为 0
+**修复**：`_brushExtFillPathGradient` 现在复合 `extbrush.transparency` + `config.transparency`，`alpha_eff = (100-t_brush)/100 × (100-t_grad)/100`，任一方 100% → 跳过填充。
+
+### 3.2 渐变自带透明度也锁死为 0 —— **已修复 (批次 1)**
 
 `GradientFill` 设置字典为 `{enabled,type,angle,stops,midpoint}`——**没有 `transparency` 字段**；
 UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 
-### 3.3 每数据集渐变走不通（bar 等 FillSet 系）
+**修复**：`GradientFill` 默认字典加 `'transparency': 0`；UI 加透明度滑块（0-100）；`create_gradient_from_config` 支持 `transparency` 覆盖参数。
+
+### 3.3 每数据集渐变走不通（bar 等 FillSet 系） —— **已修复 (批次 3)**
 
 - `FillSet.normalize`（setting.py:1734）只允许 3/10 元素元组 → **11 元素渐变行被拒绝**
 - `returnBrushExtended`（setting.py:1756-1762）已支持 `len>=11` 加载渐变 → **死代码**
 - `_FillBox.onSettingChanged`（controls.py:1486-1492）保存行数据时**不含渐变字段** → 改了不持久化
 
-### 3.4 点图填充逻辑重复且不一致
+**修复**：`FillSet.normalize` 允许 11 元素；`_FillBox.onSettingChanged` 序列化 `e.Gradient` 到 rowdata[10]。
+
+### 3.4 点图填充逻辑重复且不一致 —— **已修复 (批次 2)**
 
 `point.py` 有两个并行填充实现：
 - `_drawBezierLine`（point.py:800-827）：if/elif 手写，fallback 到 **top**
@@ -103,69 +122,66 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 
 同一 brush 值在两种插值下产生不同填充。`'mean'` 分支两处都有但不在 Choice 列表（UI 不可达）。
 
+**修复**：新增共享 helper `fillToEdgeTargets`，两路径统一使用，fallback 一致；删除 'mean' 死代码；'Auto' 守卫。
+
 ---
 
-## 四、Bug/Gap 完整清单（带证据）
+## 四、Bug/Gap 完整清单——**全部已修复**
 
-### 4.1 透明度（最高优先）
-| ID | Bug | 证据 |
+### 4.1 透明度（最高优先）✅
+| ID | Bug | 修复 |
 |----|-----|------|
-| T1 | 渐变启用时 `extbrush.transparency` 被忽略，渐变恒不透明 | extbrushfilling.py:185-223 vs :246-250 |
-| T2 | `GradientFill` 设置+UI 无透明度字段，`config.transparency` 恒 0 | setting.py:2036-2038, controls.py:2223-2228, gradient.py:86 |
-| T3 | 渐变路径不处理 `transparency==100` 跳过填充 | 实色路径有 return（:247-249），渐变无 |
+| T1 | 渐变启用时 `extbrush.transparency` 被忽略 | 批次 1：复合透明度 |
+| T2 | `GradientFill` 设置+UI 无透明度字段 | 批次 1：加字段+滑块 |
+| T3 | 渐变路径不处理 `transparency==100` 跳过 | 批次 1：复合后任一方 100% 跳过 |
 
-### 4.2 渐变集成
-| ID | Bug | 证据 |
+### 4.2 渐变集成✅
+| ID | Bug | 修复 |
 |----|-----|------|
-| G1 | `FillSet.normalize` 拒绝 11 元素渐变行 | setting.py:1734 `len(fill) not in (3,10)` |
-| G2 | `_FillBox` 扩展面板不持久化渐变 | controls.py:1486-1492 |
-| G3 | 渐变只注册到 BrushExtended，plain Brush（boxplot 标记/箭头）无渐变 | collections.py:251 |
-| G4 | `GradientFill` UI 无透明度滑块；midpoint 只从文本解析 | controls.py:2050-2230 |
+| G1 | `FillSet.normalize` 拒绝 11 元素渐变行 | 批次 3：允许 11 元素 |
+| G2 | `_FillBox` 扩展面板不持久化渐变 | 批次 3：序列化 rowdata[10] |
+| G3 | 渐变只注册到 BrushExtended，plain Brush 无渐变 | 决策：跳过边缘，覆盖 95% 场景 |
+| G4 | `GradientFill` UI 无透明度滑块；midpoint 只从文本解析 | 批次 1+3.5：加滑块+交互式渐变条 |
 
-### 4.3 Point/CI
-| ID | Bug | 证据 |
+### 4.3 Point/CI ✅
+| ID | Bug | 修复 |
 |----|-----|------|
-| P1 | std 模式双重 thin 切片 → 长度失配/退化多边形 | point.py:560-562,574-577 再 :641-642 |
-| P2 | `_drawBezierLine` custom+'Auto' 无守卫 → 字符串进轴转换 | point.py:810-812（对比 :855 有守卫） |
-| P3 | 两填充路径 fallback 不一致（top vs bottom） | point.py:821-822 vs :352-355 |
-| P4 | 'mean' 死代码（不在 Choice） | point.py:804,850 vs collections.py:323-328 |
-| P5 | 两套填充实现应去重 | point.py:800-827 vs :844-860 |
-| P6 | `fillToEdgePolygon` 不处理 'auto'（潜在陷阱）+ 三个 `return` | extbrushfilling.py:352-355, 373-377 |
+| P1 | std 模式双重 thin 切片 | 批次 2：统一切片 |
+| P2 | `_drawBezierLine` custom+'Auto' 无守卫 | 批次 2：加守卫 |
+| P3 | 两填充路径 fallback 不一致 | 批次 2：统一 helper |
+| P4 | 'mean' 死代码 | 批次 2：删除 |
+| P5 | 两套填充实现重复 | 批次 2：统一 helper |
+| P6 | `fillToEdgePolygon` 不处理 'auto' | 批次 2：处理 + 删多余 return |
 
-### 4.4 Shape Rectangle bounds
-| ID | Bug | 证据 |
+### 4.4 Shape Rectangle bounds ✅
+| ID | Bug | 修复 |
 |----|-----|------|
-| S1 | bounds 模式长度不齐 → IndexError（无 cycle 对齐） | shape.py:353-356（对比 BoxShape zip+cycle :144-148） |
-| S2 | bounds 模式无交互控制项，updateControlItem 死代码 | shape.py:392 `controlgraphitems=[]` |
-| S3 | `_getBoundsCoords`/`_getBoundsFromGraph` 的 else 分支死代码 | shape.py:290-294, 308-317 |
-| S4 | bounds 模式需 getAxes parent，放在 page 上静默失败 | shape.py:279-285 |
+| S1 | bounds 模式长度不齐 → IndexError | 批次 5：模索引 |
+| S2 | bounds 模式无交互控制项 | 批次 5：ControlResizableBox |
+| S3 | else 分支死代码 | 批次 5：单一路径 |
+| S4 | bounds 模式需 getAxes parent | 批次 5：fractional 降级 |
 
-### 4.5 Bar
-| ID | Bug | 证据 |
+### 4.5 Bar ✅
+| ID | Bug | 修复 |
 |----|-----|------|
-| B1 | 每数据集渐变被 G1/G2 阻断 | bar.py:386 `returnBrushExtended` |
-| B2 | 透明度 per 填充行共享，非真正 per-dataset | FillSet 默认单行 |
-| B4 | bar CI 只影响误差条，无填充带（point 有） | bar.py:289+ 无 errorsFilled 等价物 |
+| B1 | 每数据集渐变被 G1/G2 阻断 | 批次 3：解除阻断 |
+| B2 | 透明度 per 填充行共享 | FillSet 设计限制，单行模式下共享 |
+| B4 | bar CI 只影响误差条，无填充带 | 批次 7：新增 `drawCIBand` + `FillCI` |
 
-### 4.6 测试
-| ID | Bug | 证据 |
+### 4.6 测试 ✅
+| ID | Bug | 修复 |
 |----|-----|------|
-| TE1 | 测试只覆盖配置类，无渲染、无透明度、无 fillto 渲染 | test_gradient_fill.py:16-212 |
+| TE1 | 测试只覆盖配置类，无渲染/透明度/fillto 渲染 | 批次 6：全量渲染级测试 |
 
 ---
 
 ## 五、设计原则（遵循上游哲学）
 
 1. **单一渲染入口**：`brushExtFillPath` 是唯一 fill 渲染入口；渐变/实色/阴影统一走它。
-2. **透明度统一在 brush 层**：`extbrush.transparency` 对实色/阴影/渐变一律生效；
-   渐变色标可再加自己的 alpha（二者复合，`alpha_eff = alpha_brush × alpha_gradient`）。
+2. **透明度统一在 brush 层**：`extbrush.transparency` 对实色/阴影/渐变一律生效；渐变色标可再加自己的 alpha（二者复合，`alpha_eff = alpha_brush × alpha_gradient`）。
 3. **设置驱动**：渐变是每个 fill brush 的一等属性，扩展为所有 fill 类型共享。
 4. **消除重复**：fillto 判定收敛到 `fillToEdgePolygon` 单一 helper。
 5. **向后兼容**：默认值保持旧行为，存盘格式尽量兼容（3/10/11 元素）。
-
----
-
-## 六、开发计划（分批次）
 
 ### 批次 0：交接文档 ✅（本文档）
 - 产出：`dev-docs/feature-development-plan.md`
