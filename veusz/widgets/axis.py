@@ -830,16 +830,22 @@ class Axis(widget.Widget):
             a = (b1, a1, b2, a2)
         utils.plotLinesToPainter(painter, a[0], a[1], a[2], a[3])
 
+    def _axisColorOverride(self, painter, default_pen):
+        """Colour a pen using the axisColor override, if set.
+
+        Reuses the default pen (width/style/transparency) and only replaces
+        its colour, so the override applies uniformly to line, ticks, tick
+        labels and axis label.
+        """
+        ac = self.settings.axisColor
+        if isinstance(ac, str) and ac != 'auto':
+            default_pen.setColor(painter.docColor(ac))
+        return default_pen
+
     def _drawGridLines(self, subset, painter, coordticks, parentposn):
         """Draw grid lines on the plot."""
-        # Use axisColor override if set
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            pen = qt.QPen(painter.docColor(axis_color),
-                self.settings.get(subset).get('width').convert(painter),
-                self.settings.get(subset).get('style').qtStyle())
-        else:
-            pen = self.settings.get(subset).makeQPen(painter)
+        pen = self._axisColorOverride(
+            painter, self.settings.get(subset).makeQPen(painter))
         painter.setPen(pen)
 
         # drop points which overlap with graph box (if used)
@@ -861,25 +867,11 @@ class Axis(widget.Widget):
             coordticks, coordticks*0.+self.coordPerp2
         )
 
-    def _getEffectiveColor(self, painter, setting_obj):
-        """Get effective color considering axisColor override."""
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            return painter.docColor(axis_color)
-        return setting_obj.color(painter)
-
     def _drawAxisLine(self, painter, posn):
         """Draw the line of the axis."""
 
-        # Use axisColor override if set
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            pen = qt.QPen(painter.docColor(axis_color),
-                self.settings.get('Line').get('width').convert(painter),
-                self.settings.get('Line').get('style').qtStyle())
-        else:
-            pen = self.settings.get('Line').makeQPen(painter)
-
+        pen = self._axisColorOverride(
+            painter, self.settings.get('Line').makeQPen(painter))
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         self.swapline(
@@ -893,14 +885,7 @@ class Axis(widget.Widget):
 
         s = self.settings
         mt = s.get('MinorTicks')
-        # Use axisColor override if set
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            pen = qt.QPen(painter.docColor(axis_color),
-                mt.get('width').convert(painter),
-                mt.get('style').qtStyle())
-        else:
-            pen = mt.makeQPen(painter)
+        pen = self._axisColorOverride(painter, mt.makeQPen(painter))
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         delta = mt.getLength(painter)
@@ -924,14 +909,7 @@ class Axis(widget.Widget):
 
         s = self.settings
         mt = s.get('MajorTicks')
-        # Use axisColor override if set
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            pen = qt.QPen(painter.docColor(axis_color),
-                mt.get('width').convert(painter),
-                mt.get('style').qtStyle())
-        else:
-            pen = mt.makeQPen(painter)
+        pen = self._axisColorOverride(painter, mt.makeQPen(painter))
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         startdelta = mt.getLength(painter)
@@ -1009,12 +987,7 @@ class Axis(widget.Widget):
         # get information about text scales
         tl = s.get('TickLabels')
         scale = tl.scale
-        # Use axisColor override if set
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            pen = qt.QPen(painter.docColor(axis_color))
-        else:
-            pen = tl.makeQPen(painter)
+        pen = self._axisColorOverride(painter, tl.makeQPen(painter))
 
         # an extra offset if required
         self._delta_axis += tl.get('offset').convert(painter)
@@ -1102,12 +1075,7 @@ class Axis(widget.Widget):
         if not text:
             return
 
-        # Use axisColor override if set
-        axis_color = self.settings.get('axisColor')
-        if axis_color != 'auto':
-            pen = qt.QPen(painter.docColor(axis_color))
-        else:
-            pen = label.makeQPen(painter)
+        pen = self._axisColorOverride(painter, label.makeQPen(painter))
 
         horz = s.direction == 'horizontal'
 
@@ -1183,7 +1151,7 @@ class Axis(widget.Widget):
                 miny=outerbounds[1], maxy=outerbounds[3]
             )
 
-        texttorender.insert(0, (r, s.get('Label').makeQPen(painter)) )
+        texttorender.insert(0, (r, pen) )
 
     def chooseName(self):
         """Get default name for axis. Make x and y axes, then axisN."""
