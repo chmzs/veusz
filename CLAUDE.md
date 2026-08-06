@@ -25,8 +25,8 @@
    - 新增预设色图时，同时支持 `matplotlib` 名称和 `ColorBrewer` 名称。
    - 透明度合成公式：`alpha_eff = (1 - brush_alpha) * (1 - gradient_alpha)`，在 `extbrushfilling.py` 中统一实现。
 
-2. **轴统一颜色**（进行中，由独立 agent 实现）
-   - 在 Axis 面板加 `color` 设置，默认 `auto`；指定颜色时统一覆盖轴线、刻度、刻度标签、轴标签。
+2. **轴统一颜色**（`axisColor` 设置，已实现）
+   - Axis 面板 `axisColor` 设置，默认 `auto`；指定颜色时统一覆盖轴线、刻度、刻度标签、轴标签（`veusz/widgets/axis.py`）。
    - 取代早期 `@axis:x:Line/color` 的 Color 轴引用机制（该机制已回滚，勿再引入）。
 
 3. **新增绘图部件**

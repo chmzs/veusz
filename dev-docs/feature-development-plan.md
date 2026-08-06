@@ -37,11 +37,11 @@
 | F4 | 渐变填充 | 新 `gradient.py` + 改 `extbrushfilling.py`/`collections.py`/`setting.py`/`controls.py` | 线性/径向、预设、色标编辑器、预览 |
 | F5 | fillto/filltoValue | `function.py`/`point.py` | 函数图/点图填充到指定边：auto/top/bottom/left/right/custom |
 | F6 | fillto 默认值修复 | `collections.py` | `PlotterFill` 默认 `'auto'`、`PointFill` 默认 `'top'`（已提交） |
-| F7 | **Color 轴引用** | `setting.py`/`controls.py` | Color 控件支持 `@axis:x:Line/color` 等 14 条引用路径，UI 下拉菜单一键选择 |
+| F7 | **轴统一颜色** | `widgets/axis.py` | Axis 面板 `axisColor` 设置（默认 `auto`）；指定颜色时统一覆盖轴线、刻度、刻度标签、轴标签 |
 | F8 | **Grid 批量加标签插件** | `toolsplugin.py` | `工具 → General → Add labels to grid graphs`，序列标签 + 前后缀 + 相对位置 |
 | F9 | **35 个渐变预设** | `gradient.py` | 9 发散型 + 22 顺序型 + 4 兼容，支持 midpoint 重映射 |
 | F10 | **CSV 伴生文件** | `mainwindow.py` | Save As 可选导出被引用数据集为 CSV，含来源注释 |
-| F11 | **ProportionalScatter 增强** | `proportions.py` | donut 修复、barMode(stacked/grouped)、axis labels 文档完善 |
+| F11 | **ProportionalScatter 增强** | `proportions.py` | donut 修复、barMode(stacked/grouped)、格式面板(Fill/Line/Font/标签) |
 | F12 | **ProportionalScatter 菜单入口** | `treeeditwindow.py` + `icons/button_proportions.svg` | 插入菜单/工具栏可直接创建 |
 
 ### 关键架构位置
@@ -66,13 +66,13 @@ veusz/setting/collections.py     # 设置树定义
 veusz/setting/setting.py         # 设置类型
   FillSet                        # 每数据集填充（3/10/11 元素）
   GradientFill                   # 渐变设置（含 transparency/midpoint/gradientCenterValue）
-  Color                          # 颜色设置（支持 @axis:... 引用）
+  Color                          # 颜色设置（上游默认，无轴引用扩展）
   Brush/Line                     # 基础填充/描边
 
 veusz/setting/controls.py        # UI 控件
   FillSet / _FillBox             # 每行填充编辑
   GradientFill                   # 渐变编辑面板（含 midpoint/transparency）
-  Color                          # 颜色控件（含 ▼ 菜单选 axis reference）
+  Color                          # 颜色控件（上游默认）
   GradientBar                    # 交互式渐变条编辑器
 
 veusz/plugins/toolsplugin.py     # 工具插件

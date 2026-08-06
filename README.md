@@ -12,7 +12,6 @@ external sources such as Internet sockets or other programs.
 
 Changes in 4.2.1.1-fork:
   * Add ProportionalScatter widget (pie/donut/bar glyphs for scatter plots)
-  * Add Color axis references (map plot colors to axis line/tick/label colors)
   * Add Grid Graph Labels tool (batch add sequential labels to grid graphs)
   * Add 35 gradient presets (9 diverging, 22 sequential, 4 legacy)
   * Add CSV sidecar export on Save As (used datasets with provenance)
@@ -104,7 +103,6 @@ Changes in 4.2:
   * Interactive tutorial
   * Multithreaded rendering
   * Gradient fills (linear/radial, 35 presets, midpoint remapping) [NEW]
-  * Color axis references (map plot colors to axis elements) [NEW]
   * Grid Graph Labels tool (batch label grid graphs) [NEW]
   * Proportional scatter widget (pie/donut/bar glyphs) [NEW]
   * Bar CI fill bands (stacked/grouped) [NEW]
