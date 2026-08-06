@@ -451,7 +451,7 @@ class Axis(widget.Widget):
             'axisColor', 'auto',
             descr=_('Override color for all axis elements (line, ticks, tick labels, label). "auto" uses individual settings.'),
             usertext=_('Axis color override')),
-            pixmap='settings_axisline' )
+            pixmap='settings_axisline', formatting=True )
         s.add( AxisLabel(
             'Label',
             descr=_('Axis label settings'),
