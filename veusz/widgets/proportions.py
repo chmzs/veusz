@@ -73,29 +73,33 @@ class ProportionalScatter(plotters.GenericPlotter):
             'wedgeData', (),
             descr=_('Datasets giving the proportions of each slice'),
             usertext=_('Wedge data')), 4)
+        s.add(setting.Strings(
+            'wedgeLabels', (),
+            descr=_('Labels for each wedge (empty = use dataset names)'),
+            usertext=_('Wedge labels')), 5)
 
         s.add(setting.DistancePt(
             'markerSize', '5pt',
             descr=_('Base size of the largest glyph'),
-            usertext=_('Glyph size')), 5)
+            usertext=_('Glyph size')), 6)
 
         s.add(setting.Choice(
             'glyph', ('pie', 'donut', 'bar'), 'pie',
             descr=_('Glyph type: pie, donut (hollow centre) or bar'),
-            usertext=_('Glyph')), 6)
+            usertext=_('Glyph')), 7)
         s.add(setting.Float(
             'innerRadius', 0.4, minval=0., maxval=0.95,
             descr=_('Donut inner radius as a fraction of the outer radius'),
-            usertext=_('Donut inner radius')), 7)
+            usertext=_('Donut inner radius')), 8)
         s.add(setting.Choice(
             'barDirection', ('horizontal', 'vertical'), 'horizontal',
             descr=_('Direction of the mini bar glyph'),
-            usertext=_('Bar direction')), 8)
+            usertext=_('Bar direction')), 9)
 
         s.add(setting.Bool(
             'outline', True,
             descr=_('Draw a border around the glyph'),
-            usertext=_('Outline')), 9)
+            usertext=_('Outline')), 10)
 
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
@@ -109,28 +113,46 @@ class ProportionalScatter(plotters.GenericPlotter):
         if data:
             data.updateRangeAuto(axrange, axis.settings.log)
 
+    def _wedgeNames(self):
+        """Return the list of non-empty wedge dataset names."""
+        return [n for n in self.settings.wedgeData if n]
+
+    def _wedgeLabel(self, idx):
+        """Return the label for wedge index idx."""
+        labels = self.settings.wedgeLabels
+        if idx < len(labels) and labels[idx]:
+            return labels[idx]
+        names = self._wedgeNames()
+        if idx < len(names):
+            return names[idx]
+        return ''
+
     def getNumberKeys(self):
         if self.settings.key:
-            return 1
+            return len(self._wedgeNames()) or 1
         return 0
 
     def getKeyText(self, number):
-        return self.settings.key
+        return self._wedgeLabel(number)
 
     def drawKeySymbol(self, number, painter, x, y, width, height):
-        """Draw a small pie as the key symbol."""
-        s = self.settings
-        wedges = self._getWedgeData()
-        if wedges is None:
+        """Draw a small colored swatch for one wedge in the key."""
+        n = len(self._wedgeColors(max(number + 1, 1)))
+        if number >= n:
             return
-        cx = x + width / 2
-        cy = y + height / 2
-        r = min(width, height) * 0.45
-        self._drawGlyph(painter, cx, cy, r, wedges)
+        color = self._wedgeColors(n)[number]
+        swatch = qt.QRectF(x, y + height * 0.1, width, height * 0.8)
+        painter.setPen(qt.QPen(qt.QColor('#000000'), 0.5))
+        painter.setBrush(color)
+        painter.drawRect(swatch)
 
     def _getWedgeData(self):
-        """Resolve wedge datasets into a list of numeric arrays (or None)."""
-        names = list(self.settings.wedgeData)
+        """Resolve wedge datasets into a list of numeric arrays (or None).
+
+        Filters out empty-name entries so that a Datasets control that
+        contains a trailing empty string does not crash.
+        """
+        names = self._wedgeNames()
         if not names:
             return None
         out = []
