@@ -1,0 +1,252 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: 'windows-2022'
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v5
+    - name: Setup build environment
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    - name: Make TMPDIR
+      run: mkdir C:\vtmp
+    - name: Modify TMPDIR in environment
+      run: echo "TMPDIR=C:\vtmp" >> $env:GITHUB_ENV
+    - name: Upgrade pip
+      run: python3 -m pip install --upgrade pip
+    - name: Read version
+      id: version
+      run: |
+        $ver = Get-Content VERSION
+        echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        cache: 'true'
+        cache-key-prefix: 'qt-windows-binary-v1'
+        version: '6.10.2'
+        modules: 'qtimageformats'
+        setup-python: false
+    - name: Install Python dependencies
+      run: |
+        pip3 -v install setuptools wheel packaging pyproject-metadata
+        pip3 -v install PyQt6==6.11.0
+        pip3 -v install numpy
+        pip3 -v install pyinstaller
+        pip3 -v install -r requirements.txt
+        pip3 -v install iminuit
+        pip3 -v install pytest
+        pip3 -v install https://github.com/jeremysanders/pyemf3/archive/master.zip
+    - name: Build Veusz extensions
+      run: |
+        python3 setup.py build_ext --inplace
+        copy build\lib*\veusz\helpers\*.dll veusz\helpers
+    - name: Run tests
+      run: |
+        set QT_QPA_PLATFORM=minimal
+        set VEUSZ_INPLACE_TEST=1
+        python tests/runselftest.py
+      env:
+        VEUSZ_INPLACE_TEST: '1'
+        VEUSZ_REMOVE_FROM_ENV: 'QT_PLUGIN_PATH QML2_IMPORT_PATH'
+    - name: Verify Qt/PyQt version match
+      run: |
+        python3 -c "
+        from PyQt6.QtCore import qVersion, QT_VERSION_STR
+        print(f'Qt runtime: {qVersion()}')
+        print(f'Qt compile: {QT_VERSION_STR}')
+        import numpy
+        print(f'NumPy: {numpy.__version__}')
+        assert qVersion() == QT_VERSION_STR, 'Qt version mismatch!'
+        "
+    - name: Build binary with pyinstaller
+      run: pyinstaller support/veusz_windows_pyinst.spec
+    - name: Generate NSI file
+      run: |
+        python3 support/veusz_windows_make_nsi.py install.nsi
+        mkdir installer_out
+    - name: Use NSIS to make installer
+      run: & "C:\Program Files (x86)\NSIS\makensis.exe" install.nsi
+    - name: Package portable zip
+      run: |
+        $ver = "${{ steps.version.outputs.VERSION }}"
+        powershell -Command "Compress-Archive -Path 'dist\\veusz_main' -DestinationPath 'veusz-${ver}-windows-x64.zip' -Force"
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          installer_out/veusz-${{ steps.version.outputs.VERSION }}-windows-x64-setup.exe
+          veusz-${{ steps.version.outputs.VERSION }}-windows-x64.zip
+
+  build-macos-arm64:
+    runs-on: 'macos-14'
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    - name: Upgrade pip
+      run: python3 -m pip install --upgrade pip
+    - name: Read version
+      id: version
+      run: |
+        ver=$(cat VERSION)
+        echo "VERSION=$ver" >> $GITHUB_OUTPUT
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        cache: 'true'
+        cache-key-prefix: 'qt-macos-binary-v2'
+        version: '6.10.2'
+        modules: 'qtimageformats'
+        setup-python: false
+    - name: Install Python dependencies
+      run: |
+        pip3 -v install setuptools wheel packaging pyproject-metadata
+        pip3 -v install PyQt6==6.11.0
+        pip3 -v install numpy
+        pip3 -v install pyinstaller
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip3 install iminuit
+        pip3 install https://github.com/jeremysanders/pyemf3/archive/master.zip
+    - name: Build Veusz extensions
+      run: |
+        python3 setup.py build_ext --inplace
+        cp -p build/lib*/veusz/helpers/*.so veusz/helpers
+    - name: Run tests
+      env:
+        LD_LIBRARY_PATH: ${{ env.QT_ROOT_DIR }}/lib:${LD_LIBRARY_PATH}
+        QT_QPA_PLATFORM: minimal
+        VEUSZ_INPLACE_TEST: 1
+      run: tests/runselftest.py
+    - name: Build installer
+      run: sh support/veusz_macos_make_image.sh
+    - name: Rename DMG
+      run: |
+        mv installer/veusz-AppleOSX.dmg installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-arm64.dmg
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-arm64.dmg
+
+  build-macos-x86_64:
+    runs-on: 'macos-15-intel'
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    - name: Upgrade pip
+      run: python3 -m pip install --upgrade pip
+    - name: Read version
+      id: version
+      run: |
+        ver=$(cat VERSION)
+        echo "VERSION=$ver" >> $GITHUB_OUTPUT
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        cache: 'true'
+        cache-key-prefix: 'qt-macos-binary-v1'
+        version: '6.10.2'
+        modules: 'qtimageformats'
+        setup-python: false
+    - name: Install Python dependencies
+      run: |
+        pip3 -v install setuptools wheel packaging pyproject-metadata
+        pip3 -v install PyQt6==6.11.0
+        pip3 -v install numpy
+        pip3 -v install pyinstaller
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip3 install iminuit
+        pip3 install https://github.com/jeremysanders/pyemf3/archive/master.zip
+    - name: Build Veusz extensions
+      run: |
+        python3 setup.py build_ext --inplace
+        cp -p build/lib*/veusz/helpers/*.so veusz/helpers
+    - name: Run tests
+      env:
+        LD_LIBRARY_PATH: ${{ env.QT_ROOT_DIR }}/lib:${LD_LIBRARY_PATH}
+        QT_QPA_PLATFORM: minimal
+        VEUSZ_INPLACE_TEST: 1
+      run: tests/runselftest.py
+    - name: Build installer
+      run: sh support/veusz_macos_make_image.sh
+    - name: Rename DMG
+      run: |
+        mv installer/veusz-AppleOSX.dmg installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-x86_64.dmg
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-x86_64.dmg
+
+  build-linux:
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    - name: Upgrade pip
+      run: python -m pip install --upgrade pip
+    - name: Read version
+      id: version
+      run: |
+        ver=$(cat VERSION)
+        echo "VERSION=$ver" >> $GITHUB_OUTPUT
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        cache: 'true'
+        cache-key-prefix: 'qt-linux-binary-v1'
+        version: '6.10.2'
+        setup-python: false
+    - name: Install Python dependencies
+      run: |
+        pip install PyQt6==6.11.0
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pytest pyinstaller
+    - name: Build extensions
+      run: python setup.py build_ext --inplace
+    - name: Run tests
+      env:
+        LD_LIBRARY_PATH: ${{ env.QT_ROOT_DIR }}/lib:${LD_LIBRARY_PATH}
+        QT_QPA_PLATFORM: offscreen
+        VEUSZ_INPLACE_TEST: 1
+      run: tests/runselftest.py
+    - name: Build binary with pyinstaller
+      run: |
+        pyinstaller support/veusz_linux_pyinst.spec
+    - name: Package portable tar.gz
+      run: |
+        tar -czf veusz-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz -C dist veusz-${{ steps.version.outputs.VERSION }}
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: veusz-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz

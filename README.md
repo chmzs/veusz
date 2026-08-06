@@ -10,11 +10,24 @@ SAMP interfaces to its plotting facilities. It also allows for
 manipulation and editing of datasets. Data can be captured from
 external sources such as Internet sockets or other programs.
 
-Changes in 4.2.1.1:
+Changes in 4.2.1.1-fork:
+  * Add ProportionalScatter widget (pie/donut/bar glyphs for scatter plots)
+  * Add Color axis references (map plot colors to axis line/tick/label colors)
+  * Add Grid Graph Labels tool (batch add sequential labels to grid graphs)
+  * Add 35 gradient presets (9 diverging, 22 sequential, 4 legacy)
+  * Add CSV sidecar export on Save As (used datasets with provenance)
+  * Add Bar CI fill bands (stacked and grouped support)
+  * Add gradient transparency compositing and midpoint remapping
+  * Add GradientCenterValue for diverging colormaps
+  * Add interactive GradientBar UI editor
+  * Add BarMode (stacked/grouped) for ProportionalScatter bar glyph
+  * Fix Donut glyph rendering (arcMoveTo)
   * Add CI column selection for XY plot (PointPlotter)
   * Add CI column selection for Bar plot
   * Add Rectangle explicit bounds mode (xmin/xmax/ymin/ymax)
   * Add gradient fill support (linear/radial gradients)
+  * Add CSV sidecar export on Save As
+  * CI/CD: pytest integration in GitHub Actions
 
 Changes in 4.2.1:
   * Change tutorial highlight color to magenta
@@ -65,6 +78,7 @@ Changes in 4.2:
   * 3D surface plots
   * 3D function plots
   * 3D volumetric plots
+  * Proportional scatter (pie/donut/bar glyphs) [NEW]
 
 ### Input and output:
   * PDF/EPS/PNG/SVG/EMF export
@@ -72,6 +86,7 @@ Changes in 4.2:
   * Embed Veusz within other programs
   * Text, HDF5, CSV, FITS, NPY/NPZ, QDP, binary and user-plugin importing
   * Data can be captured from external sources
+  * CSV sidecar export on Save As (used datasets with provenance) [NEW]
 
 ### Extending:
   * Use as a Python module
@@ -88,6 +103,12 @@ Changes in 4.2:
   * Data picker
   * Interactive tutorial
   * Multithreaded rendering
+  * Gradient fills (linear/radial, 35 presets, midpoint remapping) [NEW]
+  * Color axis references (map plot colors to axis elements) [NEW]
+  * Grid Graph Labels tool (batch label grid graphs) [NEW]
+  * Proportional scatter widget (pie/donut/bar glyphs) [NEW]
+  * Bar CI fill bands (stacked/grouped) [NEW]
+  * Interactive GradientBar editor [NEW]
 
 ## Installation
 Please see the file `INSTALL.md` included in the distribution for installation details, or go to the [download page](https://veusz.github.io/download/).
