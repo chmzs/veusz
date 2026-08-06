@@ -488,6 +488,10 @@ class MainWindow(qt.QMainWindow):
                 a(self, _('Export to graphics formats'), _('&Export…'),
                   self.slotFileExport,
                   icon='kde-document-export'),
+            'file.embeddata':
+                a(self, _('Embed used data (unlink from source files)'),
+                  _('Embed used data…'),
+                  self.slotEmbedUsedData),
             'file.close':
                 a(self, _('Close current window'), _('Close Window'),
                   self.slotFileClose,
@@ -645,7 +649,7 @@ class MainWindow(qt.QMainWindow):
             '',
             'file.save', 'file.saveas', 'file.trust',
             '',
-            'file.print', 'file.export',
+            'file.print', 'file.export', 'file.embeddata',
             '',
             'file.close', 'file.quit'
         ]
@@ -1217,6 +1221,15 @@ class MainWindow(qt.QMainWindow):
                 self.unlinkUsedDatasets()
 
             self.slotFileSave()
+
+    def slotEmbedUsedData(self):
+        """Embed used data by unlinking from source files.
+
+        This makes the document self-contained for sharing without
+        needing to do a Save As.
+        """
+        self.unlinkUsedDatasets()
+        self.updateStatusbar(_("Used data embedded (unlinked from source files)"))
 
     def getUsedDatasetNames(self):
         """Return dataset names referenced by any widget in the document."""
