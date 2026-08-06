@@ -4,13 +4,18 @@
 # datasets (here: millet vs foxtail millet at archaeological sites). The glyph
 # size is proportional to the total sample size (radius ~ sqrt(n)).
 #
-# To switch the glyph style, change the "glyph" setting to:
+# Glyph styles — change the "glyph" setting to:
 #   pie   - full circle slices
 #   donut - hollow centre (adjust "innerRadius")
 #   bar   - a mini stacked bar at each point
+#
+# For text axis labels (e.g. site names on y-axis):
+#   1) Import your CSV (which has a string column for site names)
+#   2) Set the y-axis mode to "labels" in the axis settings
+#   3) Set the "labels" field on this widget to your text dataset name
 
 SetData('age', [5800, 5600, 5300, 5200, 5100, 4950, 4750, 4600])
-SetData('baseline', [0, 0, 0, 0, 0, 0, 0, 0])
+SetData('ypos', [1, 2, 3, 4, 5, 6, 7, 8])
 SetData('n', [1033, 488, 444, 2350, 499, 1502, 78, 1875])
 SetData('pctMillet', [95, 75, 30, 25, 20, 15, 15, 20])
 SetData('pctFoxtail', [5, 25, 70, 75, 80, 85, 85, 80])
@@ -27,21 +32,22 @@ Set('max', 6000)
 To('..')
 Add('axis', name='y', autoadd=False)
 To('y')
-Set('label', 'Proportion of millet / foxtail millet')
-Set('min', -1.0)
-Set('max', 1.0)
+Set('label', 'Site')
+Set('min', 0)
+Set('max', 9)
 Set('direction', 'vertical')
 To('..')
 
 Add('proportions', name='prop1', autoadd=False)
 To('prop1')
 Set('xData', 'age')
-Set('yData', 'baseline')
+Set('yData', 'ypos')
 Set('scalePoints', 'n')
 Set('wedgeData', ('pctMillet', 'pctFoxtail'))
-Set('wedgeLabels', ('Millet (黍)', 'Foxtail (粟)'))
+Set('wedgeLabels', ('Millet', 'Foxtail'))
 Set('markerSize', '8pt')
 Set('glyph', 'pie')
+Set('key', 'Crop Proportions')
 To('..')
 
 To('..')

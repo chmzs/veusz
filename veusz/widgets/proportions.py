@@ -77,6 +77,10 @@ class ProportionalScatter(plotters.GenericPlotter):
             'wedgeLabels', (),
             descr=_('Labels for each wedge (empty = use dataset names)'),
             usertext=_('Wedge labels')), 5)
+        s.add(setting.DatasetOrStr(
+            'labels', '',
+            descr=_('Dataset or string giving axis labels for each point'),
+            usertext=_('Axis labels')), 6)
 
         s.add(setting.DistancePt(
             'markerSize', '5pt',
@@ -112,6 +116,20 @@ class ProportionalScatter(plotters.GenericPlotter):
         data = self.settings.get(dataname).getData(self.document)
         if data:
             data.updateRangeAuto(axrange, axis.settings.log)
+
+    def getAxisLabels(self, direction):
+        """Provide text labels for categorical axis (mode='labels')."""
+        s = self.settings
+        text = s.get('labels').getData(self.document, checknull=True)
+        xv = s.get('xData').getData(self.document)
+        yv = s.get('yData').getData(self.document)
+        if text is None:
+            return (None, None)
+        if direction == 'horizontal' and xv is not None:
+            return (text, xv.data)
+        elif direction == 'vertical' and yv is not None:
+            return (text, yv.data)
+        return (None, None)
 
     def _wedgeNames(self):
         """Return the list of non-empty wedge dataset names."""
