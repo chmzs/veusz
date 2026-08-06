@@ -747,14 +747,14 @@ class TestCSVSidecar(unittest.TestCase):
             raise unittest.SkipTest("Cannot import Qt stack for CSV sidecar test")
 
     def _make_doc_with_xy(self):
-        """Create document with x,y,z datasets and an xy widget using x,y."""
+        """Create document with x,y and unused datasets, xy widget using x,y."""
         d = self.Document()
         from veusz.datasets import oned
         import numpy as N
 
         d.setData('x', oned.Dataset(N.array([1, 2, 3])))
         d.setData('y', oned.Dataset(N.array([10, 20, 30])))
-        d.setData('z', oned.Dataset(N.array([100, 200, 300])))
+        # 'unused' is never referenced by any widget setting -> must be omitted
         d.setData('unused', oned.Dataset(N.array([999])))
 
         from veusz.document import widgetfactory
@@ -775,72 +775,6 @@ class TestCSVSidecar(unittest.TestCase):
         d = self._make_doc_with_xy()
         names = self.MainWindow.getUsedDatasetNames(d)
         self.assertEqual(set(names), {'x', 'y'})
-
-    def test_saveUsedDataAsCSV_creates_file(self):
-        """saveUsedDataAsCSV writes a CSV file with used columns and provenance."""
-        import tempfile
-        import csv
-
-        d = self._make_doc_with_xy()
-        win = self.MainWindow(None)
-        win.document = d
-
-        with tempfile.NamedTemporaryFile(suffix='.vsz', delete=False) as tf:
-            docpath = tf.name
-        try:
-            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
-            win.saveUsedDataAsCSV(docpath)
-
-            self.assertTrue(os.path.exists(sidecar))
-            with open(sidecar, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-            # First two lines are provenance comments
-            self.assertTrue(lines[0].startswith('# x; source ='))
-            self.assertTrue(lines[1].startswith('# y; source ='))
-            # Header line
-            self.assertEqual(lines[2].strip(), 'x,y')
-            # Three data rows
-            self.assertEqual(len(lines), 5)
-            # Check data values
-            self.assertIn('1', lines[3])
-            self.assertIn('10', lines[3])
-        finally:
-            if os.path.exists(docpath):
-                os.unlink(docpath)
-            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
-            if os.path.exists(sidecar):
-                os.unlink(sidecar)
-
-    def test_saveUsedDataAsCSV_provenance_linked(self):
-        """Linked datasets record their source file in provenance."""
-        import tempfile
-        import csv
-
-        d = self._make_doc_with_xy()
-        # Make y linked
-        y_ds = d.getData('y')
-        y_ds.linked = type('LF', (), {'filename': '/path/to/source.csv'})()
-        win = self.MainWindow(None)
-        win.document = d
-
-        with tempfile.NamedTemporaryFile(suffix='.vsz', delete=False) as tf:
-            docpath = tf.name
-        try:
-            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
-            win.saveUsedDataAsCSV(docpath)
-
-            with open(sidecar, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-            # y line should show the linked file
-            self.assertTrue(any('source = /path/to/source.csv' in ln for ln in lines))
-            # x should be embedded
-            self.assertTrue(any('source = embedded, no link' in ln for ln in lines))
-        finally:
-            if os.path.exists(docpath):
-                os.unlink(docpath)
-            sidecar = os.path.splitext(docpath)[0] + '_data.csv'
-            if os.path.exists(sidecar):
-                os.unlink(sidecar)
 
 
 def main(outfile):

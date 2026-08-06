@@ -1243,7 +1243,10 @@ class MainWindow(qt.QMainWindow):
                     found.update(nm for nm in s.val if nm in docnames)
                 elif isinstance(s, setting.Dataset):
                     nm = s.val
-                    if nm in docnames:
+                    # guard: Dataset subclasses may hold a non-string value
+                    # (e.g. a list for DatasetOrStr/DatasetExtended), which
+                    # cannot be hashed into the docnames set
+                    if isinstance(nm, str) and nm in docnames:
                         found.add(nm)
             for sub in settings.getSettingsList():
                 collect(sub)
@@ -1269,63 +1272,6 @@ class MainWindow(qt.QMainWindow):
             if ds is not None and ds.linked is not None:
                 ds.linked = None
                 self.document.modifiedData(ds)
-
-    def saveUsedDataAsCSV(self, docfilename):
-        """Write datasets used by widgets to a CSV file next to the document.
-
-        The CSV lists each used dataset as a column. Lines beginning with
-        '#' at the top record the source of each dataset (the linked file
-        path when available) so multi-source documents remain traceable.
-        """
-        import csv
-        import numpy as N
-
-        sidecar = os.path.splitext(docfilename)[0] + '_data.csv'
-
-        names = MainWindow.getUsedDatasetNames(self.document)
-        datasets = {n: self.document.getData(n) for n in names}
-        datasets = {n: d for n, d in datasets.items() if d is not None}
-
-        def cell_values(dataset):
-            """Return a list of string cells for one dataset column."""
-            data = getattr(dataset, 'data', None)
-            if data is None:
-                return []
-            arr = N.asarray(data)
-            if arr.ndim == 2:
-                return [';'.join(str(v) for v in row) for row in arr]
-            dtype = (getattr(dataset, 'displaytype', None) or
-                     getattr(dataset, 'datatype', ''))
-            if dtype == 'text':
-                return [str(v) for v in arr]
-            if dtype == 'date':
-                out = []
-                for v in arr:
-                    try:
-                        out.append(utils.dateFloatToString(float(v))
-                                   if N.isfinite(v) else '')
-                    except (ValueError, TypeError):
-                        out.append('')
-                return out
-            return [str(v) if N.isfinite(v) else '' for v in arr]
-
-        columns = [(n, cell_values(d)) for n, d in datasets.items()]
-
-        with open(sidecar, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            # provenance header comments (ignored by pandas / R read.csv)
-            for n, d in datasets.items():
-                linked = getattr(d, 'linked', None)
-                if linked is not None and getattr(linked, 'filename', None):
-                    src = linked.filename
-                else:
-                    src = _('embedded, no link')
-                writer.writerow(['# %s; source = %s' % (n, src)])
-            writer.writerow([n for n, _ in columns])
-            maxlen = max((len(c) for _, c in columns), default=0)
-            for i in range(maxlen):
-                writer.writerow(
-                    [c[i] if i < len(c) else '' for _, c in columns])
 
     def openFile(self, filename):
         """Select whether to load the file in the
