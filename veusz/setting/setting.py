@@ -37,6 +37,7 @@ from .. import qtall as qt
 from . import controls
 from .settingdb import settingdb, uilocale, ui_floattostring, ui_stringtofloat
 from .reference import ReferenceBase, Reference
+from .settings import Settings
 
 from .. import utils
 from .. import datasets
@@ -1366,9 +1367,34 @@ class DatasetOrStr(Dataset):
         return self._copyHelper((), (), {})
 
 class Color(ChoiceOrMore):
-    """A color setting."""
+    """A color setting.
+
+    Supports explicit colors (hex/named) and axis references.
+    Axis reference format: @axis:x:Line/color, @axis:y:MajorTicks/color, etc.
+    """
 
     typename = 'color'
+
+    # Axis reference prefix
+    AXIS_REF_PREFIX = '@axis:'
+
+    # Available axis reference paths
+    AXIS_REF_PATHS = {
+        'X Axis Line': 'x:Line/color',
+        'X Axis Major Ticks': 'x:MajorTicks/color',
+        'X Axis Minor Ticks': 'x:MinorTicks/color',
+        'X Axis Grid Lines': 'x:GridLines/color',
+        'X Axis Minor Grid Lines': 'x:MinorGridLines/color',
+        'X Axis Label': 'x:Label/color',
+        'X Axis Tick Labels': 'x:TickLabels/color',
+        'Y Axis Line': 'y:Line/color',
+        'Y Axis Major Ticks': 'y:MajorTicks/color',
+        'Y Axis Minor Ticks': 'y:MinorTicks/color',
+        'Y Axis Grid Lines': 'y:GridLines/color',
+        'Y Axis Minor Grid Lines': 'y:MinorGridLines/color',
+        'Y Axis Label': 'y:Label/color',
+        'Y Axis Tick Labels': 'y:TickLabels/color',
+    }
 
     def __init__(self, name, value, **args):
         """Initialise the color setting with the given name, default
@@ -1379,13 +1405,22 @@ class Color(ChoiceOrMore):
         """Make a copy of the setting."""
         return self._copyHelper((), (), {})
 
+    def isAxisReference(self):
+        """Check if current value is an axis reference."""
+        return isinstance(self.val, str) and self.val.startswith(self.AXIS_REF_PREFIX)
+
+    def getAxisReferencePath(self):
+        """Return the axis reference path if value is a reference."""
+        if self.isAxisReference():
+            return self.val[len(self.AXIS_REF_PREFIX):]
+        return None
+
     def color(self, painter, dataindex=0):
         """Return QColor from color.
 
         painter is a Veusz Painter
         dataindex is index for automatically getting colors for subdatasets.
         """
-
         if self.val.lower() == 'auto':
             # lookup widget
             w = self.parent
@@ -1395,8 +1430,66 @@ class Color(ChoiceOrMore):
                 return qt.QColor()
             # get automatic color
             return painter.docColor(w.autoColor(painter, dataindex=dataindex))
-        else:
-            return painter.docColor(self.val)
+
+        # Check for axis reference
+        if self.isAxisReference():
+            return self._resolveAxisReference(painter)
+
+        # Explicit color
+        return painter.docColor(self.val)
+
+    def _resolveAxisReference(self, painter):
+        """Resolve axis reference to actual color."""
+        ref_path = self.getAxisReferencePath()
+        if not ref_path:
+            return qt.QColor()
+
+        # Parse axis:name/path
+        try:
+            axis_part, setting_path = ref_path.split(':', 1)
+            # Find the axis widget
+            # Search up from this setting's widget
+            w = self.parent
+            while w is not None and not w.iswidget:
+                w = w.parent
+            if w is None:
+                return qt.QColor()
+
+            # Find the graph/page to get axes
+            graph_widget = w
+            while graph_widget is not None and not hasattr(graph_widget, 'getAxes'):
+                graph_widget = graph_widget.parent
+            if graph_widget is None:
+                return qt.QColor()
+
+            # Get the axis
+            axes = graph_widget.getAxes()
+            axis_idx = 0 if axis_part == 'x' else 1
+            if axis_idx >= len(axes):
+                return qt.QColor()
+            axis = axes[axis_idx]
+
+            # Traverse the setting path on the axis
+            # e.g., "Line/color" -> axis.settings.Line.color
+            parts = setting_path.split('/')
+            current = axis.settings
+            for part in parts:
+                if hasattr(current, part):
+                    current = getattr(current, part)
+                else:
+                    return qt.QColor()
+
+            # Now current should be a Color setting
+            if hasattr(current, 'color'):
+                return current.color(painter)
+            elif hasattr(current, 'val'):
+                # Direct color value
+                return painter.docColor(current.val)
+
+        except (AttributeError, ValueError):
+            pass
+
+        return qt.QColor()
 
     def makeControl(self, *args):
         return controls.Color(self, *args)
@@ -1712,7 +1805,8 @@ class FillSet(Setting):
 
         (style, color, hide,
         [optional transparency, linewidth,
-         linestyle, spacing, backcolor, backtrans, backhide]])
+         linestyle, spacing, backcolor, backtrans, backhide,
+         gradient_dict])
 
         """
 
@@ -1729,7 +1823,7 @@ class FillSet(Setting):
             if ( not isinstance(color, str) or
                  style not in utils.extfillstyles or
                  type(hide) not in (int, bool) or
-                 len(fill) not in (3, 10) ):
+                 len(fill) not in (3, 10, 11) ):
                 raise utils.InvalidType
 
         return val
@@ -1751,10 +1845,20 @@ class FillSet(Setting):
             s.style = v[0]
             s.color = v[1]
             s.hide = v[2]
-            if len(v) == 10:
+            if len(v) >= 10:
                 (s.transparency, s.linewidth, s.linestyle,
                  s.patternspacing, s.backcolor,
-                 s.backtransparency, s.backhide) = v[3:]
+                 s.backtransparency, s.backhide) = v[3:10]
+            # Load gradient settings if present (index 10)
+            if len(v) >= 11 and v[10]:
+                s.Gradient = v[10]
+        return s
+
+    def getDefaultBrushExtended(self):
+        """Return default BrushExtended for new rows."""
+        from . import collections
+        s = collections.BrushExtended('tempbrush')
+        s.parent = self
         return s
 
 class Filename(Str):
@@ -2013,6 +2117,9 @@ class GradientFill(Setting):
       - angle: float (0-360) for linear gradient
       - stops: list of (offset, color) tuples (offset 0-1)
       - enabled: bool
+      - transparency: int (0-100) gradient-level transparency
+      - midpoint: float (0-1) or None, position of gradient midpoint
+        (when set, stops are remapped so midpoint color aligns to this position)
     """
 
     typename = 'gradient-fill'
@@ -2020,7 +2127,8 @@ class GradientFill(Setting):
     def __init__(self, name, val=None, **args):
         if val is None:
             val = {'enabled': False, 'type': 'linear', 'angle': 90,
-                   'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
+                   'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
+                   'transparency': 0, 'midpoint': None}
         Setting.__init__(self, name, val, **args)
 
     def copy(self):
@@ -2040,17 +2148,33 @@ class GradientFill(Setting):
         colors = ', '.join([c for _, c in stops])
         grad_type = self.val.get('type', 'linear')
         angle = self.val.get('angle', 90)
-        return f'{grad_type} {angle}deg: {colors}'
+        transparency = self.val.get('transparency', 0)
+        midpoint = self.val.get('midpoint')
+        mid_str = f', mid={midpoint:.0%}' if midpoint is not None else ''
+        trans_str = f', trans={transparency}%' if transparency else ''
+        return f'{grad_type} {angle}deg{mid_str}{trans_str}: {colors}'
 
     def fromUIText(self, text):
         """Parse from text representation."""
         if text.lower() == 'disabled':
             return {'enabled': False, 'type': 'linear', 'angle': 90,
-                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')]}
-        return self.val
+                    'stops': [(0.0, '#ff0000'), (1.0, '#0000ff')],
+                    'transparency': 0, 'midpoint': None}
+        # try to parse midpoint from text like "linear 90deg, mid=50%: #ff0000, #0000ff"
+        # and transparency like ", trans=30%"
+        import re
+        result = dict(self.val)
+        m = re.search(r'mid=([\d.]+)%', text)
+        if m:
+            result['midpoint'] = float(m.group(1)) / 100
+        m = re.search(r'trans=(\d+)%', text)
+        if m:
+            result['transparency'] = int(m.group(1))
+        return result
 
     def makeControl(self, *args):
         return controls.GradientFill(self, *args)
+
 
 class AxisBound(FloatOrAuto):
     """Axis bound - either numeric, Auto or date."""

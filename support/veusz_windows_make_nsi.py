@@ -29,7 +29,8 @@ def main():
 
     thisdir = os.path.dirname(os.path.abspath(__file__))
     srcdir = os.path.abspath(os.path.join(thisdir, '..'))
-    distdir = os.path.join(srcdir, 'dist', 'veusz_main')
+    # fork builds PyInstaller output into support/dist/ (not root dist/)
+    distdir = os.path.join(thisdir, 'dist', 'veusz_main')
     intempl = os.path.join(thisdir, 'veusz_windows_setup_templ.nsi')
 
     # read input template

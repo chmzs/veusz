@@ -24,16 +24,11 @@ jobs:
     - name: Upgrade pip
       run : |
         python3 -m pip install --upgrade pip
-    - name: Build pyinstaller
+    - name: Read version
+      id: version
       run: |
-        python3 -m pip -v install setuptools
-        git clone https://github.com/pyinstaller/pyinstaller
-        cd pyinstaller
-        cd bootloader
-        python3 ./waf distclean all
-        cd ..
-        python3 -m pip install .
-        cd ..
+        $ver = Get-Content VERSION
+        echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -42,24 +37,20 @@ jobs:
         version: '6.10.2'
         modules: 'qtimageformats'
         setup-python: false
-    - name: Install PyQt
+    - name: Install Python dependencies (pre-compiled wheels)
       run: |
-        pip3 -v install setuptools sip packaging PyQt_builder
-        pip3 -v install --config-settings --confirm-license= --no-binary :all: PyQt6
-    - name: Install numpy
-      run: |
-        python3 -m pip -v install setuptools wheel packaging pyproject-metadata
-        python3 -m pip -v install Cython meson meson-python ninja
-        python3 -m pip -v install numpy
-    - name: Install other modules
-      run: |
-        python3 -m pip install -r requirements.txt
-        python3 -m pip install iminuit
-        python3 -m pip install https://github.com/jeremysanders/pyemf3/archive/master.zip
+        pip3 -v install setuptools wheel packaging pyproject-metadata
+        pip3 -v install PyQt6==6.11.0
+        pip3 -v install numpy
+        pip3 -v install pyinstaller
+        pip3 -v install -r requirements.txt
+        pip3 -v install iminuit
+        pip3 -v install pytest
+        pip3 -v install https://github.com/jeremysanders/pyemf3/archive/master.zip
     - name: Build Veusz extensions
       run: |
         python3 setup.py build_ext --inplace
-        copy build/lib*/veusz/helpers/*.dll veusz/helpers
+        copy build\lib*\veusz\helpers\*.dll veusz\helpers
     - name: Run tests
       run: |
         set QT_QPA_PLATFORM=minimal
@@ -68,6 +59,22 @@ jobs:
       env:
         VEUSZ_INPLACE_TEST: '1'
         VEUSZ_REMOVE_FROM_ENV: 'QT_PLUGIN_PATH QML2_IMPORT_PATH'
+    - name: Run feature unit tests
+      run: |
+        set QT_QPA_PLATFORM=offscreen
+        python3 -m pytest tests/selftests/test_gradient_fill.py
+      env:
+        VEUSZ_REMOVE_FROM_ENV: 'QT_PLUGIN_PATH QML2_IMPORT_PATH'
+    - name: Verify Qt/PyQt version match
+      run: |
+        python3 -c "
+        from PyQt6.QtCore import qVersion, QT_VERSION_STR
+        print(f'Qt runtime: {qVersion()}')
+        print(f'Qt compile: {QT_VERSION_STR}')
+        import numpy
+        print(f'NumPy: {numpy.__version__}')
+        assert qVersion() == QT_VERSION_STR, 'Qt version mismatch!'
+        "
     - name: Build binary with pyinstaller
       run: |
         pyinstaller support/veusz_windows_pyinst.spec
@@ -83,8 +90,12 @@ jobs:
       with:
         name: windows-installer
         path: installer_out
+    - name: Package portable zip
+      run: |
+        $ver = "${{ steps.version.outputs.VERSION }}"
+        powershell -Command "Compress-Archive -Path 'dist\\veusz_main' -DestinationPath 'veusz-${ver}-windows-x64.zip' -Force"
     - name: Upload zip artifact
       uses: actions/upload-artifact@v4
       with:
-        name: portable-zip
-        path: 'dist\veusz_main'
+        name: veusz-${{ steps.version.outputs.VERSION }}-windows-x64
+        path: veusz-${{ steps.version.outputs.VERSION }}-windows-x64.zip

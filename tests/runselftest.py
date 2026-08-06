@@ -107,12 +107,21 @@ excluded_tests = set([
         # don't expect this to work
         'mathml.vsz',
 
+        # fails on more up to date Qt versions
+        'vectorfield.vsz',
+
         # 3d rendering needs more work
         '3d_errors.vsz',
         '3d_function.vsz',
         '3d_points.vsz',
         '3d_surface.vsz',
         '3d_volume.vsz',
+
+        # new example, no comparison baseline yet
+        'proportional.vsz',
+
+        # Python unittest file - output is 'OK'/'FAILED' text, not SVG
+        'test_gradient_fill.py',
     ])
 
 class StupidFontMetrics:

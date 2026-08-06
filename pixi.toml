@@ -1,6 +1,6 @@
 [workspace]
 name = "veusz"
-version = "4.2.1"
+version = "4.2.1.1"
 description = "Veusz - Scientific plotting application"
 authors = ["Jeremy Sanders"]
 license = "GPL-2.0-or-later"
@@ -15,11 +15,16 @@ sip = ">=6.5"
 astropy = ">=2.0"
 h5py = ">=2.6"
 pytest = "*"
+pip = "*"
 
 [tasks.test]
 description = "Run gradient tests"
-cmd = "python tests/selftests/gradient_test.py"
+cmd = "python tests/selftests/test_gradient_fill.py"
 
 [tasks.veusz]
 description = "Run Veusz"
-cmd = "python veusz/veusz_main.py"
+cmd = "python -m veusz.veusz_main"
+
+[tasks.install]
+description = "Install Veusz in editable mode"
+cmd = "python -m pip install -e ."

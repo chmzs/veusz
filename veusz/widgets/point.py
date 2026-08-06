@@ -37,6 +37,20 @@ def _(text, disambiguation=None, context='XY'):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
+def _ciModeShowfn(val):
+    """Show/hide CI settings based on ciMode value."""
+    if val == 'custom':
+        return (('ciXMin', 'ciXMax', 'ciYMin', 'ciYMax'),
+                ('ciXError', 'ciYError', 'ciMultiplier'))
+    elif val == 'std':
+        return (('ciXError', 'ciYError', 'ciMultiplier'),
+                ('ciXMin', 'ciXMax', 'ciYMin', 'ciYMax'))
+    else:
+        return ((), ('ciXMin', 'ciXMax', 'ciYMin', 'ciYMax',
+                    'ciXError', 'ciYError', 'ciMultiplier'))
+
+
 class ErrorBarDraw:
     """For plotting error bars."""
 
@@ -299,51 +313,6 @@ class ErrorBarDraw:
         'linevertlo': (errorsFilled,),
         'lineverthi': (errorsFilled,),
     }
-
-def fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=None):
-    """Fill points depending on fill mode.
-
-    zero_val is the y-value to fill to when fillto is 'zero' or 'custom'.
-    """
-    ft = fillstyle.fillto
-    if ft == 'top':
-        x1, x2 = pts[0].x(), pts[-1].x()
-        y1 = y2 = posn[1]
-    elif ft == 'bottom':
-        x1, x2 = pts[0].x(), pts[-1].x()
-        y1 = y2 = posn[3]
-    elif ft == 'left':
-        y1, y2 = pts[0].y(), pts[-1].y()
-        x1 = x2 = posn[0]
-    elif ft == 'right':
-        y1, y2 = pts[0].y(), pts[-1].y()
-        x1 = x2 = posn[2]
-    elif ft == 'zero':
-        if zero_val is not None:
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = zero_val
-        else:
-            # Fallback to bottom if no zero value
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = posn[3]
-    elif ft == 'custom':
-        fillto_val = fillstyle.filltoValue
-        if fillto_val != 'Auto' and zero_val is not None:
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = zero_val
-        else:
-            # Fallback to bottom if no custom value
-            x1, x2 = pts[0].x(), pts[-1].x()
-            y1 = y2 = posn[3]
-    else:
-        raise RuntimeError('Invalid fillto mode')
-
-    polypts = qt.QPolygonF([qt.QPointF(x1, y1)])
-    polypts += pts
-    polypts.append(qt.QPointF(x2, y2))
-
-    utils.brushExtFillPolygon(painter, fillstyle, cliprect, polypts)
-
 class MarkerFillBrush(setting.Brush):
     def __init__(self, name, **args):
         setting.Brush.__init__(self, name, **args)
@@ -449,6 +418,55 @@ class PointPlotter(GenericPlotter):
             descr=_('Style of error bars to plot'),
             usertext=_('Error style'), formatting=True) )
 
+        # Confidence interval settings (for CI fill styles)
+        s.add( setting.ChoiceSwitch(
+            'ciMode',
+            ['', 'custom', 'std'],
+            '',
+            showfn=_ciModeShowfn,
+            descr=_('Confidence interval mode'),
+            usertext=_('CI mode'),
+            formatting=True) )
+
+        # Custom dataset mode settings
+        s.add( setting.Str(
+            'ciXMin', '',
+            descr=_('Dataset for minimum x confidence interval'),
+            usertext=_('CI X min'),
+            formatting=True) )
+        s.add( setting.Str(
+            'ciXMax', '',
+            descr=_('Dataset for maximum x confidence interval'),
+            usertext=_('CI X max'),
+            formatting=True) )
+        s.add( setting.Str(
+            'ciYMin', '',
+            descr=_('Dataset for minimum y confidence interval'),
+            usertext=_('CI Y min'),
+            formatting=True) )
+        s.add( setting.Str(
+            'ciYMax', '',
+            descr=_('Dataset for maximum y confidence interval'),
+            usertext=_('CI Y max'),
+            formatting=True) )
+
+        # Standard deviation mode settings
+        s.add( setting.Str(
+            'ciXError', '',
+            descr=_('Dataset for X error (y +/- error * multiplier)'),
+            usertext=_('CI X error'),
+            formatting=True) )
+        s.add( setting.Str(
+            'ciYError', '',
+            descr=_('Dataset for Y error (y +/- error * multiplier)'),
+            usertext=_('CI Y error'),
+            formatting=True) )
+        s.add( setting.Float(
+            'ciMultiplier', 1.0,
+            descr=_('Multiplier for error values (e.g. 2 for 2*std)'),
+            usertext=_('CI multiplier'),
+            formatting=True) )
+
         s.add( setting.XYPlotLine(
             'PlotLine',
             descr=_('Plot line'),
@@ -523,25 +541,96 @@ class PointPlotter(GenericPlotter):
         # default is no error bars
         xmin = xmax = ymin = ymax = None
 
-        # draw horizontal error bars
-        if xdata.hasErrors():
-            xmin, xmax = xdata.getPointRanges()
-            if thin>1:
-                xmin, xmax = xmin[::thin], xmax[::thin]
+        # Check for custom confidence interval datasets
+        ci_mode = s.ciMode
+        if ci_mode == 'std':
+            # Calculate CI as data +/- error * multiplier
+            multiplier = s.ciMultiplier
+            d = self.document
 
-            # convert xmin and xmax to graph coordinates
-            xmin = axes[0].dataToPlotterCoords(posn, xmin)
-            xmax = axes[0].dataToPlotterCoords(posn, xmax)
+            if s.ciYError:
+                # Y error: ymin = y - error, ymax = y + error
+                ds = d.getData(s.ciYError)
+                if ds is not None and len(ds.data) > 0:
+                    error_data = ds.data.astype(float) * multiplier
+                    yvals = ydata.data.astype(float)
+                    ymin = yvals - error_data
+                    ymax = yvals + error_data
+                    if thin > 1:
+                        ymin = ymin[::thin]
+                        ymax = ymax[::thin]
+                    ymin = axes[1].dataToPlotterCoords(posn, ymin)
+                    ymax = axes[1].dataToPlotterCoords(posn, ymax)
 
-        # draw vertical error bars
-        if ydata.hasErrors():
-            ymin, ymax = ydata.getPointRanges()
-            if thin>1:
-                ymin, ymax = ymin[::thin], ymax[::thin]
+            if s.ciXError:
+                # X error: xmin = x - error, xmax = x + error
+                ds = d.getData(s.ciXError)
+                if ds is not None and len(ds.data) > 0:
+                    error_data = ds.data.astype(float) * multiplier
+                    xvals = xdata.data.astype(float)
+                    xmin = xvals - error_data
+                    xmax = xvals + error_data
+                    if thin > 1:
+                        xmin = xmin[::thin]
+                        xmax = xmax[::thin]
+                    xmin = axes[0].dataToPlotterCoords(posn, xmin)
+                    xmax = axes[0].dataToPlotterCoords(posn, xmax)
 
-            # convert ymin and ymax to graph coordinates
-            ymin = axes[1].dataToPlotterCoords(posn, ymin)
-            ymax = axes[1].dataToPlotterCoords(posn, ymax)
+        elif ci_mode == 'custom' or s.ciXMin or s.ciXMax or s.ciYMin or s.ciYMax:
+            # Use custom datasets for CI bounds
+            d = self.document
+
+            if s.ciXMin:
+                ds = d.getData(s.ciXMin)
+                if ds is not None and len(ds.data) > 0:
+                    xmin = ds.data.astype(float)
+                    if thin > 1:
+                        xmin = xmin[::thin]
+                    xmin = axes[0].dataToPlotterCoords(posn, xmin)
+
+            if s.ciXMax:
+                ds = d.getData(s.ciXMax)
+                if ds is not None and len(ds.data) > 0:
+                    xmax = ds.data.astype(float)
+                    if thin > 1:
+                        xmax = xmax[::thin]
+                    xmax = axes[0].dataToPlotterCoords(posn, xmax)
+
+            if s.ciYMin:
+                ds = d.getData(s.ciYMin)
+                if ds is not None and len(ds.data) > 0:
+                    ymin = ds.data.astype(float)
+                    if thin > 1:
+                        ymin = ymin[::thin]
+                    ymin = axes[1].dataToPlotterCoords(posn, ymin)
+
+            if s.ciYMax:
+                ds = d.getData(s.ciYMax)
+                if ds is not None and len(ds.data) > 0:
+                    ymax = ds.data.astype(float)
+                    if thin > 1:
+                        ymax = ymax[::thin]
+                    ymax = axes[1].dataToPlotterCoords(posn, ymax)
+        else:
+            # draw horizontal error bars from dataset errors
+            if xdata.hasErrors():
+                xmin, xmax = xdata.getPointRanges()
+                if thin>1:
+                    xmin, xmax = xmin[::thin], xmax[::thin]
+
+                # convert xmin and xmax to graph coordinates
+                xmin = axes[0].dataToPlotterCoords(posn, xmin)
+                xmax = axes[0].dataToPlotterCoords(posn, xmax)
+
+            # draw vertical error bars
+            if ydata.hasErrors():
+                ymin, ymax = ydata.getPointRanges()
+                if thin>1:
+                    ymin, ymax = ymin[::thin], ymax[::thin]
+
+                # convert ymin and ymax to graph coordinates
+                ymin = axes[1].dataToPlotterCoords(posn, ymin)
+                ymax = axes[1].dataToPlotterCoords(posn, ymax)
 
         # no error bars - break out of processing below
         if ymin is None and ymax is None and xmin is None and xmax is None:
@@ -549,6 +638,20 @@ class PointPlotter(GenericPlotter):
 
         if thin>1:
             xplotter, yplotter = xplotter[::thin], yplotter[::thin]
+
+        # align custom/std CI bound arrays to the plotted point count so a
+        # shorter custom dataset doesn't silently truncate or misalign the
+        # error band; trailing points simply get no bounds
+        nx = len(xplotter)
+        if xmin is not None and len(xmin) > nx:
+            xmin = xmin[:nx]
+        if xmax is not None and len(xmax) > nx:
+            xmax = xmax[:nx]
+        ny = len(yplotter)
+        if ymin is not None and len(ymin) > ny:
+            ymin = ymin[:ny]
+        if ymax is not None and len(ymax) > ny:
+            ymax = ymax[:ny]
 
         markersize = s.get('markerSize').convert(painter)
         ebp = ErrorBarDraw(
@@ -703,31 +806,20 @@ class PointPlotter(GenericPlotter):
         path = self._getBezierLine(pts, cliprect, beziertype)
         s = self.settings
 
+        # Get axis objects for coordinate conversion
+        xAxis, yAxis = self.parent.getAxes((s.xAxis, s.yAxis))
+
         # do filling
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
                 ft = fillstyle.fillto
-                if ft == 'zero':
-                    # Get zero position from y-axis
-                    zero_val = self.getScreenPos(self.yAxis, 0)[1]
-                    x1, y1, x2, y2 = pts[0].x(), zero_val, pts[-1].x(), zero_val
-                elif ft == 'custom':
-                    fillto_val = fillstyle.filltoValue
-                    if fillto_val != 'Auto':
-                        zero_val = self.getScreenPos(self.yAxis, fillto_val)[1]
-                        x1, y1, x2, y2 = pts[0].x(), zero_val, pts[-1].x(), zero_val
-                    else:
-                        x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
-                elif ft == 'top':
-                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
-                elif ft == 'bottom':
-                    x1, y1, x2, y2 = pts[0].x(), posn[3], pts[-1].x(), posn[3]
-                elif ft == 'left':
-                    x1, y1, x2, y2 = posn[0], pts[0].y(), posn[0], pts[-1].y()
-                elif ft == 'right':
-                    x1, y1, x2, y2 = posn[2], pts[0].y(), posn[2], pts[-1].y()
-                else:
-                    x1, y1, x2, y2 = pts[0].x(), posn[1], pts[-1].x(), posn[1]
+                # Compute fill value if needed for 'custom'
+                fillto_val = None
+                if ft == 'custom' and fillstyle.filltoValue != 'Auto':
+                    fillto_val = yAxis.dataToPlotterCoords(
+                        posn, N.array([fillstyle.filltoValue]))[0]
+                x1, y1, x2, y2 = utils.fillToEdgeTargets(
+                    pts, posn, ft, filltoValue=fillto_val)
 
                 temppath = qt.QPainterPath(path)
                 temppath.lineTo(x2, y2)
@@ -746,22 +838,23 @@ class PointPlotter(GenericPlotter):
             return
         s = self.settings
 
+        # Get axis objects for coordinate conversion
+        xAxis, yAxis = self.parent.getAxes((s.xAxis, s.yAxis))
+
         # do filling
         for fillstyle in s.FillBelow, s.FillAbove:
             if not fillstyle.hide:
                 ft = fillstyle.fillto
-                if ft == 'zero':
-                    zero_val = self.getScreenPos(self.yAxis, 0)[1]
-                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=zero_val)
-                elif ft == 'custom':
-                    fillto_val = fillstyle.filltoValue
-                    if fillto_val != 'Auto':
-                        zero_val = self.getScreenPos(self.yAxis, fillto_val)[1]
-                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle, zero_val=zero_val)
-                    else:
-                        fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
-                else:
-                    fillPtsToEdge(painter, pts, posn, cliprect, fillstyle)
+                # Compute fill value if needed for 'custom'
+                fillto_val = None
+                if ft == 'custom':
+                    val = fillstyle.filltoValue
+                    if val != 'Auto':
+                        fillto_val = yAxis.dataToPlotterCoords(posn, N.array([val]))[0]
+
+                # Use unified fillToEdgePolygon helper
+                polypts = utils.fillToEdgePolygon(pts, posn, ft, filltoValue=fillto_val)
+                utils.brushExtFillPolygon(painter, fillstyle, cliprect, polypts)
 
         # draw line between points
         if not s.PlotLine.hide:

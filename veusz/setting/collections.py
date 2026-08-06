@@ -253,6 +253,13 @@ class BrushExtended(Settings):
             descr=_('Gradient fill settings'),
             usertext=_('Gradient') ) )
 
+        # Gradient center value - the data value that maps to the gradient midpoint (white)
+        # Similar to filltoValue: 'Auto', 'zero', or a numeric value
+        self.add( setting.Str(
+            'gradientCenterValue', 'Auto',
+            descr=_('Data value at which gradient center (midpoint) appears'),
+            usertext=_('Gradient center value')) )
+
 class KeyBrush(BrushExtended):
     '''Fill used for back of key.'''
 
@@ -294,6 +301,18 @@ class PlotterFill(BrushExtended):
 
         self.get('hide').newDefault(True)
 
+        self.add( setting.Choice(
+            'fillto',
+            ['auto', 'top', 'bottom', 'left', 'right', 'custom'],
+            'auto',
+            descr=_('Edge to fill towards'),
+            usertext=_('Fill to')))
+
+        self.add( setting.FloatOrAuto(
+            'filltoValue', 0.,
+            descr=_('Value to fill towards when fillto is custom'),
+            usertext=_('Fill to value')) )
+
 class PointFill(BrushExtended):
     '''Filling used for filling above/below line or inside error
     region for xy-point plotters.
@@ -310,13 +329,13 @@ class PointFill(BrushExtended):
 
         self.add( setting.Choice(
             'fillto',
-            ['top', 'bottom', 'left', 'right', 'zero', 'custom'],
+            ['top', 'bottom', 'left', 'right', 'custom'],
             'top',
             descr=_('Edge to fill towards'),
             usertext=_('Fill to')), 0)
 
         self.add( setting.FloatOrAuto(
-            'filltoValue', 'Auto',
+            'filltoValue', 0.,
             descr=_('Value to fill towards when fillto is custom'),
             usertext=_('Fill to value')) )
 
@@ -324,6 +343,7 @@ class PointFill(BrushExtended):
             'hideerror', False,
             descr=_('Hide the filled region inside the error bars'),
             usertext=_('Hide error fill')) )
+
 
 class ShapeFill(BrushExtended):
     '''Filling used for filling shapes.'''

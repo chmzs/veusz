@@ -21,6 +21,11 @@ jobs:
     - name: Upgrade pip
       run : |
         python3 -m pip install --upgrade pip
+    - name: Read version
+      id: version
+      run: |
+        ver=$(cat VERSION)
+        echo "VERSION=$ver" >> $GITHUB_OUTPUT
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -29,20 +34,15 @@ jobs:
         version: '6.10.2'
         modules: 'qtimageformats'
         setup-python: false
-    - name: Install PyQt
+    - name: Install Python dependencies (pre-compiled wheels)
       run: |
-        pip3 -v install setuptools sip packaging PyQt_builder
-        pip3 -v install --config-settings --confirm-license= --no-binary :all: PyQt6
-    - name: Install numpy
-      run: |
-        pip3 -v install Cython ninja meson-python
-        pip3 -v install -Csetup-args=-Dblas= -Csetup-args=-Dlapack= --no-binary :all: numpy
-    - name: Install other modules
-      run: |
+        pip3 -v install setuptools wheel packaging pyproject-metadata
+        pip3 -v install PyQt6==6.11.0
+        pip3 -v install numpy
+        pip3 -v install pyinstaller
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip3 install iminuit
         pip3 install https://github.com/jeremysanders/pyemf3/archive/master.zip
-        pip3 install pyinstaller
     - name: Build Veusz extensions
       run: |
         python3 setup.py build_ext --inplace

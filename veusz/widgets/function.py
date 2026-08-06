@@ -1,4 +1,4 @@
-#    Copyright (C) 2008 Jeremy S. Sanders
+﻿#    Copyright (C) 2008 Jeremy S. Sanders
 #    Email: Jeremy Sanders <jeremy@jeremysanders.net>
 #
 #    This file is part of Veusz.
@@ -234,43 +234,59 @@ class FunctionPlotter(GenericPlotter):
         """Fill the region above/below or left/right of the points.
 
         belowleft fills below if the variable is 'x', or left if 'y'
-        otherwise it fills above/right."""
-
-        # find starting and ending points for the filled region
+        otherwise it fills above/right.
+        """
         x1, y1, x2, y2 = bounds
 
-        # trimming can lead to too few points
         if len(pxpts) < 2 or len(pypts) < 2:
             return
 
-        pts = qt.QPolygonF()
+        # Get axes for coordinate conversion
+        axes = self.parent.getAxes((self.settings.xAxis, self.settings.yAxis))
+        xAxis, yAxis = axes[0], axes[1]
+
+        ft = brush.fillto
+        fillto_val = brush.filltoValue
+
+        # Determine target y/x based on fillto
         if self.settings.variable == 'x':
-            if belowleft:
-                pts.append(qt.QPointF(pxpts[0], y2))
-                endpt = qt.QPointF(pxpts[-1], y2)
+            if ft == 'custom' and fillto_val not in ('Auto', None):
+                val_arr = yAxis.dataToPlotterCoords(bounds, N.array([float(fillto_val)]))
+                target_y = val_arr[0]
+            elif ft == 'top':
+                target_y = y1
+            elif ft == 'bottom':
+                target_y = y2
             else:
-                pts.append(qt.QPointF(pxpts[0], y1))
-                endpt = qt.QPointF(pxpts[-1], y1)
+                target_y = y2 if belowleft else y1
+            startpt = qt.QPointF(pxpts[0], target_y)
+            endpt = qt.QPointF(pxpts[-1], target_y)
         else:
-            if belowleft:
-                pts.append(qt.QPointF(x1, pypts[0]))
-                endpt = qt.QPointF(x1, pypts[-1])
+            if ft == 'custom' and fillto_val not in ('Auto', None):
+                val_arr = xAxis.dataToPlotterCoords(bounds, N.array([float(fillto_val)]))
+                target_x = val_arr[0]
+            elif ft == 'left':
+                target_x = x1
+            elif ft == 'right':
+                target_x = x2
             else:
-                pts.append(qt.QPointF(x2, pypts[0]))
-                endpt = qt.QPointF(x2, pypts[-1])
+                target_x = x1 if belowleft else x2
+            startpt = qt.QPointF(target_x, pypts[0])
+            endpt = qt.QPointF(target_x, pypts[-1])
 
-        # add the points between
+        # Build polygon
+        pts = qt.QPolygonF()
+        pts.append(startpt)
         utils.addNumpyToPolygonF(pts, pxpts, pypts)
-
-        # stick on the ending point
         pts.append(endpt)
 
-        # draw the clipped polygon
+        # Clip and draw
         clipped = qt.QPolygonF()
         utils.polygonClip(pts, clip, clipped)
         path = qt.QPainterPath()
         path.addPolygon(clipped)
-        utils.brushExtFillPath(painter, brush, path)
+        axes = self.parent.getAxes((self.settings.xAxis, self.settings.yAxis))
+        utils.brushExtFillPath(painter, brush, path, axes=axes, fill_bounds=bounds)
 
     def drawKeySymbol(self, number, painter, x, y, width, height):
         """Draw the plot symbol and/or line."""

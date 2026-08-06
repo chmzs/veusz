@@ -1,4 +1,4 @@
-#    Copyright (C) 2012 Jeremy S. Sanders
+﻿#    Copyright (C) 2012 Jeremy S. Sanders
 #    Email: Jeremy Sanders <jeremy@jeremysanders.net>
 #
 #    This file is part of Veusz.
@@ -15,7 +15,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Veusz. If not, see <https://www.gnu.org/licenses/>.
-#
+
 ##############################################################################
 
 """Paint fills with extended brush class.
@@ -183,7 +183,7 @@ _fillcnvt = {
 }
 
 def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
-                               dataindex=0):
+                               dataindex=0, axes=None, fill_bounds=None):
     """Fill a path with a gradient brush.
 
     Uses the gradient module for gradient creation.
@@ -194,7 +194,7 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
       - stops: list of (offset, color) tuples
       - enabled: bool
     """
-    gradient_setting = extbrush.get('Gradient', None)
+    gradient_setting = extbrush.get('Gradient')
     if not gradient_setting:
         return
 
@@ -203,11 +203,46 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
     if not config.enabled:
         return
 
+    # Composite brush-level and gradient-level transparency so that the
+    # brush's Transparency setting works for gradient fills just as it does
+    # for solid fills (extbrushfilling solid path: transparency -> setAlphaF).
+    brush_transparency = getattr(extbrush, 'transparency', 0) or 0
+    gradient_transparency = getattr(config, 'transparency', 0) or 0
+    if brush_transparency >= 100 or gradient_transparency >= 100:
+        # fully transparent - skip filling (matches solid path)
+        return
+    alpha_eff = ((100 - brush_transparency) / 100.0) * \
+        ((100 - gradient_transparency) / 100.0)
+    eff_transparency = (1.0 - alpha_eff) * 100
+
     # Get bounding rect of path for gradient coordinates
     bb = path.boundingRect()
 
-    # Create gradient based on configuration
-    qt_gradient = gradient_module.create_gradient_from_config(config, bb)
+    # Handle gradientCenterValue - map data value to gradient offset
+    center_value = extbrush.get('gradientCenterValue')
+    midpoint = config.midpoint  # visual midpoint override from GradientFill
+    if center_value and center_value not in ('Auto', '', None):
+        # Convert data value to plotter coordinate, then to 0-1 offset
+        if axes is not None and fill_bounds is not None:
+            yAxis = axes[1] if len(axes) > 1 else None
+            xAxis = axes[0] if len(axes) > 0 else None
+            if yAxis is not None:
+                try:
+                    val = float(center_value)
+                    val_arr = yAxis.dataToPlotterCoords(fill_bounds, N.array([val]))
+                    plotter_y = val_arr[0]
+                    # Map plotter_y to 0-1 offset within fill_bounds
+                    y1, y2 = fill_bounds[1], fill_bounds[3]
+                    if y2 != y1:
+                        midpoint = (plotter_y - y1) / (y2 - y1)
+                        # Clamp to [0, 1]
+                        midpoint = max(0.0, min(1.0, midpoint))
+                except (ValueError, TypeError, AttributeError, IndexError):
+                    pass  # fall back to config.midpoint or None
+
+    # Create gradient based on configuration (composited transparency)
+    qt_gradient = gradient_module.create_gradient_from_config(
+        config, bb, transparency=eff_transparency, midpoint=midpoint)
 
     # Create brush with gradient
     brush = qt.QBrush(qt_gradient)
@@ -223,7 +258,7 @@ def _brushExtFillPathGradient(painter, extbrush, path, stroke=None,
         painter.restore()
 
 def brushExtFillPath(painter, extbrush, path, ignorehide=False,
-                     stroke=None, dataindex=0):
+                     stroke=None, dataindex=0, axes=None, fill_bounds=None):
     """Use an BrushExtended settings object to fill a path on painter.
     If ignorehide is True, ignore the hide setting on the brush object.
     stroke is an optional QPen for stroking outline of path
@@ -235,9 +270,8 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
         return
 
     # Check for gradient fill - if enabled, use gradient rendering
-    gradient_setting = extbrush.get(name='Gradient') if 'Gradient' in extbrush else None
-    if gradient_module.is_gradient_enabled(gradient_setting):
-        _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex)
+    if gradient_module.is_gradient_enabled(extbrush.get('Gradient')):
+        _brushExtFillPathGradient(painter, extbrush, path, stroke, dataindex, axes, fill_bounds)
         return
 
     style = extbrush.style
@@ -261,7 +295,6 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
 
     elif style in _hatchmap:
         # fill with hatching
-
         if not extbrush.backhide:
             # background brush
             color = extbrush.get('backcolor').color(
@@ -278,7 +311,6 @@ def brushExtFillPath(painter, extbrush, path, ignorehide=False,
         lstyle, dashpattern = extbrush.get('linestyle')._linecnvt[
             extbrush.linestyle]
         pen = qt.QPen(color, width, lstyle)
-
         if dashpattern:
             pen.setDashPattern(dashpattern)
 
@@ -297,3 +329,97 @@ def brushExtFillPolygon(painter, extbrush, cliprect, polygon, ignorehide=False):
     path = qt.QPainterPath()
     path.addPolygon(clipped)
     brushExtFillPath(painter, extbrush, path, ignorehide=ignorehide)
+
+def fillToEdgeTargets(pts, bounds, fillto, filltoValue=None, axes=None):
+    """Return the two closing points (x1, y1, x2, y2) that fill a line to an edge.
+
+    This is the single source of truth for fillto edge computation, shared by
+    fillToEdgePolygon (polygon fills) and bezier/line fills in the widgets.
+
+    Args:
+        pts: QPolygonF of data points
+        bounds: tuple (x1, y1, x2, y2) defining plot boundaries
+        fillto: 'top', 'bottom', 'left', 'right', 'custom', 'mean' or 'auto'
+        filltoValue: numeric value when fillto='custom', or None for default edge
+        axes: (xAxis, yAxis) tuple for coordinate conversion, or None
+
+    Returns:
+        (x1, y1, x2, y2): the start-edge and end-edge closing points
+    """
+    x1, y1, x2, y2 = bounds
+
+    # Determine the fill boundary y/x coordinate
+    if fillto == 'top':
+        fill_y = y1
+        fill_x = None  # horizontal fill
+    elif fillto == 'bottom':
+        fill_y = y2
+        fill_x = None
+    elif fillto == 'left':
+        fill_x = x1
+        fill_y = None  # vertical fill
+    elif fillto == 'right':
+        fill_x = x2
+        fill_y = None
+    elif fillto in ('custom', 'mean') or filltoValue is not None:
+        # Use provided filltoValue (from 'mean' or 'custom') or explicit filltoValue
+        if filltoValue is not None and filltoValue != 'Auto' and filltoValue != 'zero':
+            if axes is not None:
+                # Convert data value to plotter coordinates
+                yAxis = axes[1] if len(axes) > 1 else None
+                if yAxis is not None:
+                    try:
+                        val_arr = yAxis.dataToPlotterCoords(bounds, N.array([filltoValue]))
+                        fill_y = val_arr[0]  # y-axis value in plotter coords
+                        fill_x = None
+                    except (AttributeError, TypeError, IndexError):
+                        # Fallback to default edge
+                        fill_y = y2
+                        fill_x = None
+                else:
+                    # No axes available, use data value directly (assumes plotter coords)
+                    fill_y = filltoValue
+                    fill_x = None
+            else:
+                fill_y = filltoValue
+                fill_x = None
+        else:
+            # 'Auto' or 'zero': fallback to bottom edge
+            fill_y = y2
+            fill_x = None
+    else:
+        # 'auto' (or unknown): fallback to bottom edge
+        fill_y = y2
+        fill_x = None
+
+    if fill_x is not None:
+        # Vertical fill (left/right)
+        return (fill_x, pts[0].y(), fill_x, pts[-1].y())
+    # Horizontal fill (top/bottom/custom)
+    return (pts[0].x(), fill_y, pts[-1].x(), fill_y)
+
+
+def fillToEdgePolygon(pts, bounds, fillto, filltoValue=None, axes=None):
+    """Create a polygon that fills points to a boundary edge.
+
+    Args:
+        pts: QPolygonF of data points
+        bounds: tuple (x1, y1, x2, y2) defining plot boundaries
+        fillto: 'top', 'bottom', 'left', 'right', 'custom', 'mean'
+        filltoValue: numeric value when fillto='custom', or None for default edge
+        axes: (xAxis, yAxis) tuple for coordinate conversion, or None
+
+    Returns:
+        QPolygonF: polygon ready for filling (includes edge points)
+    """
+    x1, y1, x2, y2 = fillToEdgeTargets(pts, bounds, fillto, filltoValue, axes)
+
+    # Build the polygon with fill boundary
+    polypts = qt.QPolygonF()
+    polypts.append(qt.QPointF(x1, y1))
+    for pt in pts:
+        polypts.append(pt)
+    polypts.append(qt.QPointF(x2, y2))
+    return polypts
+
+    return polypts

@@ -24,6 +24,8 @@ import codecs
 import itertools
 import os
 
+import numpy as N
+
 from .. import qtall as qt
 from .. import setting
 from .. import document
@@ -217,6 +219,106 @@ class Rectangle(BoxShape):
             usertext=_('Rounding corners'),
             formatting=True) )
 
+        # Position mode: 'center' uses xPos/yPos + width/height
+        # 'bounds' uses xmin/xmax/ymin/ymax directly
+        @staticmethod
+        def _rectPosShowfn(val):
+            """Show/hide settings based on rectPosition value."""
+            if val == 'bounds':
+                # Show: xmin, xmax, ymin, ymax
+                # Hide: xPos, yPos, width, height
+                return (('xmin', 'xmax', 'ymin', 'ymax'),
+                        ('xPos', 'yPos', 'width', 'height'))
+            else:
+                # Show: xPos, yPos, width, height
+                # Hide: xmin, xmax, ymin, ymax
+                return (('xPos', 'yPos', 'width', 'height'),
+                        ('xmin', 'xmax', 'ymin', 'ymax'))
+
+        s.add( setting.ChoiceSwitch(
+            'rectPosition',
+            ['center', 'bounds'],
+            'center',
+            showfn=_rectPosShowfn,
+            descr=_('Use center+size or explicit bounds to place rectangle'),
+            usertext=_('Rectangle position'),
+            formatting=False) )
+
+        # Explicit bounds (used when rectPosition='bounds')
+        s.add( setting.DatasetExtended(
+            'xmin', [],
+            descr=_('List of minimum x values'),
+            usertext=_('X min'),
+            formatting=False), 2 )
+        s.add( setting.DatasetExtended(
+            'xmax', [],
+            descr=_('List of maximum x values'),
+            usertext=_('X max'),
+            formatting=False), 3 )
+        s.add( setting.DatasetExtended(
+            'ymin', [],
+            descr=_('List of minimum y values'),
+            usertext=_('Y min'),
+            formatting=False), 4 )
+        s.add( setting.DatasetExtended(
+            'ymax', [],
+            descr=_('List of maximum y values'),
+            usertext=_('Y max'),
+            formatting=False), 5 )
+
+    def _getBoundsCoords(self, posn, xsetting='xmin', ysetting='ymin',
+                         x2setting='xmax', y2setting='ymax'):
+        """Calculate bounds coordinates from axes or relative values.
+
+        If the rectangle has a graph parent with axes, bounds are converted
+        from data coordinates to plotter coordinates. Otherwise (e.g. the
+        rectangle sits directly on a page) the values are interpreted as
+        fractional coordinates within the plotter position.
+        """
+        s = self.settings
+        xmin = s.get(xsetting).getFloatArray(self.document)
+        ymin = s.get(ysetting).getFloatArray(self.document)
+        xmax = s.get(x2setting).getFloatArray(self.document)
+        ymax = s.get(y2setting).getFloatArray(self.document)
+        if xmin is None or ymin is None or xmax is None or ymax is None:
+            return None, None, None, None
+        if hasattr(self.parent, 'getAxes'):
+            axes = self.parent.getAxes((s.xAxis, s.yAxis))
+            if axes[0] is not None and axes[1] is not None:
+                xmin = axes[0].dataToPlotterCoords(posn, xmin)
+                ymin = axes[1].dataToPlotterCoords(posn, ymin)
+                xmax = axes[0].dataToPlotterCoords(posn, xmax)
+                ymax = axes[1].dataToPlotterCoords(posn, ymax)
+                return xmin, ymin, xmax, ymax
+        # no graph axes: fractional coordinates within the plot position
+        xmin = posn[0] + (posn[2]-posn[0])*xmin
+        ymin = posn[3] - (posn[3]-posn[1])*ymin
+        xmax = posn[0] + (posn[2]-posn[0])*xmax
+        ymax = posn[3] - (posn[3]-posn[1])*ymax
+        return xmin, ymin, xmax, ymax
+
+    def _getBoundsFromGraph(self, posn, xmin_plt, xmax_plt, ymin_plt, ymax_plt):
+        """Calculate data coordinates given plotter coordinates."""
+        s = self.settings
+        xmin_plt = N.array(xmin_plt)
+        xmax_plt = N.array(xmax_plt)
+        ymin_plt = N.array(ymin_plt)
+        ymax_plt = N.array(ymax_plt)
+        if hasattr(self.parent, 'getAxes'):
+            axes = self.parent.getAxes((s.xAxis, s.yAxis))
+            if axes[0] is not None and axes[1] is not None:
+                xmin = axes[0].plotterToDataCoords(posn, xmin_plt)
+                xmax = axes[0].plotterToDataCoords(posn, xmax_plt)
+                ymin = axes[1].plotterToDataCoords(posn, ymin_plt)
+                ymax = axes[1].plotterToDataCoords(posn, ymax_plt)
+                return xmin, xmax, ymin, ymax
+        # no graph axes: fractional inverse
+        xmin = (xmin_plt - posn[0]) / (posn[2]-posn[0])
+        xmax = (xmax_plt - posn[0]) / (posn[2]-posn[0])
+        ymin = (ymin_plt - posn[3]) / (posn[1]-posn[3])
+        ymax = (ymax_plt - posn[3]) / (posn[1]-posn[3])
+        return xmin, xmax, ymin, ymax
+
     def drawShape(self, painter, rect):
         s = self.settings
         path = qt.QPainterPath()
@@ -226,6 +328,135 @@ class Rectangle(BoxShape):
             path.addRoundedRect(rect, s.rounding, s.rounding)
 
         utils.brushExtFillPath(painter, s.Fill, path, stroke=painter.pen())
+
+    def draw(self, posn, phelper, outerbounds = None):
+        """Plot the key on a plotter."""
+
+        s = self.settings
+        d = self.document
+        if s.hide:
+            return
+
+        # Determine position mode
+        if s.rectPosition == 'bounds':
+            # Use explicit bounds
+            xmin, ymin, xmax, ymax = self._getBoundsCoords(posn)
+            if xmin is None or ymin is None or xmax is None or ymax is None:
+                return
+            xmin, ymin = N.atleast_1d(xmin), N.atleast_1d(ymin)
+            xmax, ymax = N.atleast_1d(xmax), N.atleast_1d(ymax)
+            n = max(len(xmin), len(ymin), len(xmax), len(ymax))
+            if n == 0:
+                return
+
+            # Get rotation (use default if not provided)
+            rotate = s.get('rotate').getFloatArray(d) or [0.0]
+
+            clip = None
+            if s.clip:
+                clip = qt.QRectF(
+                    qt.QPointF(posn[0], posn[1]), qt.QPointF(posn[2], posn[3]))
+            painter = phelper.painter(self, posn, clip=clip)
+            rects = []
+            with painter:
+                if not s.Border.hide:
+                    painter.setPen(s.get('Border').makeQPen(painter))
+                else:
+                    painter.setPen(qt.QPen(qt.Qt.PenStyle.NoPen))
+
+                # lengths may differ; cycle each array like BoxShape does
+                for i in range(n):
+                    x1 = xmin[i % len(xmin)]
+                    y1 = ymin[i % len(ymin)]
+                    x2 = xmax[i % len(xmax)]
+                    y2 = ymax[i % len(ymax)]
+                    wp, hp = abs(x2 - x1), abs(y2 - y1)
+                    x_center = (x1 + x2) * 0.5
+                    y_center = (y1 + y2) * 0.5
+                    r = rotate[i % len(rotate)]
+                    rects.append((x_center, y_center, wp, hp, r))
+                    painter.save()
+                    painter.translate(x_center, y_center)
+                    if r != 0:
+                        painter.rotate(r)
+                    self.drawShape(
+                        painter, qt.QRectF(-wp*0.5, -hp*0.5, wp, hp))
+                    painter.restore()
+
+            # interactive control boxes (only when bounds are not datasets)
+            isnotdataset = (
+                not s.get('xmin').isDataset(d) and
+                not s.get('ymin').isDataset(d) and
+                not s.get('xmax').isDataset(d) and
+                not s.get('ymax').isDataset(d)
+            )
+            controlgraphitems = []
+            if isnotdataset:
+                for idx, (cx, cy, wp, hp, r) in enumerate(rects):
+                    cgi = controlgraph.ControlResizableBox(
+                        self, phelper, [cx, cy], [wp, hp], r,
+                        allowrotate=True)
+                    cgi.index = idx
+                    cgi.widgetposn = posn
+                    controlgraphitems.append(cgi)
+            phelper.setControlGraph(self, controlgraphitems)
+        else:
+            # Use center + size (original BoxShape behavior)
+            BoxShape.draw(self, posn, phelper, outerbounds)
+
+    def updateControlItem(self, cgi):
+        """If control item is moved or resized, this is called."""
+        s = self.settings
+
+        wp = abs(cgi.dims[0])
+        hp = abs(cgi.dims[1])
+        x_center = cgi.posn[0] + cgi.dims[0] * 0.5
+        y_center = cgi.posn[1] + cgi.dims[1] * 0.5
+
+        if s.rectPosition == 'bounds':
+            # Calculate bounds in plotter coords
+            xmin_plt = cgi.posn[0]
+            xmax_plt = cgi.posn[0] + cgi.dims[0]
+            ymin_plt = cgi.posn[1]
+            ymax_plt = cgi.posn[1] + cgi.dims[1]
+
+            # Convert to data coords
+            xmin_data, xmax_data, ymin_data, ymax_data = \
+                self._getBoundsFromGraph(cgi.widgetposn, xmin_plt, xmax_plt, ymin_plt, ymax_plt)
+            if xmin_data is None:
+                return
+
+            # Get or create arrays
+            xmin_arr = list(s.get('xmin').getFloatArray(self.document) or [])
+            xmax_arr = list(s.get('xmax').getFloatArray(self.document) or [])
+            ymin_arr = list(s.get('ymin').getFloatArray(self.document) or [])
+            ymax_arr = list(s.get('ymax').getFloatArray(self.document) or [])
+
+            idx = min(cgi.index, max(len(xmin_arr), len(xmax_arr),
+                                     len(ymin_arr), len(ymax_arr)) - 1)
+
+            # Ensure arrays are long enough
+            while len(xmin_arr) <= idx: xmin_arr.append(0.0)
+            while len(xmax_arr) <= idx: xmax_arr.append(1.0)
+            while len(ymin_arr) <= idx: ymin_arr.append(0.0)
+            while len(ymax_arr) <= idx: ymax_arr.append(1.0)
+
+            xmin_arr[idx] = float(xmin_data[0])
+            xmax_arr[idx] = float(xmax_data[0])
+            ymin_arr[idx] = float(ymin_data[0])
+            ymax_arr[idx] = float(ymax_data[0])
+
+            operations = (
+                document.OperationSettingSet(s.get('xmin'), xmin_arr),
+                document.OperationSettingSet(s.get('xmax'), xmax_arr),
+                document.OperationSettingSet(s.get('ymin'), ymin_arr),
+                document.OperationSettingSet(s.get('ymax'), ymax_arr),
+            )
+            self.document.applyOperation(
+                document.OperationMultiple(operations, descr=_('adjust rectangle bounds')) )
+        else:
+            # Use center + size (original BoxShape behavior)
+            BoxShape.updateControlItem(self, cgi)
 
 class Ellipse(BoxShape):
     """Draw an ellipse."""
