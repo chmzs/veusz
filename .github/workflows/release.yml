@@ -90,6 +90,14 @@ jobs:
         files: |
           installer_out/veusz-${{ steps.version.outputs.VERSION }}-windows-x64-setup.exe
           veusz-${{ steps.version.outputs.VERSION }}-windows-x64.zip
+    - name: Verify installer
+      run: |
+        # Test installer can run silently
+        .\installer_out\veusz-${{ steps.version.outputs.VERSION }}-windows-x64-setup.exe /S /D=C:\test_veusz
+        # Test binary starts
+        & "C:\test_veusz\veusz.exe" --version
+        # Cleanup
+        Remove-Item -Recurse -Force C:\test_veusz
 
   build-macos-arm64:
     runs-on: 'macos-14'
@@ -146,6 +154,11 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-arm64.dmg
+    - name: Verify DMG
+      run: |
+        hdiutil attach installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-arm64.dmg -mountpoint /Volumes/Veusz
+        /Volumes/Veusz/Veusz.app/Contents/MacOS/veusz --version
+        hdiutil detach /Volumes/Veusz
 
   build-macos-x86_64:
     runs-on: 'macos-15-intel'
@@ -202,6 +215,11 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-x86_64.dmg
+    - name: Verify DMG
+      run: |
+        hdiutil attach installer/Veusz-${{ steps.version.outputs.VERSION }}-macos-x86_64.dmg -mountpoint /Volumes/Veusz
+        /Volumes/Veusz/Veusz.app/Contents/MacOS/veusz --version
+        hdiutil detach /Volumes/Veusz
 
   build-linux:
     runs-on: 'ubuntu-latest'
@@ -250,3 +268,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: veusz-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
+    - name: Verify tarball
+      run: |
+        tar -xzf veusz-${{ steps.version.outputs.VERSION }}-linux-x64.tar.gz
+        ./veusz-${{ steps.version.outputs.VERSION }}/veusz --version
