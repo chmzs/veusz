@@ -1231,9 +1231,9 @@ class MainWindow(qt.QMainWindow):
         self.unlinkUsedDatasets()
         self.updateStatusbar(_("Used data embedded (unlinked from source files)"))
 
-    def getUsedDatasetNames(self):
+    @staticmethod
+    def getUsedDatasetNames(document):
         """Return dataset names referenced by any widget in the document."""
-        document = self.document
         docnames = set(document.data)
         found = set()
 
@@ -1263,7 +1263,7 @@ class MainWindow(qt.QMainWindow):
         This makes the document self-contained for sharing. The data values
         are already in memory, so they will be saved directly into the .vsz file.
         """
-        names = self.getUsedDatasetNames()
+        names = MainWindow.getUsedDatasetNames(self.document)
         for name in names:
             ds = self.document.getData(name)
             if ds is not None and ds.linked is not None:
@@ -1282,7 +1282,7 @@ class MainWindow(qt.QMainWindow):
 
         sidecar = os.path.splitext(docfilename)[0] + '_data.csv'
 
-        names = self.getUsedDatasetNames()
+        names = MainWindow.getUsedDatasetNames(self.document)
         datasets = {n: self.document.getData(n) for n in names}
         datasets = {n: d for n, d in datasets.items() if d is not None}
 

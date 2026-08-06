@@ -773,9 +773,7 @@ class TestCSVSidecar(unittest.TestCase):
     def test_getUsedDatasetNames(self):
         """MainWindow.getUsedDatasetNames returns only datasets used by widgets."""
         d = self._make_doc_with_xy()
-        win = self.MainWindow(None)
-        win.document = d
-        names = win.getUsedDatasetNames()
+        names = self.MainWindow.getUsedDatasetNames(d)
         self.assertEqual(set(names), {'x', 'y'})
 
     def test_saveUsedDataAsCSV_creates_file(self):
