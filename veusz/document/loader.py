@@ -325,6 +325,11 @@ def removeBOMs(script):
         "AA\ufeffAA" -> "AAAA"
         'C:\\ufeff\\a.csv' -> 'C:\\ufeff\\a.csv'
     """
+    # fast path: the regex below is quadratic on large scripts that
+    # contain a single very long line (e.g. embedded base64 images) and
+    # no BOM marker, so skip it entirely when there is nothing to replace
+    if 'ufeff' not in script:
+        return script
     pattern = r'(.*?)(\\+)ufeff(.*?)'
     def replacer(m):
         bs = m.group(2)

@@ -303,7 +303,7 @@ class PlotterFill(BrushExtended):
 
         self.add( setting.Choice(
             'fillto',
-            ['auto', 'top', 'bottom', 'left', 'right', 'custom'],
+            ['auto', 'top', 'bottom', 'left', 'right', 'custom', 'mean'],
             'auto',
             descr=_('Edge to fill towards'),
             usertext=_('Fill to')))
@@ -329,7 +329,7 @@ class PointFill(BrushExtended):
 
         self.add( setting.Choice(
             'fillto',
-            ['top', 'bottom', 'left', 'right', 'custom'],
+            ['top', 'bottom', 'left', 'right', 'custom', 'mean'],
             'top',
             descr=_('Edge to fill towards'),
             usertext=_('Fill to')), 0)
