@@ -24,6 +24,11 @@ jobs:
     - name: Upgrade pip
       run : |
         python3 -m pip install --upgrade pip
+    - name: Read version
+      id: version
+      run: |
+        $ver = Get-Content VERSION
+        echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -35,7 +40,7 @@ jobs:
     - name: Install Python dependencies (pre-compiled wheels)
       run: |
         pip3 -v install setuptools wheel packaging pyproject-metadata
-        pip3 -v install PyQt6==6.10.2
+        pip3 -v install PyQt6==6.11.0
         pip3 -v install numpy
         pip3 -v install pyinstaller
         pip3 -v install -r requirements.txt
@@ -87,9 +92,10 @@ jobs:
         path: installer_out
     - name: Package portable zip
       run: |
-        powershell -Command "Compress-Archive -Path 'dist\\veusz_main' -DestinationPath 'veusz-4.2.1.1-windows-x64.zip' -Force"
+        $ver = "${{ steps.version.outputs.VERSION }}"
+        powershell -Command "Compress-Archive -Path 'dist\\veusz_main' -DestinationPath 'veusz-${ver}-windows-x64.zip' -Force"
     - name: Upload zip artifact
       uses: actions/upload-artifact@v4
       with:
-        name: veusz-4.2.1.1-windows-x64
-        path: veusz-4.2.1.1-windows-x64.zip
+        name: veusz-${{ steps.version.outputs.VERSION }}-windows-x64
+        path: veusz-${{ steps.version.outputs.VERSION }}-windows-x64.zip
