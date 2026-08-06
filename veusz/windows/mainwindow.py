@@ -1197,26 +1197,26 @@ class MainWindow(qt.QMainWindow):
         if h5py is not None:
             filters += [_('Veusz HDF5 document files (*.vszh5)')]
 
-        # optional: also write the used datasets as a CSV sidecar
-        chk_csv = qt.QCheckBox(
-            _('Also save used data as CSV file'), self)
+        # optional: embed used data (unlink from source files)
+        chk_embed = qt.QCheckBox(
+            _('Embed used data (unlink from source files)'), self)
 
         # Track checkbox state since dialog destroys the widget on close
-        csv_checked = [False]
+        embed_checked = [False]
         def on_state_changed(state):
-            csv_checked[0] = (state == qt.Qt.CheckState.Checked)
-        chk_csv.stateChanged.connect(on_state_changed)
+            embed_checked[0] = (state == qt.Qt.CheckState.Checked)
+        chk_embed.stateChanged.connect(on_state_changed)
 
         filename = self.fileSaveDialog(
-            filters, _('Save as'), extra_widgets=[chk_csv])
+            filters, _('Save as'), extra_widgets=[chk_embed])
         if filename:
             self.filename = filename
             self.updateTitlebar()
 
-            self.slotFileSave()
+            if embed_checked[0]:
+                self.unlinkUsedDatasets()
 
-            if csv_checked[0]:
-                self.saveUsedDataAsCSV(filename)
+            self.slotFileSave()
 
     def getUsedDatasetNames(self):
         """Return dataset names referenced by any widget in the document."""
@@ -1243,6 +1243,19 @@ class MainWindow(qt.QMainWindow):
 
         walk(document.basewidget)
         return sorted(found)
+
+    def unlinkUsedDatasets(self):
+        """Unlink used datasets from their source files so they become embedded.
+
+        This makes the document self-contained for sharing. The data values
+        are already in memory, so they will be saved directly into the .vsz file.
+        """
+        names = self.getUsedDatasetNames()
+        for name in names:
+            ds = self.document.getData(name)
+            if ds is not None and ds.linked is not None:
+                ds.linked = None
+                self.document.modifiedData(ds)
 
     def saveUsedDataAsCSV(self, docfilename):
         """Write datasets used by widgets to a CSV file next to the document.
