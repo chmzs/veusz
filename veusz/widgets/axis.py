@@ -450,8 +450,9 @@ class Axis(widget.Widget):
         s.add( setting.Color(
             'axisColor', 'auto',
             descr=_('Override color for all axis elements (line, ticks, tick labels, label). "auto" uses individual settings.'),
-            usertext=_('Axis color override')),
-            pixmap='settings_axisline', formatting=True )
+            usertext=_('Axis color override'),
+            formatting=True),
+            pixmap='settings_axisline' )
         s.add( AxisLabel(
             'Label',
             descr=_('Axis label settings'),
@@ -830,22 +831,25 @@ class Axis(widget.Widget):
             a = (b1, a1, b2, a2)
         utils.plotLinesToPainter(painter, a[0], a[1], a[2], a[3])
 
-    def _axisColorOverride(self, painter, default_pen):
+    def _axisColorOverride(self, painter, color_setting, default_pen):
         """Colour a pen using the axisColor override, if set.
 
-        Reuses the default pen (width/style/transparency) and only replaces
-        its colour, so the override applies uniformly to line, ticks, tick
-        labels and axis label.
+        Reuses the default pen (width/style/transparency). The override only
+        applies when the element's own colour is still the default (i.e. the
+        user has not locally overridden it), so per-element colour settings
+        (axis line, ticks, tick labels, label) remain individually usable.
         """
         ac = self.settings.axisColor
-        if isinstance(ac, str) and ac != 'auto':
+        if (isinstance(ac, str) and ac != 'auto' and
+                color_setting.isDefault()):
             default_pen.setColor(painter.docColor(ac))
         return default_pen
 
     def _drawGridLines(self, subset, painter, coordticks, parentposn):
         """Draw grid lines on the plot."""
+        gs = self.settings.get(subset)
         pen = self._axisColorOverride(
-            painter, self.settings.get(subset).makeQPen(painter))
+            painter, gs.get('color'), gs.makeQPen(painter))
         painter.setPen(pen)
 
         # drop points which overlap with graph box (if used)
@@ -870,8 +874,9 @@ class Axis(widget.Widget):
     def _drawAxisLine(self, painter, posn):
         """Draw the line of the axis."""
 
+        line_s = self.settings.get('Line')
         pen = self._axisColorOverride(
-            painter, self.settings.get('Line').makeQPen(painter))
+            painter, line_s.get('color'), line_s.makeQPen(painter))
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         self.swapline(
@@ -885,7 +890,8 @@ class Axis(widget.Widget):
 
         s = self.settings
         mt = s.get('MinorTicks')
-        pen = self._axisColorOverride(painter, mt.makeQPen(painter))
+        pen = self._axisColorOverride(painter, mt.get('color'),
+                                      mt.makeQPen(painter))
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         delta = mt.getLength(painter)
@@ -909,7 +915,8 @@ class Axis(widget.Widget):
 
         s = self.settings
         mt = s.get('MajorTicks')
-        pen = self._axisColorOverride(painter, mt.makeQPen(painter))
+        pen = self._axisColorOverride(painter, mt.get('color'),
+                                      mt.makeQPen(painter))
         pen.setCapStyle(qt.Qt.PenCapStyle.FlatCap)
         painter.setPen(pen)
         startdelta = mt.getLength(painter)
@@ -987,7 +994,8 @@ class Axis(widget.Widget):
         # get information about text scales
         tl = s.get('TickLabels')
         scale = tl.scale
-        pen = self._axisColorOverride(painter, tl.makeQPen(painter))
+        pen = self._axisColorOverride(painter, tl.get('color'),
+                                      tl.makeQPen(painter))
 
         # an extra offset if required
         self._delta_axis += tl.get('offset').convert(painter)
@@ -1075,7 +1083,8 @@ class Axis(widget.Widget):
         if not text:
             return
 
-        pen = self._axisColorOverride(painter, label.makeQPen(painter))
+        pen = self._axisColorOverride(painter, label.get('color'),
+                                      label.makeQPen(painter))
 
         horz = s.direction == 'horizontal'
 
