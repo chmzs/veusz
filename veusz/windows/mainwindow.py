@@ -1116,13 +1116,18 @@ class MainWindow(qt.QMainWindow):
         text = '•' * self.plotqueuecount
         self.plotqueuelabel.setText(text)
 
-    def fileSaveDialog(self, filters, dialogtitle):
+    def fileSaveDialog(self, filters, dialogtitle, extra_widgets=None):
         """A generic file save dialog for exporting / saving.
 
         filters: list of filters
+        extra_widgets: optional widgets to append to the (non-native)
+        dialog, e.g. an option checkbox.
         """
 
         fd = qt.QFileDialog(self, dialogtitle)
+        if extra_widgets:
+            # widgets can only be added to the non-native dialog
+            fd.setOption(qt.QFileDialog.Option.DontUseNativeDialog)
         fd.setDirectory(self.dirname)
         fd.setFileMode(qt.QFileDialog.FileMode.AnyFile)
         fd.setAcceptMode(qt.QFileDialog.AcceptMode.AcceptSave)
@@ -1136,6 +1141,10 @@ class MainWindow(qt.QMainWindow):
             filter = setting.settingdb[filterkey]
             if filter in filters:
                 fd.selectNameFilter(filter)
+
+        if extra_widgets:
+            for w in extra_widgets:
+                fd.layout().addWidget(w)
 
         # okay was selected (and is okay to overwrite if it exists)
         if fd.exec() == qt.QDialog.DialogCode.Accepted:
@@ -1187,12 +1196,110 @@ class MainWindow(qt.QMainWindow):
         filters = [_('Veusz document files (*.vsz)')]
         if h5py is not None:
             filters += [_('Veusz HDF5 document files (*.vszh5)')]
-        filename = self.fileSaveDialog(filters, _('Save as'))
+
+        # optional: also write the used datasets as a CSV sidecar
+        chk_csv = qt.QCheckBox(
+            _('Also save used data as CSV file'), self)
+
+        # Track checkbox state since dialog destroys the widget on close
+        csv_checked = [False]
+        def on_state_changed(state):
+            csv_checked[0] = (state == qt.Qt.CheckState.Checked)
+        chk_csv.stateChanged.connect(on_state_changed)
+
+        filename = self.fileSaveDialog(
+            filters, _('Save as'), extra_widgets=[chk_csv])
         if filename:
             self.filename = filename
             self.updateTitlebar()
 
             self.slotFileSave()
+
+            if csv_checked[0]:
+                self.saveUsedDataAsCSV(filename)
+
+    def getUsedDatasetNames(self):
+        """Return dataset names referenced by any widget in the document."""
+        document = self.document
+        docnames = set(document.data)
+        found = set()
+
+        def collect(settings):
+            for s in settings.getSettingList():
+                if isinstance(s, setting.Datasets):
+                    found.update(nm for nm in s.val if nm in docnames)
+                elif isinstance(s, setting.Dataset):
+                    nm = s.val
+                    if nm in docnames:
+                        found.add(nm)
+            for sub in settings.getSettingsList():
+                collect(sub)
+
+        def walk(widget):
+            if getattr(widget, 'settings', None) is not None:
+                collect(widget.settings)
+            for child in widget.children:
+                walk(child)
+
+        walk(document.basewidget)
+        return sorted(found)
+
+    def saveUsedDataAsCSV(self, docfilename):
+        """Write datasets used by widgets to a CSV file next to the document.
+
+        The CSV lists each used dataset as a column. Lines beginning with
+        '#' at the top record the source of each dataset (the linked file
+        path when available) so multi-source documents remain traceable.
+        """
+        import csv
+        import numpy as N
+
+        sidecar = os.path.splitext(docfilename)[0] + '_data.csv'
+
+        names = self.getUsedDatasetNames()
+        datasets = {n: self.document.getData(n) for n in names}
+        datasets = {n: d for n, d in datasets.items() if d is not None}
+
+        def cell_values(dataset):
+            """Return a list of string cells for one dataset column."""
+            data = getattr(dataset, 'data', None)
+            if data is None:
+                return []
+            arr = N.asarray(data)
+            if arr.ndim == 2:
+                return [';'.join(str(v) for v in row) for row in arr]
+            dtype = (getattr(dataset, 'displaytype', None) or
+                     getattr(dataset, 'datatype', ''))
+            if dtype == 'text':
+                return [str(v) for v in arr]
+            if dtype == 'date':
+                out = []
+                for v in arr:
+                    try:
+                        out.append(utils.dateFloatToString(float(v))
+                                   if N.isfinite(v) else '')
+                    except (ValueError, TypeError):
+                        out.append('')
+                return out
+            return [str(v) if N.isfinite(v) else '' for v in arr]
+
+        columns = [(n, cell_values(d)) for n, d in datasets.items()]
+
+        with open(sidecar, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            # provenance header comments (ignored by pandas / R read.csv)
+            for n, d in datasets.items():
+                linked = getattr(d, 'linked', None)
+                if linked is not None and getattr(linked, 'filename', None):
+                    src = linked.filename
+                else:
+                    src = _('embedded, no link')
+                writer.writerow(['# %s; source = %s' % (n, src)])
+            writer.writerow([n for n, _ in columns])
+            maxlen = max((len(c) for _, c in columns), default=0)
+            for i in range(maxlen):
+                writer.writerow(
+                    [c[i] if i < len(c) else '' for _, c in columns])
 
     def openFile(self, filename):
         """Select whether to load the file in the
