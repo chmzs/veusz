@@ -328,9 +328,7 @@ class XYPie(plotters.GenericPlotter):
             # return a full-length array (avoids IndexError in dataDraw)
             scales = N.asarray(scalev.data, dtype=float)[:npts]
             if len(scales) < npts:
-                scales = N.concatenate(
-                    [scales, N.full(npts - len(scales), N.nan)]
-                )
+                scales = N.concatenate([scales, N.full(npts - len(scales), N.nan)])
             smax = N.nanmax(scales) if len(scales) else 0.0
             if smax > 0:
                 radii = markersize * N.sqrt(N.abs(scales)) / N.sqrt(smax)
