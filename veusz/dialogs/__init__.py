@@ -21,7 +21,7 @@
 """Veusz dialogs module."""
 
 # load custom widgets
-from .. import qtwidgets
+from .. import qtwidgets  # noqa: F401  (module side-effect: registers widgets)
 from .. import datasets
 from .veuszdialog import recreate_register
 

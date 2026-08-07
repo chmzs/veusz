@@ -402,10 +402,10 @@ def _calcAreaScales():
     This is run separately to get the values to put in the below scaling
     array
     """
-
     import sys
 
-    app = qt.QApplication(sys.argv)
+    # create QApplication (side-effect: needed for QPixmap/QPainter below)
+    qt.QApplication(sys.argv)
     scale = 600
     c = scale * 4
     w = c * 2

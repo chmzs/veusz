@@ -940,8 +940,6 @@ class _SceneRotationItem(qt.QGraphicsItem):
         self.setZValue(2.0)
 
         self.boxpts = []
-        boxvecs = []
-        rotvecs = []
         for dx, dy, dz in (
             (-0.5, -0.5, -0.5),
             (+0.5, -0.5, -0.5),
@@ -952,7 +950,6 @@ class _SceneRotationItem(qt.QGraphicsItem):
             (-0.5, +0.5, +0.5),
             (+0.5, +0.5, +0.5),
         ):
-            invec = threed.Vec4(dx, dy, dz, 1)
             self.boxpts.append(threed.Vec4(dx, dy, dz, 1))
 
         # make rotation controls

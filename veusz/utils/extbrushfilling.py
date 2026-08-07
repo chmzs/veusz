@@ -331,7 +331,6 @@ def _brushExtFillPathGradient(
         # Convert data value to plotter coordinate, then to 0-1 offset
         if axes is not None and fill_bounds is not None:
             yAxis = axes[1] if len(axes) > 1 else None
-            xAxis = axes[0] if len(axes) > 0 else None
             if yAxis is not None:
                 try:
                     val = float(center_value)

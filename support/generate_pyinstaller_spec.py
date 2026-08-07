@@ -124,7 +124,6 @@ def get_api_files():
 
 def generate_windows_spec():
     """Generate Windows PyInstaller spec."""
-    icon_path = VEUSZ_ROOT / "icons" / "veusz.ico"
 
     spec = f"""# -*- mode: python -*-
 # Auto-generated Windows PyInstaller spec for Veusz

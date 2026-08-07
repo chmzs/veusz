@@ -754,11 +754,9 @@ class PlotWindow(qt.QGraphicsView):
             bounds = self.painthelper.widgetBounds(axis)
             if ishorz:
                 rng = bounds[2] - bounds[0]
-                b0, b1 = bounds[0], bounds[2]
                 clickpos = px
             else:
                 rng = bounds[3] - bounds[1]
-                b0, b1 = bounds[1], bounds[3]
                 clickpos = py
 
             delta = rng / factor / 2

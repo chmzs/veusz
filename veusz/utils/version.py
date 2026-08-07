@@ -79,8 +79,8 @@ def latestVersion():
         f.close()
 
         latest = p.decode("ascii").strip()
-        # check format
-        intver = versionToTuple(latest)
+        # check format (versionToTuple raises if invalid -> caught below)
+        versionToTuple(latest)
     except Exception:
         return None
 

@@ -796,9 +796,6 @@ class Axis3D(widget.Widget):
         ones = N.ones(tfracs.shape)
         zeros = N.zeros(tfracs.shape)
 
-        outstart = []
-        outend = []
-
         # positions of grid lines for x axis
         pts1 = [
             (tfracs, zeros, zeros),

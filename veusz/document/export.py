@@ -558,7 +558,7 @@ def printPages(doc, printer, pages, scaling=1.0, antialias=False, setsizes=False
             printer.setPageLayout(layout)
         return size
 
-    size = getUpdateSize(pages[0])
+    getUpdateSize(pages[0])
 
     painter = painthelper.DirectPainter(printer)
     if antialias:
@@ -578,7 +578,7 @@ def printPages(doc, printer, pages, scaling=1.0, antialias=False, setsizes=False
         # start new pages between each page
         if count < len(filtpages) - 1:
             # set page size before newPage!
-            size = getUpdateSize(pages[count + 1])
+            getUpdateSize(pages[count + 1])
             printer.newPage()
 
     painter.end()

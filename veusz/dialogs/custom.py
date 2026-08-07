@@ -148,7 +148,8 @@ class CustomItemModel(qt.QAbstractTableModel):
     def validateDefn(self, value):
         if self.ctype == "colormap":
             try:
-                tmp = ast.literal_eval(value)
+                # validate value by attempting to literal-eval it
+                ast.literal_eval(value)
             except (ValueError, SyntaxError):
                 return False
         return value.strip() != ""

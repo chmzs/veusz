@@ -203,7 +203,6 @@ class Surface3D(plotters3d.GenericPlotter3D):
         """Do actual drawing of function."""
 
         s = self.settings
-        mode = s.mode
 
         axes = self.fetchAxes()
         if axes is None:

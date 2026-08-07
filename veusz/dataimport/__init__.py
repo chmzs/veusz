@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 #    Copyright (C) 2013 Jeremy S. Sanders
 #    Email: Jeremy Sanders <jeremy@jeremysanders.net>
 #

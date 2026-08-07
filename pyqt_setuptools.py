@@ -25,8 +25,6 @@ def find_on_path(names, mainname):
 
     mainname is the generic name to report
     """
-    path = os.getenv("PATH", os.path.defpath)
-    pathparts = path.split(os.path.pathsep)
     for cmd in names:
         resolved = shutil.which(cmd)
         if resolved:

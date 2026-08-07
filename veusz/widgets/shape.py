@@ -465,11 +465,6 @@ class Rectangle(BoxShape):
         """If control item is moved or resized, this is called."""
         s = self.settings
 
-        wp = abs(cgi.dims[0])
-        hp = abs(cgi.dims[1])
-        x_center = cgi.posn[0] + cgi.dims[0] * 0.5
-        y_center = cgi.posn[1] + cgi.dims[1] * 0.5
-
         if s.rectPosition == "bounds":
             # Calculate bounds in plotter coords
             xmin_plt = cgi.posn[0]

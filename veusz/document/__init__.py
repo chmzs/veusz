@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 # document __init__.py
 
 #    Copyright (C) 2004 Jeremy S. Sanders

@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 # __init__.py file for utils
 
 #    Copyright (C) 2004 Jeremy S. Sanders
