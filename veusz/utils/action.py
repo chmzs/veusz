@@ -25,35 +25,51 @@ from .. import qtall as qt
 from . import utilfuncs
 
 # where images are stored
-imagedir = os.path.join(utilfuncs.resourceDirectory, 'icons')
+imagedir = os.path.join(utilfuncs.resourceDirectory, "icons")
 
 _pixmapcache = {}
+
+
 def getPixmap(pixmap):
     """Return a cached QPixmap for the filename in the icons directory."""
     if pixmap not in _pixmapcache:
         _pixmapcache[pixmap] = qt.QPixmap(os.path.join(imagedir, pixmap))
     return _pixmapcache[pixmap]
 
+
 def pixmapExists(pixmap):
     """Does the pixmap exist?"""
-    return (pixmap in _pixmapcache or
-            os.path.exists(os.path.join(imagedir, pixmap)))
+    return pixmap in _pixmapcache or os.path.exists(os.path.join(imagedir, pixmap))
+
 
 _iconcache = {}
-def getIcon(icon):
-    """Return a cached QIconSet for the filename in the icons directory."""
-    if icon not in _iconcache:
-        svg = os.path.join(imagedir, icon+'.svg')
-        if os.path.exists(svg):
-            filename = svg
-        else:
-            filename = os.path.join(imagedir, icon+'.png')
 
-        _iconcache[icon] = qt.QIcon(filename)
+
+def getIcon(icon):
+    """Return a cached QIcon for the filename in the icons directory.
+
+    Multiple PNG sizes are combined with the SVG. Windows taskbar needs a
+    bitmapped size to display an icon, but a pure-SVG QIcon has no intrinsic
+    size, so we also add the *_<size>.png variants when available.
+    """
+    if icon not in _iconcache:
+        qicon = qt.QIcon()
+        png = os.path.join(imagedir, icon + ".png")
+        svg = os.path.join(imagedir, icon + ".svg")
+        if os.path.exists(svg):
+            qicon.addFile(svg)
+        if os.path.exists(png):
+            qicon.addFile(png)
+        # add sized PNG variants so Windows gets concrete bitmap sizes
+        for size in (256, 128, 64, 48, 32, 16):
+            sized = os.path.join(imagedir, "%s_%d.png" % (icon, size))
+            if os.path.exists(sized):
+                qicon.addFile(sized)
+        _iconcache[icon] = qicon
     return _iconcache[icon]
 
-def makeAction(parent, descr, menutext, slot, icon=None, key=None,
-               checkable=False):
+
+def makeAction(parent, descr, menutext, slot, icon=None, key=None, checkable=False):
     """A quick way to set up an QAction object."""
     a = qt.QAction(parent)
     a.setText(menutext)
@@ -69,11 +85,12 @@ def makeAction(parent, descr, menutext, slot, icon=None, key=None,
         a.setCheckable(True)
     return a
 
+
 def addToolbarActions(toolbar, actions, which):
-    """Add actions listed in "which" from dict "actions" to toolbar "toolbar".
-    """
+    """Add actions listed in "which" from dict "actions" to toolbar "toolbar"."""
     for w in which:
         toolbar.addAction(actions[w])
+
 
 def constructMenus(rootobject, menuout, menutree, actions):
     """Add menus to the output dict from the tree, listing actions
@@ -98,12 +115,13 @@ def constructMenus(rootobject, menuout, menutree, actions):
             if utilfuncs.isiternostr(action):
                 # recurse for submenus
                 constructMenus(menu, menuout, [action], actions)
-            elif action == '':
+            elif action == "":
                 # blank means separator
                 menu.addSeparator()
             else:
                 # normal action
                 menu.addAction(actions[action])
+
 
 def populateMenuToolbars(items, toolbar, menus):
     """Construct the menus and toolbar from the list of items.
@@ -150,7 +168,7 @@ def populateMenuToolbars(items, toolbar, menus):
         elif slot is not None:
             if menus is not None:
                 submenu = menus[menu].addMenu(menutext)
-                menus["%s.%s" % (menu ,menuid)] = submenu
+                menus["%s.%s" % (menu, menuid)] = submenu
                 populateMenuToolbars(slot, toolbar, menus)
         else:
             if menus is not None:
@@ -164,6 +182,7 @@ def populateMenuToolbars(items, toolbar, menus):
         actions[menuid] = action
 
     return actions
+
 
 def makeMenuGroupSaved(name, parent, actiondict, actionnames):
     """Assign a menu and group for an action which allows the user to
@@ -193,13 +212,12 @@ def makeMenuGroupSaved(name, parent, actiondict, actionnames):
     menuaction.setMenu(menu)
 
     # currently set value (per control)
-    current = [
-        setting.settingdb.get('menugrp_%s' % name, actionnames[0]) ]
+    current = [setting.settingdb.get("menugrp_%s" % name, actionnames[0])]
 
     def ongrptriggered(action):
         """Update saved action when new one is chosen."""
         actname = act_to_name[action]
-        setting.settingdb['menugrp_%s' % name] = current[0] = actname
+        setting.settingdb["menugrp_%s" % name] = current[0] = actname
         menuaction.setIcon(action.icon())
 
     def onactiontriggered():

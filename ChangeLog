@@ -1,3 +1,19 @@
+Changes in 4.2.1.2:
+  * Redesign ProportionalScatter toolbar icon with modern color palette and cleaner visual style
+  * Fix Windows taskbar icon display (combine SVG with multi-size PNG fallbacks)
+  * Fix Windows installer _socket.pyd missing issue (ensure standard library modules included)
+  * Fix Windows installer numpy nested directory structure preservation
+  * Fix Windows installer recursive uninstall cleanup (RMDir /r)
+  * Simplify pixi.toml dependencies (conda only for python/qt6-main/pyqt6, rest via pip)
+  * Update NSIS installer to use veusz.ico for installer/uninstaller icons
+
+Changes in 4.2.1.1:
+  * Fix 'mean' fillto actually fills to mean of plotted y values
+  * Fix axisColor override applies colour to pens, not raw docColor/objects
+  * Fix axisColor override respects per-element colour settings
+  * Restore loading of docs with 'mean' fillto
+  * Fix axisColor appears in Format panel (add formatting=True)
+
 Changes in 4.2.1:
   * Change tutorial highlight color to magenta
   * Fix missing icon in tutorial

@@ -23,8 +23,8 @@ SetCompressor /solid lzma
 
 ; MUI Settings
 !define MUI_ABORTWARNING
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
-!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+!define MUI_ICON "${PYINST_DIR}\icons\veusz.ico"
+!define MUI_UNICON "${PYINST_DIR}\icons\veusz.ico"
 
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
@@ -163,16 +163,22 @@ FunctionEnd
 Section Uninstall
   SetRegView 64
 
+  ; delete individual files first (handles most content, including old
+  ; folders from previous versions whose names are not in the file list)
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
-  Delete "$INSTDIR\uninst.exe"
 
 @@DELETE_FILES@@
 
+  ; remove start menu / desktop shortcuts
   Delete "$SMPROGRAMS\Veusz\Uninstall.lnk"
   Delete "$SMPROGRAMS\Veusz\Website.lnk"
   Delete "$DESKTOP\Veusz.lnk"
   Delete "$SMPROGRAMS\Veusz\Veusz.lnk"
   RMDir "$SMPROGRAMS\Veusz"
+
+  ; recursively remove the whole install directory. RMDir /r deletes nested
+  ; subdirectories that the per-file deletion above cannot empty
+  RMDir /r "$INSTDIR"
 
   ; clean up registry
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"

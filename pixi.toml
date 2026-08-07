@@ -4,18 +4,27 @@ version = "4.2.1.2"
 description = "Veusz - Scientific plotting application"
 authors = ["Jeremy Sanders"]
 license = "GPL-2.0-or-later"
-platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+platforms = ["win-64"]
 channels = ["conda-forge"]
 
 [dependencies]
-python = ">=3.10"
+# 仅 Python 解释器 + Qt 开发工具从 conda；所有运行时/构建依赖走 pip
+python = ">=3.10,<3.14"
+pyqt6 = ">=6.10"     # from conda-forge, linked to qt6-main
+pip = "*"
+
+[pypi-dependencies]
+# ===== 运行时依赖 (requirements.txt) =====
 numpy = ">=1.20"
-PyQt6 = ">=6.10.2"
 sip = ">=6.5"
 astropy = ">=2.0"
 h5py = ">=2.6"
+
+# ===== 开发/测试/打包依赖 =====
 pytest = "*"
-pip = "*"
+pyinstaller = ">=6.21.0,<7"
+iminuit = "*"
+matplotlib = "*"
 
 [tasks.test]
 description = "Run gradient tests"
@@ -27,4 +36,20 @@ cmd = "python -m veusz.veusz_main"
 
 [tasks.install]
 description = "Install Veusz in editable mode"
-cmd = "python -m pip install -e ."
+cmd = "python -m pip install -e . --no-build-isolation"
+
+[tasks.build]
+description = "Build Windows package"
+cmd = "python -m PyInstaller support/veusz_windows_pyinst.spec --distpath support/dist --workpath support/build"
+
+[tasks.lint]
+description = "Run lint checks"
+cmd = "ruff check ."
+
+[tasks.format]
+description = "Format code"
+cmd = "ruff format ."
+
+[tasks.typecheck]
+description = "Run type checking"
+cmd = "mypy veusz/"

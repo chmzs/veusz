@@ -1,72 +1,60 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
+<!-- ProportionalScatter toolbar icon - redesigned -->
 <svg
    width="16"
    height="16"
    viewBox="0 0 16 16"
    version="1.1"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
+   xmlns="http://www.w3.org/2000/svg">
   <g id="layer1">
-    <!-- Background frame -->
+    <!-- Subtle background frame (optional, for visual boundary) -->
     <rect
-       style="fill:none;stroke:#ffffff;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 1,0 V 15 H 16" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 1,0.5 V 15.5 H 15.5" />
+       x="0.5" y="0.5" width="15" height="15"
+       style="fill:none;stroke:#cccccc;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round" />
 
-    <!-- Pie glyph (left) -->
+    <!-- Pie glyph (left) - 3 slices, modern palette -->
     <path
-       style="fill:#1f77b4;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 4.5,6 A 3.5,3.5 0 0 1 8,2.5 L 4.5,6 Z" />
+       style="fill:#4e79a7;fill-opacity:1;stroke:#ffffff;stroke-width:0.4;stroke-linecap:round;stroke-linejoin:round"
+       d="M 3.5,5.5 A 3,3 0 0 1 6.5,2.5 L 3.5,5.5 Z" />
     <path
-       style="fill:#ff7f0e;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 4.5,6 A 3.5,3.5 0 0 1 11.5,6 L 4.5,6 Z" />
+       style="fill:#e15759;fill-opacity:1;stroke:#ffffff;stroke-width:0.4;stroke-linecap:round;stroke-linejoin:round"
+       d="M 3.5,5.5 A 3,3 0 0 1 6.5,8.5 L 3.5,5.5 Z" />
     <path
-       style="fill:#2ca02c;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 4.5,6 A 3.5,3.5 0 0 1 8,9.5 L 4.5,6 Z" />
+       style="fill:#59a14f;fill-opacity:1;stroke:#ffffff;stroke-width:0.4;stroke-linecap:round;stroke-linejoin:round"
+       d="M 3.5,5.5 A 3,3 0 0 1 6.5,5.5 L 3.5,5.5 Z" />
+    <!-- Center dot -->
     <circle
-       style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
-       cx="4.5"
-       cy="6"
-       r="1.2" />
+       cx="3.5" cy="5.5" r="0.7"
+       style="fill:#ffffff;fill-opacity:0.9;stroke:none" />
 
-    <!-- Donut glyph (center) -->
+    <!-- Donut glyph (center) - 2 rings, 3 segments each -->
     <path
-       style="fill:#d62728;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 11.5,9.5 A 2.5,2.5 0 0 1 14,7 L 11.5,9.5 Z" />
+       style="fill:#e15759;fill-opacity:1;stroke:#ffffff;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round"
+       d="M 8,9 A 2.2,2.2 0 0 1 10.2,6.8 L 8,9 Z" />
     <path
-       style="fill:#9467bd;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 11.5,9.5 A 2.5,2.5 0 0 1 14,12 L 11.5,9.5 Z" />
+       style="fill:#4e79a7;fill-opacity:1;stroke:#ffffff;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round"
+       d="M 8,9 A 2.2,2.2 0 0 1 10.2,11.2 L 8,9 Z" />
     <path
-       style="fill:#8c564b;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 11.5,6 A 2.5,2.5 0 0 1 14,9.5 L 11.5,6 Z" />
+       style="fill:#f28e2b;fill-opacity:1;stroke:#ffffff;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round"
+       d="M 8,5.8 A 2.2,2.2 0 0 1 10.2,9 L 8,5.8 Z" />
+    <!-- Inner hole (white) -->
     <circle
-       style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
-       cx="11.5"
-       cy="9.5"
-       r="1" />
+       cx="8" cy="9" r="0.9"
+       style="fill:#ffffff;fill-opacity:0.95;stroke:none" />
 
-    <!-- Bar glyph (right) -->
+    <!-- Bar glyph (right) - 3 stacked bars -->
     <rect
-       style="fill:#1f77b4;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       width="2.5"
-       height="6"
-       x="13.5"
-       y="10" />
+       x="12" y="10.5" width="2" height="4.5"
+       style="fill:#4e79a7;fill-opacity:1;stroke:#ffffff;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round" />
     <rect
-       style="fill:#ff7f0e;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       width="2.5"
-       height="3.5"
-       x="13.5"
-       y="6.5" />
+       x="12" y="6.5" width="2" height="3.5"
+       style="fill:#f28e2b;fill-opacity:1;stroke:#ffffff;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round" />
     <rect
-       style="fill:#2ca02c;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       width="2.5"
-       height="2.5"
-       x="13.5"
-       y="4" />
+       x="12" y="3.5" width="2" height="2.5"
+       style="fill:#59a14f;fill-opacity:1;stroke:#ffffff;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round" />
+
+    <!-- Subtle separator dots between glyph groups -->
+    <circle cx="6.5" cy="8" r="0.3" style="fill:#cccccc;stroke:none" />
+    <circle cx="11" cy="8" r="0.3" style="fill:#cccccc;stroke:none" />
   </g>
 </svg>
