@@ -672,11 +672,6 @@ class GridGraphLabels(ToolsPlugin):
             field.FieldDistance(
                 "offset", default="4pt", descr=_("Margin from graph edge")
             ),
-            field.FieldBool(
-                "use_graph_coords",
-                default=True,
-                descr=_("Use graph coordinates (0-1) instead of page coordinates"),
-            ),
         ]
 
     def apply(self, ifc, fields):
@@ -717,15 +712,16 @@ class GridGraphLabels(ToolsPlugin):
         valign = fields["valign"]
         offset = fields["offset"]
 
+        # Use relative positioning so xPos/yPos are 0-1 fractions of the
+        # graph area, independent of each graph's data value ranges.
+        positioning = "relative"
+
         # Add TextLabel to each graph
         for i, graph in enumerate(graphs):
             label_text = full_labels[i]
 
             # Resolve WidgetNode to actual widget
             graph_widget = ifc.document.resolveWidgetPath(None, graph.path)
-
-            # Choose positioning mode based on use_graph_coords
-            positioning = "axes" if fields["use_graph_coords"] else "relative"
 
             # Create TextLabel widget with settings
             ifc.document.applyOperation(

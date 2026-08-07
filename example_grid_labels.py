@@ -1,57 +1,83 @@
 #!/usr/bin/env python
 """
-Example: Create a document with a 2x2 grid of graphs.
-Then manually run the "Add labels to grid graphs" plugin in Veusz UI.
+Example: Add sequential labels (a, b, c...) to each Graph inside a Grid
+using the "Add labels to grid graphs" tools plugin (GridGraphLabels).
 
-Run with: pixi run python example_grid_labels.py
+This script:
+  1. builds a document with a 2x2 Grid of 4 graphs,
+  2. runs the plugin programmatically (same code path the dialog uses),
+  3. prints the created labels, and
+  4. saves the document to grid_labels_example.vsz.
+
+Run with:  pixi run python example_grid_labels.py
 """
 
-import numpy as np
-import veusz.embed as veusz
+import os
 
-# Create embedded Veusz instance (hidden=True for no GUI)
-g = veusz.Embedded("Grid Labels Example", hidden=True, compatlevel=-1)
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-# Create a page and grid
-g.To(g.Add("page"))  # Add page, make it current
-page_path = g.CurrentPath()  # Get page path
-g.To(g.Add("grid"))  # Add grid, make it current
-grid_path = g.CurrentPath()  # Get grid path
-g.Set("rows", 2)  # Set grid rows
-g.Set("columns", 2)  # Set grid columns
+import veusz.qtall as qt  # noqa: E402  (must create QApplication first)
 
-# Add 4 graphs to the grid with data
-for i in range(4):
-    g.To(g.Add("graph", name=f"graph{i + 1}"))  # Add graph, make it current
-    x = np.linspace(0, 10, 100)
-    y = np.sin(x + i) * (i + 1)
-    g.SetData("x", x)  # Set x data
-    g.SetData("y", y)  # Set y data
-    g.Add("xy")  # Add xy plot
-    g.To("..")  # Back to grid
+app = qt.QApplication([])
 
-g.To(page_path)  # Back to page
+import veusz.widgets  # noqa: E402  (register widget types in factory — import side-effect)
+from veusz import document  # noqa: E402
+from veusz.document import operations  # noqa: E402
+from veusz.plugins.toolsplugin import GridGraphLabels  # noqa: E402
 
-print("Created document with 2x2 grid containing 4 graphs")
-print(f"Grid path: {grid_path}")
 
-# Save to file
-g.Save("grid_labels_example.vsz")
-print("Saved to grid_labels_example.vsz")
-print()
-print("=== HOW TO USE THE PLUGIN IN VEUSZ UI ===")
-print("1. Open grid_labels_example.vsz in Veusz")
-print("2. In the object tree (left panel), CLICK on 'grid1' to SELECT it")
-print("3. Menu → General → Add labels to grid graphs")
-print("4. Adjust settings:")
-print("   - Grid widget: should show /page1/grid1 (auto-selected)")
-print("   - Label type: lowercase / uppercase / numbers")
-print("   - Prefix/Suffix: e.g. '(' and ')'")
-print("   - X position: 0.02 (left), Y position: 0.98 (top)")
-print("   - Horizontal text alignment: left / centre / right")
-print("   - Vertical text alignment: bottom / centre / top")
-print("   - Offset: 4pt (margin from graph edge)")
-print("   - Use graph coordinates: Yes (0-1 relative to each graph)")
-print("5. Click OK or Apply")
-print()
-print("Labels (a), (b), (c), (d) will appear on each graph!")
+def main():
+    doc = document.Document()
+    root = doc.basewidget
+
+    # 1. Build page > grid (2x2) > 4 graphs
+    page = doc.applyOperation(
+        operations.OperationWidgetAdd(root, "page", autoadd=True)
+    )
+    grid = doc.applyOperation(
+        operations.OperationWidgetAdd(page, "grid", autoadd=True, name="grid1")
+    )
+    grid.settings.rows = 2
+    grid.settings.columns = 2
+    for i in range(4):
+        g = doc.applyOperation(
+            operations.OperationWidgetAdd(
+                grid, "graph", autoadd=True, name=f"graph{i + 1}"
+            )
+        )
+        doc.applyOperation(operations.OperationWidgetAdd(g, "xy", autoadd=True))
+
+    # 2. Run the GridGraphLabels plugin (same fields the dialog produces)
+    plugin = GridGraphLabels()
+    fields = {
+        "grid": grid.path,          # path to the Grid widget
+        "label_type": "lowercase",  # lowercase | uppercase | numbers
+        "prefix": "(",              # text before the label
+        "suffix": ")",              # text after the label
+        "x_pos": 0.1,               # x fraction of each graph area (0-1)
+        "y_pos": 0.9,               # y fraction of each graph area (0-1)
+        "halign": "left",           # left | centre | right
+        "valign": "top",            # bottom | centre | top
+        "offset": "4pt",            # margin from graph edge
+    }
+    doc.applyOperation(operations.OperationToolsPlugin(plugin, fields))
+
+    # 3. Show what was created
+    for g in grid.children:
+        for c in g.children:
+            if c.typename == "label":
+                print(
+                    f"{g.name}: label={c.settings.label!r} "
+                    f"positioning={c.settings.get('positioning').get()!r} "
+                    f"xPos={c.settings.get('xPos').get()!r} "
+                    f"yPos={c.settings.get('yPos').get()!r}"
+                )
+
+    # 4. Save
+    doc.save("grid_labels_example.vsz")
+    print("Saved to grid_labels_example.vsz")
+    print("Open it in Veusz to see labels (a), (b), (c), (d) on each graph.")
+
+
+if __name__ == "__main__":
+    main()
