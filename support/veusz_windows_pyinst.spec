@@ -55,6 +55,12 @@ exe = EXE(
     icon=icon)
 
 # add necessary documentation, licence
+# Note: spec runs with cwd = support/ (see Analysis path '..\veusz\...'),
+# so glob relative paths off the repo root (one level up from this file),
+# but place each collected file at its path relative to the repo root so the
+# bundled layout (exe_dir/ui, exe_dir/icons, exe_dir/VERSION) matches what
+# utils._getVeuszDirectory() looks for under sys.frozen.
+_data_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath("support/veusz_windows_pyinst.spec")), ".."))
 data_glob = [
     'VERSION',
     'ChangeLog',
@@ -74,8 +80,13 @@ data_glob = [
 
 datas = analysis.datas
 for pattern in data_glob:
-    for fn in glob.glob(pattern):
-        datas.append((fn, fn, 'DATA'))
+    for fn in glob.glob(os.path.join(_data_root, pattern)):
+        fn = os.path.normpath(fn)
+        rel = os.path.relpath(fn, _data_root)
+        # PyInstaller expects (source, dest); both interpreted relative to the
+        # spec's working directory. Use the repo-root-relative path for both
+        # so COLLECT receives a non-absolute dest.
+        datas.append((rel, rel, 'DATA'))
 
 # add API files
 datas += [
