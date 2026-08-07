@@ -309,16 +309,29 @@ class PreferencesDialog(VeuszDialog):
 
         Default to the bundled translations directory (resourceDirectory/
         translation) so users can find the shipped .qm files easily.
+
+        Use the native dialog but DO NOT filter by "*.qm": Windows hides
+        files with unregistered extensions when a custom filter is active.
+        Showing all files makes the shipped .qm visible and selectable.
         """
         from .. import utils
 
-        startdir = os.path.join(utils.resourceDirectory, "translation")
-        filename = self.parent().fileOpenDialog(
-            [_("Translation file (*.qm)")],
-            _("Choose translation file"),
-            startdir=startdir,
+        # resourceDirectory may contain '..' components (e.g. '/veusz/..');
+        # normalize so QFileDialog.setDirectory lands on the real folder.
+        startdir = os.path.normpath(
+            os.path.join(utils.resourceDirectory, "translation")
         )
-        if filename:
+
+        fd = qt.QFileDialog(self, _("Choose translation file"))
+        fd.setDirectory(startdir)
+        fd.setFileMode(qt.QFileDialog.FileMode.ExistingFile)
+        fd.setAcceptMode(qt.QFileDialog.AcceptMode.AcceptOpen)
+        # "All files" filter (no extension filtering): the Windows native
+        # dialog otherwise hides .qm because it is not a registered type.
+        fd.setNameFilters([_("All files (*)")])
+
+        if fd.exec() == qt.QDialog.DialogCode.Accepted:
+            filename = fd.selectedFiles()[0]
             self.translationEdit.setText(filename)
 
     def styleBrowseClicked(self):
