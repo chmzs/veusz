@@ -759,6 +759,28 @@ class TestXYPie(unittest.TestCase):
         prop.settings.markerSize = "10pt"
         self.assertEqual(self._render_nonwhite(prop, "pie"), 0)
 
+    def test_short_scale_points_no_crash(self):
+        """scalePoints shorter than x/y data must not raise IndexError.
+
+        Regression: _getRadii returned a short array for short scalePoints,
+        so dataDraw indexed past its end (issue found in review).
+        """
+        d = self.docmod.Document()
+        d.setData("x", self.oned.Dataset(N.array([1.0, 2.0, 3.0])))
+        d.setData("y", self.oned.Dataset(N.array([2.0, 3.0, 4.0])))
+        d.setData("n", self.oned.Dataset(N.array([100.0])))  # shorter than x/y
+        d.setData("a", self.oned.Dataset(N.array([0.5, 0.5, 0.5])))
+        d.setData("b", self.oned.Dataset(N.array([0.5, 0.5, 0.5])))
+        prop = self.XYPie(None, name="p1")
+        prop.document = d
+        prop.settings.xData = "x"
+        prop.settings.yData = "y"
+        prop.settings.scalePoints = "n"
+        prop.settings.wedgeData = ("a", "b")
+        prop.settings.markerSize = "10pt"
+        # must render without IndexError; points without scale get default size
+        self.assertGreater(self._render_nonwhite(prop, "pie"), 0)
+
     def test_key_symbol_multirow_no_crash(self):
         """drawKeySymbol must not crash when wedge datasets have >1 row."""
         prop = self._make_widget()
