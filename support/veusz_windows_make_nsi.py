@@ -33,7 +33,11 @@ def main():
     srcdir = os.path.abspath(os.path.join(thisdir, ".."))
     # fork builds PyInstaller output into support/dist/ (not root dist/)
     distdir = os.path.join(thisdir, "dist", "veusz_main")
-    intempl = os.path.join(thisdir, "veusz_windows_setup_templ.nsi")
+    # optional 2nd arg = alternate NSI template (e.g. a translations-enabled
+    # variant with a different OutFile); defaults to the standard one.
+    intempl = os.path.join(
+        thisdir, sys.argv[2] if len(sys.argv) > 2 else "veusz_windows_setup_templ.nsi"
+    )
 
     # read input template
     print(f"Reading {intempl}")

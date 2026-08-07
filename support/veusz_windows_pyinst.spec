@@ -76,6 +76,7 @@ data_glob = [
     'examples/*.csv',
     'examples/*.py',
     'ui/*.ui',
+    'translation/*.qm',
 ]
 
 datas = analysis.datas

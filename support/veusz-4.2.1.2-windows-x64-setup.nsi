@@ -1493,6 +1493,16 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR\setuptools\_vendor\jaraco\text"
   File "${PYINST_DIR}\setuptools\_vendor\jaraco\text\Lorem ipsum.txt"
 
+  SetOutPath "$INSTDIR\translation"
+  File "${PYINST_DIR}\translation\veusz-strings_de_DE.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_en.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_fr_FR.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_it_IT.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_ja.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_pt_BR.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_ru_RU.qm"
+  File "${PYINST_DIR}\translation\veusz-strings_zh_CN.qm"
+
   SetOutPath "$INSTDIR\ui"
   File "${PYINST_DIR}\ui\about.ui"
   File "${PYINST_DIR}\ui\capture.ui"
@@ -1636,6 +1646,16 @@ Section Uninstall
   Delete "$INSTDIR\ui\capture.ui"
   Delete "$INSTDIR\ui\about.ui"
   RMDir "$INSTDIR\ui"
+
+  Delete "$INSTDIR\translation\veusz-strings_zh_CN.qm"
+  Delete "$INSTDIR\translation\veusz-strings_ru_RU.qm"
+  Delete "$INSTDIR\translation\veusz-strings_pt_BR.qm"
+  Delete "$INSTDIR\translation\veusz-strings_ja.qm"
+  Delete "$INSTDIR\translation\veusz-strings_it_IT.qm"
+  Delete "$INSTDIR\translation\veusz-strings_fr_FR.qm"
+  Delete "$INSTDIR\translation\veusz-strings_en.qm"
+  Delete "$INSTDIR\translation\veusz-strings_de_DE.qm"
+  RMDir "$INSTDIR\translation"
 
   Delete "$INSTDIR\setuptools\_vendor\jaraco\text\Lorem ipsum.txt"
   RMDir "$INSTDIR\setuptools\_vendor\jaraco\text"

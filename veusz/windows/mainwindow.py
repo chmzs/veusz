@@ -1352,14 +1352,16 @@ class MainWindow(qt.QMainWindow):
 
         return None
 
-    def fileOpenDialog(self, filters, dialogtitle):
+    def fileOpenDialog(self, filters, dialogtitle, startdir=None):
         """Display an open dialog and return a filename.
 
         filters: list of filters in format "Filetype (*.vsz)"
+        startdir: optional initial directory; defaults to the last-used
+        directory (self.dirname) so the dialog remembers where the user was.
         """
 
         fd = qt.QFileDialog(self, dialogtitle)
-        fd.setDirectory(self.dirname)
+        fd.setDirectory(startdir or self.dirname)
         fd.setFileMode(qt.QFileDialog.FileMode.ExistingFile)
         fd.setAcceptMode(qt.QFileDialog.AcceptMode.AcceptOpen)
         fd.setNameFilters(filters)

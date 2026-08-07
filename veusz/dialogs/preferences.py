@@ -18,6 +18,8 @@
 #
 ##############################################################################
 
+import os
+
 from .. import qtall as qt
 from .. import setting
 from .. import utils
@@ -303,9 +305,18 @@ class PreferencesDialog(VeuszDialog):
         setdb.writeSettings()
 
     def translationBrowseClicked(self):
-        """Browse for a translation."""
+        """Browse for a translation.
+
+        Default to the bundled translations directory (resourceDirectory/
+        translation) so users can find the shipped .qm files easily.
+        """
+        from .. import utils
+
+        startdir = os.path.join(utils.resourceDirectory, "translation")
         filename = self.parent().fileOpenDialog(
-            [_("Translation file (*.qm)")], _("Choose translation file")
+            [_("Translation file (*.qm)")],
+            _("Choose translation file"),
+            startdir=startdir,
         )
         if filename:
             self.translationEdit.setText(filename)
