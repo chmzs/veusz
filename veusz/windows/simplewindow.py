@@ -21,15 +21,16 @@
 from .. import qtall as qt
 
 from .. import document
-from .. import dataimport
+from .. import dataimport  # noqa: F401  (import side-effect: registers Import* commands via registerImportCommand)
 from . import plotwindow
 
 """
 A simple window class for wrapping a plotwindow
 """
 
+
 class SimpleWindow(qt.QMainWindow):
-    """ The main window class for the application."""
+    """The main window class for the application."""
 
     def __init__(self, title, doc=None):
         qt.QMainWindow.__init__(self)
@@ -43,7 +44,7 @@ class SimpleWindow(qt.QMainWindow):
         self.plot = plotwindow.PlotWindow(self.document, self)
         self.toolbar = None
 
-        self.setCentralWidget( self.plot )
+        self.setCentralWidget(self.plot)
 
     def enableToolbar(self, enable=True):
         """Enable or disable the zoom toolbar in this window."""
@@ -65,11 +66,11 @@ class SimpleWindow(qt.QMainWindow):
         'width': zoom to fit width
         'height': zoom to fit height
         """
-        if zoom == 'page':
+        if zoom == "page":
             self.plot.slotViewZoomPage()
-        elif zoom == 'width':
+        elif zoom == "width":
             self.plot.slotViewZoomWidth()
-        elif zoom == 'height':
+        elif zoom == "height":
             self.plot.slotViewZoomHeight()
         else:
             self.plot.setZoomFactor(zoom)
