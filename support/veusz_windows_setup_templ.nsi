@@ -176,9 +176,18 @@ Section Uninstall
   Delete "$SMPROGRAMS\Veusz\Veusz.lnk"
   RMDir "$SMPROGRAMS\Veusz"
 
-  ; recursively remove the whole install directory. RMDir /r deletes nested
-  ; subdirectories that the per-file deletion above cannot empty
-  RMDir /r "$INSTDIR"
+  ; Remove uninstaller itself. Deleting a running executable fails silently
+  ; under NSIS (Windows blocks it) and is overwritten by the next install's
+  ; WriteUninstaller, so this never hangs. Do NOT use RMDir /r here: it would
+  ; try to delete the running uninst.exe and stall the whole uninstall (and,
+  ; during install-over-old-version, block the installer's ExecWait on it).
+  Delete "$INSTDIR\uninst.exe"
+
+  ; per-file Deletes + RMDir (generated from the file list) already removed
+  ; every installed file and emptied subdirectories. Remove the (now empty)
+  ; install root; any file left (e.g. one created by the running app) is
+  ; intentionally left for the next install to overwrite.
+  RMDir "$INSTDIR"
 
   ; clean up registry
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"

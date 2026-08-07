@@ -1159,7 +1159,6 @@ Section "MainSection" SEC01
   File "${PYINST_DIR}\examples\nd.vsz"
   File "${PYINST_DIR}\examples\polar.vsz"
   File "${PYINST_DIR}\examples\profile.vsz"
-  File "${PYINST_DIR}\examples\proportional.vsz"
   File "${PYINST_DIR}\examples\shapes.vsz"
   File "${PYINST_DIR}\examples\sin.vsz"
   File "${PYINST_DIR}\examples\sin_byhand.vsz"
@@ -1169,6 +1168,7 @@ Section "MainSection" SEC01
   File "${PYINST_DIR}\examples\ternary.vsz"
   File "${PYINST_DIR}\examples\tutorialdata.csv"
   File "${PYINST_DIR}\examples\vectorfield.vsz"
+  File "${PYINST_DIR}\examples\xypie.vsz"
 
   SetOutPath "$INSTDIR\h5py"
   File "${PYINST_DIR}\h5py\_conv.cp313-win_amd64.pyd"
@@ -1230,7 +1230,6 @@ Section "MainSection" SEC01
   File "${PYINST_DIR}\icons\button_point3d.svg"
   File "${PYINST_DIR}\icons\button_polar.svg"
   File "${PYINST_DIR}\icons\button_polygon.svg"
-  File "${PYINST_DIR}\icons\button_proportions.svg"
   File "${PYINST_DIR}\icons\button_rect.svg"
   File "${PYINST_DIR}\icons\button_scene3d.svg"
   File "${PYINST_DIR}\icons\button_surface3d.svg"
@@ -1239,6 +1238,7 @@ Section "MainSection" SEC01
   File "${PYINST_DIR}\icons\button_vectorfield.svg"
   File "${PYINST_DIR}\icons\button_volume3d.svg"
   File "${PYINST_DIR}\icons\button_xy.svg"
+  File "${PYINST_DIR}\icons\button_xypie.svg"
   File "${PYINST_DIR}\icons\error_bar.svg"
   File "${PYINST_DIR}\icons\error_barbox.svg"
   File "${PYINST_DIR}\icons\error_barcurve.svg"
@@ -1890,6 +1890,7 @@ Section Uninstall
   Delete "$INSTDIR\icons\error_barcurve.svg"
   Delete "$INSTDIR\icons\error_barbox.svg"
   Delete "$INSTDIR\icons\error_bar.svg"
+  Delete "$INSTDIR\icons\button_xypie.svg"
   Delete "$INSTDIR\icons\button_xy.svg"
   Delete "$INSTDIR\icons\button_volume3d.svg"
   Delete "$INSTDIR\icons\button_vectorfield.svg"
@@ -1898,7 +1899,6 @@ Section Uninstall
   Delete "$INSTDIR\icons\button_surface3d.svg"
   Delete "$INSTDIR\icons\button_scene3d.svg"
   Delete "$INSTDIR\icons\button_rect.svg"
-  Delete "$INSTDIR\icons\button_proportions.svg"
   Delete "$INSTDIR\icons\button_polygon.svg"
   Delete "$INSTDIR\icons\button_polar.svg"
   Delete "$INSTDIR\icons\button_point3d.svg"
@@ -1960,6 +1960,7 @@ Section Uninstall
   Delete "$INSTDIR\h5py\_conv.cp313-win_amd64.pyd"
   RMDir "$INSTDIR\h5py"
 
+  Delete "$INSTDIR\examples\xypie.vsz"
   Delete "$INSTDIR\examples\vectorfield.vsz"
   Delete "$INSTDIR\examples\tutorialdata.csv"
   Delete "$INSTDIR\examples\ternary.vsz"
@@ -1969,7 +1970,6 @@ Section Uninstall
   Delete "$INSTDIR\examples\sin_byhand.vsz"
   Delete "$INSTDIR\examples\sin.vsz"
   Delete "$INSTDIR\examples\shapes.vsz"
-  Delete "$INSTDIR\examples\proportional.vsz"
   Delete "$INSTDIR\examples\profile.vsz"
   Delete "$INSTDIR\examples\polar.vsz"
   Delete "$INSTDIR\examples\nd.vsz"
@@ -3028,9 +3028,18 @@ Section Uninstall
   Delete "$SMPROGRAMS\Veusz\Veusz.lnk"
   RMDir "$SMPROGRAMS\Veusz"
 
-  ; recursively remove the whole install directory. RMDir /r deletes nested
-  ; subdirectories that the per-file deletion above cannot empty
-  RMDir /r "$INSTDIR"
+  ; Remove uninstaller itself. Deleting a running executable fails silently
+  ; under NSIS (Windows blocks it) and is overwritten by the next install's
+  ; WriteUninstaller, so this never hangs. Do NOT use RMDir /r here: it would
+  ; try to delete the running uninst.exe and stall the whole uninstall (and,
+  ; during install-over-old-version, block the installer's ExecWait on it).
+  Delete "$INSTDIR\uninst.exe"
+
+  ; per-file Deletes + RMDir (generated from the file list) already removed
+  ; every installed file and emptied subdirectories. Remove the (now empty)
+  ; install root; any file left (e.g. one created by the running app) is
+  ; intentionally left for the next install to overwrite.
+  RMDir "$INSTDIR"
 
   ; clean up registry
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
