@@ -1501,10 +1501,11 @@ class MainWindow(qt.QMainWindow):
                     | qt.QMessageBox.StandardButton.Cancel
                 )
                 filename = None
-                if msgbox.exec() == qt.QMessageBox.StandardButton.Yes:
+                res = msgbox.exec()
+                if res == qt.QMessageBox.StandardButton.Yes:
                     filename = qt.QFileDialog.getOpenFileName(self, "Choose data file")
                     filename = filename[0] if filename else None
-                elif res == qt.QMessageBox.Ignore:
+                elif res == qt.QMessageBox.StandardButton.Ignore:
                     filename = False
             return filename
 

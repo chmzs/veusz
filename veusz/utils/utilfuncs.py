@@ -814,7 +814,7 @@ class DisabledIconEngine(qt.QIconEngine):
         return size
 
     def clone(self):
-        return GreyIconEngine(self.icon)
+        return DisabledIconEngine(self.icon)
 
     def iconName(self):
         return ""
