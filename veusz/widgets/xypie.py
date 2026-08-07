@@ -322,8 +322,15 @@ class XYPie(plotters.GenericPlotter):
         """Per-point radii, area proportional to scalePoints (radius~sqrt)."""
         s = self.settings
         scalev = s.get("scalePoints").getData(self.document)
-        if scalev is not None and scalev.data is not None:
+        if scalev is not None and scalev.data is not None and len(scalev.data) > 0:
+            # slice to at most npts; if scalePoints is shorter than the main
+            # data, pad the missing points with the default size so we always
+            # return a full-length array (avoids IndexError in dataDraw)
             scales = N.asarray(scalev.data, dtype=float)[:npts]
+            if len(scales) < npts:
+                scales = N.concatenate(
+                    [scales, N.full(npts - len(scales), N.nan)]
+                )
             smax = N.nanmax(scales) if len(scales) else 0.0
             if smax > 0:
                 radii = markersize * N.sqrt(N.abs(scales)) / N.sqrt(smax)
