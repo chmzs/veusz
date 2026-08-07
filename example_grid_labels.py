@@ -20,7 +20,7 @@ import veusz.qtall as qt  # noqa: E402  (must create QApplication first)
 
 app = qt.QApplication([])
 
-import veusz.widgets  # noqa: E402  (register widget types in factory — import side-effect)
+import veusz.widgets  # noqa: E402,F401  (register widget types in factory — import side-effect)
 from veusz import document  # noqa: E402
 from veusz.document import operations  # noqa: E402
 from veusz.plugins.toolsplugin import GridGraphLabels  # noqa: E402
