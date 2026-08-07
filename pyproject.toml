@@ -7,3 +7,28 @@ requires = [
     "PyQt6",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+# Target Python version for syntax-validity checks. Must match the pixi
+# environment interpreter (currently 3.13.14); bump together with pixi.toml
+# python requirement. Prevents ruff (and agents) from emitting code using
+# newer syntax than the runtime supports.
+target-version = "py313"
+
+[tool.ruff.lint]
+# Exempt historical (pre-existing) style/structural rules so `ruff check`
+# gives a clean baseline while still flagging real defects.
+# These ignores were chosen after auditing the full-repo lint output
+# (324 pre-existing errors) — see project notes.
+ignore = [
+    "E722",  # bare except           (22 pre-existing)
+    "E741",  # ambiguous var name l  (35 pre-existing)
+    "E402",  # import not top-level  (14 pre-existing)
+    "E721",  # type()== comparison   (2 pre-existing)
+    "E731",  # lambda assignment     (1 pre-existing)
+    "F403",  # star import           (44 pre-existing)
+    "F405",  # name maybe undefined  (9 pre-existing)
+    "F811",  # redefined unused      (37 pre-existing)
+]
+
+# ruff format . is enabled in pixi.toml; nothing extra needed here.

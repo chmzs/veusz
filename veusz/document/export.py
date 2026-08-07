@@ -33,6 +33,7 @@ from .. import utils
 
 try:
     from . import emf_export
+
     hasemf = True
 except ImportError:
     hasemf = False
@@ -47,17 +48,19 @@ m_inch = 39.370079
 # scale factor for svg dpi
 svg_dpi_scale = 0.1
 
+
 def _(text, disambiguation=None, context="Export"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def getSinglePage(pagenumbers):
     """Check single number of pages or throw exception, else return page number."""
 
     if len(pagenumbers) != 1:
-        raise RuntimeError(
-            'Can only export a single page in this format')
+        raise RuntimeError("Can only export a single page in this format")
     return pagenumbers[0]
+
 
 class ExportRunnable(qt.QRunnable):
     """For running export in thread."""
@@ -80,12 +83,12 @@ class ExportRunnable(qt.QRunnable):
     def renderPage(self, dev, phelper):
         """Render page, clipping."""
         painter = qt.QPainter(dev)
-        painter.setClipRect(qt.QRectF(
-            qt.QPointF(0,0), qt.QPointF(*phelper.pagesize)))
+        painter.setClipRect(qt.QRectF(qt.QPointF(0, 0), qt.QPointF(*phelper.pagesize)))
         painter.save()
         phelper.renderToPainter(painter)
         painter.restore()
         painter.end()
+
 
 class ExportBitmapRunnable(ExportRunnable):
     """Runnable task to export a bitmap."""
@@ -93,61 +96,64 @@ class ExportBitmapRunnable(ExportRunnable):
     def doExport(self):
         """Do the export."""
         ext = os.path.splitext(self.filename)[1].lower()
-        fmt = ext.lstrip('.') # setFormat() doesn't want the leading '.'
-        if fmt == 'jpeg':
-            fmt = 'jpg'
+        fmt = ext.lstrip(".")  # setFormat() doesn't want the leading '.'
+        if fmt == "jpeg":
+            fmt = "jpg"
 
         # create real output image
         size = self.phelpers[0].pagesize
         backqcolor = self.aexport.backqcolor
-        if fmt == 'png':
+        if fmt == "png":
             # transparent output
             image = qt.QImage(
-                int(size[0]), int(size[1]),
-                qt.QImage.Format.Format_ARGB32_Premultiplied)
+                int(size[0]), int(size[1]), qt.QImage.Format.Format_ARGB32_Premultiplied
+            )
         else:
             # non transparent output
-            image = qt.QImage(
-                int(size[0]), int(size[1]),
-                qt.QImage.Format.Format_RGB32)
+            image = qt.QImage(int(size[0]), int(size[1]), qt.QImage.Format.Format_RGB32)
             backqcolor.setAlpha(255)
 
-        image.setDotsPerMeterX(int(self.phelpers[0].dpi[0]*m_inch))
-        image.setDotsPerMeterY(int(self.phelpers[0].dpi[1]*m_inch))
+        image.setDotsPerMeterX(int(self.phelpers[0].dpi[0] * m_inch))
+        image.setDotsPerMeterY(int(self.phelpers[0].dpi[1] * m_inch))
         if backqcolor.alpha() == 0:
-            image.fill(qt.qRgba(0,0,0,0))
+            image.fill(qt.qRgba(0, 0, 0, 0))
         else:
             image.fill(backqcolor.rgb())
 
         # paint to the image
         painter = qt.QPainter(image)
-        painter.setRenderHint(qt.QPainter.RenderHint.Antialiasing, self.aexport.antialias)
-        painter.setRenderHint(qt.QPainter.RenderHint.TextAntialiasing, self.aexport.antialias)
+        painter.setRenderHint(
+            qt.QPainter.RenderHint.Antialiasing, self.aexport.antialias
+        )
+        painter.setRenderHint(
+            qt.QPainter.RenderHint.TextAntialiasing, self.aexport.antialias
+        )
         self.phelpers[0].renderToPainter(painter)
         painter.end()
 
         # write image to disk
         writer = qt.QImageWriter()
-        writer.setFormat(fmt.encode('ascii'))
+        writer.setFormat(fmt.encode("ascii"))
         writer.setFileName(self.filename)
 
-        if fmt == 'png':
+        if fmt == "png":
             # max compression for PNGs (this number comes from the
             # source code)
             writer.setCompression(100)
             writer.setQuality(0)
-        elif fmt == 'tiff':
+        elif fmt == "tiff":
             # enable LZW compression for TIFFs
             writer.setCompression(1)
-        elif fmt == 'jpg':
+        elif fmt == "jpg":
             # enable optimal JPEG compression using new Qt 5.5 options
             writer.setOptimizedWrite(True)
             writer.setProgressiveScanWrite(True)
 
-        if fmt != 'png':
+        if fmt != "png":
             writer.setQuality(self.aexport.quality)
 
         writer.write(image)
+
 
 class ExportPDFRunnable(ExportRunnable):
     """Runnable task to export a PDF file."""
@@ -159,28 +165,37 @@ class ExportPDFRunnable(ExportRunnable):
         printer.setResolution(self.aexport.pdfdpi)
         printer.setFullPage(True)
         printer.setColorMode(
-            qt.QPrinter.ColorMode.Color if self.aexport.color else qt.QPrinter.ColorMode.GrayScale)
+            qt.QPrinter.ColorMode.Color
+            if self.aexport.color
+            else qt.QPrinter.ColorMode.GrayScale
+        )
         printer.setOutputFileName(self.filename)
-        printer.setCreator('Veusz %s' % utils.version())
+        printer.setCreator("Veusz %s" % utils.version())
 
         def updateSize(ph):
             """Update page size in QPrinter"""
-            sizeinchx, sizeinchy = ph.pagesize[0]/ph.dpi[0], ph.pagesize[1]/ph.dpi[1]
+            sizeinchx, sizeinchy = (
+                ph.pagesize[0] / ph.dpi[0],
+                ph.pagesize[1] / ph.dpi[1],
+            )
             pagesize = qt.QPageSize(
-                qt.QSizeF(sizeinchx, sizeinchy), qt.QPageSize.Unit.Inch)
+                qt.QSizeF(sizeinchx, sizeinchy), qt.QPageSize.Unit.Inch
+            )
             layout = qt.QPageLayout(
-                pagesize, qt.QPageLayout.Orientation.Portrait, qt.QMarginsF())
+                pagesize, qt.QPageLayout.Orientation.Portrait, qt.QMarginsF()
+            )
             printer.setPageLayout(layout)
 
         updateSize(self.phelpers[0])
 
         painter = qt.QPainter(printer)
         for i, phelper in enumerate(self.phelpers):
-            if i>0:
+            if i > 0:
                 updateSize(phelper)
                 printer.newPage()
             phelper.renderToPainter(painter)
         painter.end()
+
 
 class ExportPostscriptRunnable(ExportRunnable):
     """Task to export .ps/.eps files."""
@@ -219,20 +234,19 @@ class ExportPostscriptRunnable(ExportRunnable):
                 # check output devices contain
                 #  ps2write/eps2write or pswrite/epswrite
                 popen = subprocess.Popen(
-                    [gs_exe, '-h'],
-                    stdout=subprocess.PIPE,
-                    universal_newlines=True)
+                    [gs_exe, "-h"], stdout=subprocess.PIPE, universal_newlines=True
+                )
                 text = popen.stdout.read()
 
-                if re.search(r'\beps2write\b', text):
-                    dev['.eps'] = 'eps2write'
-                elif re.search(r'\bepswrite\b', text):
-                    dev['.eps'] = 'epswrite'
-                if re.search(r'\bps2write\b', text):
-                    dev['.ps'] = 'ps2write'
-                elif re.search(r'\bpswrite\b', text):
-                    dev['.ps'] = 'pswrite'
-            except Exception as e:
+                if re.search(r"\beps2write\b", text):
+                    dev[".eps"] = "eps2write"
+                elif re.search(r"\bepswrite\b", text):
+                    dev[".eps"] = "epswrite"
+                if re.search(r"\bps2write\b", text):
+                    dev[".ps"] = "ps2write"
+                elif re.search(r"\bpswrite\b", text):
+                    dev[".ps"] = "pswrite"
+            except Exception:
                 pass
             else:
                 klass.gs_exe = gs_exe
@@ -248,10 +262,8 @@ class ExportPostscriptRunnable(ExportRunnable):
 
         # write to pdf file first
         ext = os.path.splitext(self.filename)[1].lower()
-        tmpfilepdf = "%s.tmp.%i.pdf" % (
-            self.filename, random.randint(0,1000000))
-        tmpfileps = "%s.tmp.%i%s" % (
-            self.filename, random.randint(0,1000000), ext)
+        tmpfilepdf = "%s.tmp.%i.pdf" % (self.filename, random.randint(0, 1000000))
+        tmpfileps = "%s.tmp.%i%s" % (self.filename, random.randint(0, 1000000), ext)
 
         pdfrunnable = ExportPDFRunnable(self.aexport, tmpfilepdf, self.phelpers)
         pdfrunnable.run()
@@ -259,11 +271,15 @@ class ExportPostscriptRunnable(ExportRunnable):
         # run ghostscript to covert from pdf to postscript
         cmd = [
             self.gs_exe,
-            '-q', '-dNOCACHE', '-dNOPAUSE', '-dBATCH', '-dSAFER',
-            '-sDEVICE=%s' % self.gs_dev[ext],
-            '-sOutputFile=%s' % tmpfileps,
-            tmpfilepdf
-            ]
+            "-q",
+            "-dNOCACHE",
+            "-dNOPAUSE",
+            "-dBATCH",
+            "-dSAFER",
+            "-sDEVICE=%s" % self.gs_dev[ext],
+            "-sOutputFile=%s" % tmpfileps,
+            tmpfilepdf,
+        ]
         try:
             subprocess.check_call(cmd)
         except Exception as e:
@@ -279,20 +295,24 @@ class ExportPostscriptRunnable(ExportRunnable):
             pass
         os.rename(tmpfileps, self.filename)
 
+
 class ExportSVGRunnable(ExportRunnable):
     """Runnable task to export an SVG file."""
 
     def doExport(self):
         sdpi = self.phelpers[0].dpi
         size = self.phelpers[0].pagesize
-        with codecs.open(self.filename, 'w', 'utf-8') as f:
+        with codecs.open(self.filename, "w", "utf-8") as f:
             paintdev = svg_export.SVGPaintDevice(
                 f,
-                size[0]/sdpi[0], size[1]/sdpi[1],
+                size[0] / sdpi[0],
+                size[1] / sdpi[1],
                 writetextastext=self.aexport.svgtextastext,
-                dpi=sdpi[1]*svg_dpi_scale,
-                scale=svg_dpi_scale)
+                dpi=sdpi[1] * svg_dpi_scale,
+                scale=svg_dpi_scale,
+            )
             self.renderPage(paintdev, self.phelpers[0])
+
 
 class ExportSelfTestRunnable(ExportRunnable):
     """Runnable task to export a self-test output."""
@@ -300,12 +320,12 @@ class ExportSelfTestRunnable(ExportRunnable):
     def doExport(self):
         sdpi = self.phelpers[0].dpi
         size = self.phelpers[0].pagesize
-        with codecs.open(self.filename, 'w', 'utf-8') as f:
+        with codecs.open(self.filename, "w", "utf-8") as f:
             paintdev = selftest_export.SelfTestPaintDevice(
-                f,
-                size[0]/sdpi[0], size[1]/sdpi[1],
-                dpi=sdpi[1])
+                f, size[0] / sdpi[0], size[1] / sdpi[1], dpi=sdpi[1]
+            )
             self.renderPage(paintdev, self.phelpers[0])
+
 
 class ExportPICRunnable(ExportRunnable):
     """Runnable task to export Qt PIC output."""
@@ -315,6 +335,7 @@ class ExportPICRunnable(ExportRunnable):
         self.renderPage(paintdev, self.phelpers[0])
         paintdev.save(self.filename)
 
+
 class ExportEMFRunnable(ExportRunnable):
     """Runnable task to export EMF output."""
 
@@ -322,9 +343,11 @@ class ExportEMFRunnable(ExportRunnable):
         dpi = self.phelpers[0].dpi
         size = self.phelpers[0].pagesize
         paintdev = emf_export.EMFPaintDevice(
-            size[0]/dpi[0], size[1]/dpi[1], dpi=dpi[1])
+            size[0] / dpi[0], size[1] / dpi[1], dpi=dpi[1]
+        )
         self.renderPage(paintdev, self.phelpers[0])
         paintdev.paintEngine().saveFile(self.filename)
+
 
 class AsyncExport(qt.QObject):
     """Asynchronous export.
@@ -338,39 +361,48 @@ class AsyncExport(qt.QObject):
 
         # supported formats by qt
         supported = {
-            bytes(fmt).decode('utf8')
-            for fmt in qt.QImageReader.supportedImageFormats() }
+            bytes(fmt).decode("utf8") for fmt in qt.QImageReader.supportedImageFormats()
+        }
 
         formats = [
             (["pdf"], _("Portable Document Format")),
             (["svg"], _("Scalable Vector Graphics")),
         ]
         for fmt in [
-                (["bmp"], _("Windows bitmap")),
-                (["jpg"], _("Jpeg bitmap")),
-                (["png"], _("Portable Network Graphics")),
-                (["tiff"], _("Tagged Image File Format bitmap")),
-                (["xpm"], _("X Pixmap")),
-                (["webp"], _("WebP")),
-            ]:
+            (["bmp"], _("Windows bitmap")),
+            (["jpg"], _("Jpeg bitmap")),
+            (["png"], _("Portable Network Graphics")),
+            (["tiff"], _("Tagged Image File Format bitmap")),
+            (["xpm"], _("X Pixmap")),
+            (["webp"], _("WebP")),
+        ]:
             if fmt[0][0] in supported:
                 formats.append(fmt)
 
         if hasemf:
-            formats.append( (["emf"], _("Windows Enhanced Metafile")) )
+            formats.append((["emf"], _("Windows Enhanced Metafile")))
 
         ExportPostscriptRunnable.searchGhostscript()
-        if '.eps' in ExportPostscriptRunnable.gs_dev:
+        if ".eps" in ExportPostscriptRunnable.gs_dev:
             formats.append((["eps"], _("Encapsulated Postscript")))
-        if '.ps' in ExportPostscriptRunnable.gs_dev:
+        if ".ps" in ExportPostscriptRunnable.gs_dev:
             formats.append((["ps"], _("Postscript")))
 
         formats.sort()
         return formats
 
-    def __init__(self, doc, color=True, bitmapdpi=100,
-                 antialias=True, quality=85, backcolor='#ffffff00',
-                 pdfdpi=72, svgdpi=96, svgtextastext=False):
+    def __init__(
+        self,
+        doc,
+        color=True,
+        bitmapdpi=100,
+        antialias=True,
+        quality=85,
+        backcolor="#ffffff00",
+        pdfdpi=72,
+        svgdpi=96,
+        svgtextastext=False,
+    ):
         """Initialise export class. Parameters are:
         doc: document to write
         color: use color or try to use monochrome
@@ -402,9 +434,7 @@ class AsyncExport(qt.QObject):
 
         # pool that export threads use to execute
         self.pool = qt.QThreadPool(self)
-        self.pool.setMaxThreadCount(
-            max(setting.settingdb['plot_numthreads'], 1)
-        )
+        self.pool.setMaxThreadCount(max(setting.settingdb["plot_numthreads"], 1))
 
     def finish(self):
         self.pool.waitForDone()
@@ -424,40 +454,40 @@ class AsyncExport(qt.QObject):
     def getDPI(self, ext):
         """Get DPI to use for filename extension."""
 
-        if ext in {'.pdf', '.eps', '.ps'}:
+        if ext in {".pdf", ".eps", ".ps"}:
             # find closest resolution to supported resolution (usually 72)
             printer = qt.QPrinter()
             printer.setOutputFormat(qt.QPrinter.OutputFormat.PdfFormat)
             res = None
             delta = 9e99
             for dpi in printer.supportedResolutions():
-                d = abs(dpi-self.pdfdpi)
-                if d<delta:
+                d = abs(dpi - self.pdfdpi)
+                if d < delta:
                     delta = d
                     res = dpi
             if res is None:
                 res = 72
             return (res, res)
 
-        elif ext in {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.xpm', '.webp'}:
+        elif ext in {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".xpm", ".webp"}:
             return (self.bitmapdpi, self.bitmapdpi)
 
-        elif ext == '.svg':
+        elif ext == ".svg":
             dpi = self.svgdpi / svg_dpi_scale
             return (dpi, dpi)
 
-        elif ext == '.selftest':
+        elif ext == ".selftest":
             return (90, 90)
 
-        elif ext == '.pic':
+        elif ext == ".pic":
             pic = qt.QPicture()
             return (pic.logicalDpiX(), pic.logicalDpiY())
 
-        elif ext == '.emf':
+        elif ext == ".emf":
             return (90, 90)
 
         else:
-            raise RuntimeError('Unknown export file type')
+            raise RuntimeError("Unknown export file type")
 
     def add(self, filename, pages):
         """Add export to list to be processed.
@@ -479,32 +509,31 @@ class AsyncExport(qt.QObject):
             phelpers.append(phelper)
 
         # single page only formats
-        if len(phelpers) != 1 and ext not in ('.ps', '.pdf'):
-            raise RuntimeError('Only single page allowed for format')
+        if len(phelpers) != 1 and ext not in (".ps", ".pdf"):
+            raise RuntimeError("Only single page allowed for format")
 
         # make a runnable task for the right file type
         runnable = {
-            '.png': ExportBitmapRunnable,
-            '.jpg': ExportBitmapRunnable,
-            '.jpeg': ExportBitmapRunnable,
-            '.bmp': ExportBitmapRunnable,
-            '.tiff': ExportBitmapRunnable,
-            '.xpm': ExportBitmapRunnable,
-            '.webp': ExportBitmapRunnable,
-
-            '.pdf': ExportPDFRunnable,
-            '.ps': ExportPostscriptRunnable,
-            '.eps': ExportPostscriptRunnable,
-
-            '.svg': ExportSVGRunnable,
-            '.selftest': ExportSelfTestRunnable,
-            '.pic': ExportPICRunnable,
-            '.emf': ExportEMFRunnable,
+            ".png": ExportBitmapRunnable,
+            ".jpg": ExportBitmapRunnable,
+            ".jpeg": ExportBitmapRunnable,
+            ".bmp": ExportBitmapRunnable,
+            ".tiff": ExportBitmapRunnable,
+            ".xpm": ExportBitmapRunnable,
+            ".webp": ExportBitmapRunnable,
+            ".pdf": ExportPDFRunnable,
+            ".ps": ExportPostscriptRunnable,
+            ".eps": ExportPostscriptRunnable,
+            ".svg": ExportSVGRunnable,
+            ".selftest": ExportSelfTestRunnable,
+            ".pic": ExportPICRunnable,
+            ".emf": ExportEMFRunnable,
         }[ext](self, filename, phelpers)
 
         self.pool.start(runnable)
 
-def printPages(doc, printer, pages, scaling=1., antialias=False, setsizes=False):
+
+def printPages(doc, printer, pages, scaling=1.0, antialias=False, setsizes=False):
     """Print onto printing device.
     Returns list of page sizes
     setsizes: Set page size on printer to page sizes
@@ -519,11 +548,13 @@ def printPages(doc, printer, pages, scaling=1., antialias=False, setsizes=False)
         size = doc.pageSize(page, dpi=dpi, integer=False)
         if setsizes:
             # update paper size on printer
-            sizeinchx, sizeinchy = size[0]/dpi[0], size[1]/dpi[1]
+            sizeinchx, sizeinchy = size[0] / dpi[0], size[1] / dpi[1]
             pagesize = qt.QPageSize(
-                qt.QSizeF(sizeinchx, sizeinchy), qt.QPageSize.Unit.Inch)
+                qt.QSizeF(sizeinchx, sizeinchy), qt.QPageSize.Unit.Inch
+            )
             layout = qt.QPageLayout(
-                pagesize, qt.QPageLayout.Orientation.Portrait, qt.QMarginsF())
+                pagesize, qt.QPageLayout.Orientation.Portrait, qt.QMarginsF()
+            )
             printer.setPageLayout(layout)
         return size
 
@@ -545,24 +576,24 @@ def printPages(doc, printer, pages, scaling=1., antialias=False, setsizes=False)
         phelper.renderToPainter(painter)
 
         # start new pages between each page
-        if count < len(filtpages)-1:
+        if count < len(filtpages) - 1:
             # set page size before newPage!
-            size = getUpdateSize(pages[count+1])
+            size = getUpdateSize(pages[count + 1])
             printer.newPage()
 
     painter.end()
+
 
 def printDialog(parentwindow, document, filename=None):
     """Open a print dialog and print document."""
 
     if not document.getVisiblePages():
-        qt.QMessageBox.warning(
-            parentwindow, _("Error - Veusz"), _("No pages to print"))
+        qt.QMessageBox.warning(parentwindow, _("Error - Veusz"), _("No pages to print"))
         return
 
     prnt = qt.QPrinter(qt.QPrinter.PrinterMode.HighResolution)
     prnt.setColorMode(qt.QPrinter.ColorMode.Color)
-    prnt.setCreator(_('Veusz %s') % utils.version())
+    prnt.setCreator(_("Veusz %s") % utils.version())
     if filename:
         prnt.setDocName(filename)
 
@@ -583,9 +614,9 @@ def printDialog(parentwindow, document, filename=None):
 
         # reverse or forward order
         if prnt.pageOrder() == qt.QPrinter.PageOrder.FirstPageFirst:
-            pages = list(range(minval, maxval+1))
+            pages = list(range(minval, maxval + 1))
         else:
-            pages = list(range(maxval, minval-1, -1))
+            pages = list(range(maxval, minval - 1, -1))
 
         # if more copies are requested
         pages *= prnt.copyCount()

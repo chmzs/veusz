@@ -9,6 +9,8 @@ channels = ["conda-forge"]
 
 [dependencies]
 # 仅 Python 解释器 + Qt 开发工具从 conda；所有运行时/构建依赖走 pip
+# NOTE: 若升级此处 python 下限到新主版本，请同步更新 pyproject.toml 的
+#       [tool.ruff] target-version（ruff 语法基准须匹配运行时解释器）。
 python = ">=3.10,<3.14"
 pyqt6 = ">=6.10"     # from conda-forge, linked to qt6-main
 pip = "*"
