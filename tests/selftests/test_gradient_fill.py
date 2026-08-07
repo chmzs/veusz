@@ -846,6 +846,63 @@ class TestCSVSidecar(unittest.TestCase):
         self.assertEqual(set(names), {"x", "y"})
 
 
+class TestRenderExamples2D(unittest.TestCase):
+    """Render every 2D example document and assert it does not crash.
+
+    Guards against regressions in widget/drawing code touched by broad
+    lint cleanups (e.g. F841 unused-variable removal). 3D examples are
+    intentionally excluded (no stable selftest baseline; verified ad-hoc).
+    """
+
+    def test_render_all_2d_examples(self):
+        import glob
+        import tempfile
+
+        from veusz import document
+        from veusz import dataimport  # noqa: F401  register Import* commands
+        from veusz import widgets  # noqa: F401  register widget types (side-effect)
+        import veusz.windows.mainwindow  # noqa: F401  full init
+
+        example_dir = os.path.join(
+            os.path.dirname(__file__), "..", "..", "examples"
+        )
+        files = [
+            f
+            for f in glob.glob(os.path.join(example_dir, "*.vsz"))
+            if "3d" not in os.path.basename(f)
+        ]
+
+        # A single assert so loadTestsFromModule discovers this as one test;
+        # collect failures across all examples rather than stopping early.
+        # Use a temp dir (not NamedTemporaryFile) -- Windows keeps the file
+        # handle open, blocking Veusz export.
+        tmpdir = tempfile.mkdtemp(prefix="veusz_render_")
+        failed = []
+        try:
+            for f in files:
+                doc = document.Document()
+                try:
+                    doc.load(f, mode="vsz")
+                    ifc = document.CommandInterface(doc)
+                    out = os.path.join(
+                        tmpdir, os.path.basename(f) + ".svg"
+                    )
+                    ifc.Export(out)
+                except Exception as e:  # noqa: BLE001 - report any render failure
+                    failed.append(
+                        "%s: %s: %s"
+                        % (os.path.basename(f), type(e).__name__, e)
+                    )
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+        self.assertEqual(
+            failed, [], "2D example render failures:\n" + "\n".join(failed)
+        )
+
+
 def main(outfile):
     """Run tests and write success marker to outfile."""
     loader = unittest.TestLoader()
