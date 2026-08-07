@@ -20,6 +20,7 @@
 
 from .. import qtall as qt
 
+
 class ClickLabel(qt.QLabel):
     """A QLabel which emits click events."""
 

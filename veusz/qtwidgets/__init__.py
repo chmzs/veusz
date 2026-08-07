@@ -32,11 +32,11 @@ from . import clicklabel
 
 # insert widgets into the list of modules so that it can be found
 # by loadUi (any better way to do this?)
-sys.modules['historycombo'] = historycombo
-sys.modules['historycheck'] = historycheck
-sys.modules['historyvaluecombo'] = historyvaluecombo
-sys.modules['historygroupbox'] = historygroupbox
-sys.modules['historyspinbox'] = historyspinbox
-sys.modules['recentfilesbutton'] = recentfilesbutton
-sys.modules['lineeditwithclear'] = lineeditwithclear
-sys.modules['clicklabel'] = clicklabel
+sys.modules["historycombo"] = historycombo
+sys.modules["historycheck"] = historycheck
+sys.modules["historyvaluecombo"] = historyvaluecombo
+sys.modules["historygroupbox"] = historygroupbox
+sys.modules["historyspinbox"] = historyspinbox
+sys.modules["recentfilesbutton"] = recentfilesbutton
+sys.modules["lineeditwithclear"] = lineeditwithclear
+sys.modules["clicklabel"] = clicklabel

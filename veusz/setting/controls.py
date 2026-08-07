@@ -19,10 +19,10 @@
 ##############################################################################
 
 """Module for creating QWidgets for the settings, to enable their values
-   to be changed.
+to be changed.
 
-    These widgets emit settingChanged(control, setting, val) when the setting is
-    changed. The creator should use this to change the setting.
+ These widgets emit settingChanged(control, setting, val) when the setting is
+ changed. The creator should use this to change the setting.
 """
 
 import re
@@ -31,48 +31,61 @@ import numpy as N
 
 from .. import qtall as qt
 from .settingdb import settingdb
-from . import setting
 from .. import utils
+
 
 def _(text, disambiguation=None, context="Setting"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 def styleClear(widget):
     """Return widget to default"""
     widget.setStyleSheet("")
 
+
 def styleError(widget):
     """Show error state on widget."""
-    widget.setStyleSheet(
-        "background-color: " + settingdb.color('error').name() )
+    widget.setStyleSheet("background-color: " + settingdb.color("error").name())
+
 
 class DotDotButton(qt.QPushButton):
     """A button for opening up more complex editor."""
+
     def __init__(self, tooltip=None, checkable=True):
         qt.QPushButton.__init__(
-            self, "..", flat=True, checkable=checkable,
-            maximumWidth=16, maximumHeight=16)
+            self,
+            "..",
+            flat=True,
+            checkable=checkable,
+            maximumWidth=16,
+            maximumHeight=16,
+        )
         if tooltip:
             self.setToolTip(tooltip)
         self.setSizePolicy(qt.QSizePolicy.Policy.Maximum, qt.QSizePolicy.Policy.Maximum)
-        self.setStyleSheet('QPushButton { padding: 0; }')
+        self.setStyleSheet("QPushButton { padding: 0; }")
+
 
 class AddButton(qt.QPushButton):
     """A button to add item."""
+
     def __init__(self):
         qt.QPushButton.__init__(self, "+", flat=True)
         self.setFixedWidth(24)
-        self.setToolTip('Add another item')
-        self.setStyleSheet('QPushButton { padding: 0; }')
+        self.setToolTip("Add another item")
+        self.setStyleSheet("QPushButton { padding: 0; }")
+
 
 class SubButton(qt.QPushButton):
     """A button to subtract item."""
+
     def __init__(self):
         qt.QPushButton.__init__(self, "-", flat=True)
         self.setFixedWidth(24)
-        self.setToolTip('Remove item')
-        self.setStyleSheet('QPushButton { padding: 0; }')
+        self.setToolTip("Remove item")
+        self.setStyleSheet("QPushButton { padding: 0; }")
+
 
 class Edit(qt.QLineEdit):
     """Main control for editing settings which are text."""
@@ -85,7 +98,7 @@ class Edit(qt.QLineEdit):
         qt.QLineEdit.__init__(self, parent)
         self.setting = setting
 
-        self.setText( setting.toUIText() )
+        self.setText(setting.toUIText())
         self.editingFinished.connect(self.validateAndSet)
         self.setting.setOnModified(self.onModified)
 
@@ -107,7 +120,8 @@ class Edit(qt.QLineEdit):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.setText( self.setting.toUIText() )
+        self.setText(self.setting.toUIText())
+
 
 class _EditBox(qt.QTextEdit):
     """A popup edit box to support editing long text sections.
@@ -142,8 +156,10 @@ class _EditBox(qt.QTextEdit):
 
     def eventFilter(self, obj, event):
         """Grab clicks outside this window to close it."""
-        if ( isinstance(event, qt.QMouseEvent) and
-             event.buttons() != qt.Qt.MouseButton.NoButton ):
+        if (
+            isinstance(event, qt.QMouseEvent)
+            and event.buttons() != qt.Qt.MouseButton.NoButton
+        ):
             frame = qt.QRect(0, 0, self.width(), self.height())
             if not frame.contains(event.pos()):
                 self.close()
@@ -165,16 +181,17 @@ class _EditBox(qt.QTextEdit):
 
     def sizeHint(self):
         """A reasonable size for the text editor."""
-        return qt.QSize(self.spacing*40, self.spacing*3)
+        return qt.QSize(self.spacing * 40, self.spacing * 3)
 
     def closeEvent(self, event):
         """Tell the calling widget that we are closing, and provide
         the new text."""
 
         text = self.toPlainText()
-        text = text.replace('\n', '')
+        text = text.replace("\n", "")
         self.closing.emit(text)
         event.accept()
+
 
 class String(qt.QWidget):
     """A line editor which allows editting in a larger popup window."""
@@ -187,7 +204,7 @@ class String(qt.QWidget):
 
         layout = qt.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         self.edit = qt.QLineEdit()
@@ -197,7 +214,7 @@ class String(qt.QWidget):
         layout.addWidget(b)
 
         # set the text of the widget to the
-        self.edit.setText( setting.toUIText() )
+        self.edit.setText(setting.toUIText())
 
         self.edit.editingFinished.connect(self.validateAndSet)
         b.toggled.connect(self.buttonToggled)
@@ -212,8 +229,7 @@ class String(qt.QWidget):
 
         # if button is down and there's no existing popup, bring up a new one
         if on:
-            e = _EditBox(
-                self.edit.text(), self.setting.readonly, self.button)
+            e = _EditBox(self.edit.text(), self.setting.readonly, self.button)
 
             # we get notified with text when the popup closes
             e.closing.connect(self.boxClosing)
@@ -246,7 +262,8 @@ class String(qt.QWidget):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.edit.setText( self.setting.toUIText() )
+        self.edit.setText(self.setting.toUIText())
+
 
 class Int(qt.QSpinBox):
     """A control for changing an integer."""
@@ -278,8 +295,9 @@ class Int(qt.QSpinBox):
     def onModified(self):
         """called when the setting is changed remotely"""
         self.ignorechange = True
-        self.setValue( self.setting.val )
+        self.setValue(self.setting.val)
         self.ignorechange = False
+
 
 class FloatSlider(qt.QWidget):
     """A slider control for a numerical value.
@@ -299,10 +317,10 @@ class FloatSlider(qt.QWidget):
         self.setLayout(layout)
 
         s = self.slider = qt.QSlider(qt.Qt.Orientation.Horizontal)
-        s.setMinimum(int(setting.minval/setting.scale))
-        s.setMaximum(int(setting.maxval/setting.scale))
-        s.setPageStep(int(setting.step/setting.scale))
-        s.setTickInterval(int(setting.tick/setting.scale))
+        s.setMinimum(int(setting.minval / setting.scale))
+        s.setMaximum(int(setting.maxval / setting.scale))
+        s.setPageStep(int(setting.step / setting.scale))
+        s.setTickInterval(int(setting.tick / setting.scale))
         s.setTickPosition(qt.QSlider.TickPosition.TicksAbove)
         layout.addWidget(self.slider)
 
@@ -326,14 +344,13 @@ class FloatSlider(qt.QWidget):
 
     def movedPosition(self, val):
         """Someone dragged the slider."""
-        self.sigSettingChanged.emit(
-            self, self.setting, float(val)*self.setting.scale)
+        self.sigSettingChanged.emit(self, self.setting, float(val) * self.setting.scale)
 
     @qt.pyqtSlot()
     def onModified(self):
         self.edit.setText(self.setting.toUIText())
-        self.slider.setValue(int(round(
-            self.setting.get()/self.setting.scale)))
+        self.slider.setValue(int(round(self.setting.get() / self.setting.scale)))
+
 
 class Bool(qt.QCheckBox):
     """A check box for changing a bool setting."""
@@ -343,8 +360,11 @@ class Bool(qt.QCheckBox):
     def __init__(self, setting, parent):
         qt.QCheckBox.__init__(self, parent)
 
-        self.setSizePolicy( qt.QSizePolicy(
-            qt.QSizePolicy.Policy.MinimumExpanding, qt.QSizePolicy.Policy.Fixed) )
+        self.setSizePolicy(
+            qt.QSizePolicy(
+                qt.QSizePolicy.Policy.MinimumExpanding, qt.QSizePolicy.Policy.Fixed
+            )
+        )
 
         self.ignorechange = False
         self.setting = setting
@@ -368,8 +388,9 @@ class Bool(qt.QCheckBox):
     def onModified(self):
         """called when the setting is changed remotely"""
         self.ignorechange = True
-        self.setChecked( self.setting.val )
+        self.setChecked(self.setting.val)
         self.ignorechange = False
+
 
 class BoolSwitch(Bool):
     """Bool for switching off/on other settings."""
@@ -390,17 +411,25 @@ class BoolSwitch(Bool):
         else:
             show, hide = s2, s1
 
-        if hasattr(self.parent(), 'showHideSettings'):
+        if hasattr(self.parent(), "showHideSettings"):
             self.parent().showHideSettings(show, hide)
+
 
 class Choice(qt.QComboBox):
     """For choosing between a set of values."""
 
     sigSettingChanged = qt.pyqtSignal(qt.QObject, object, object)
 
-    def __init__(self, setting, iseditable, vallist, parent, icons=None,
-                 uilist=None,
-                 descriptions=None):
+    def __init__(
+        self,
+        setting,
+        iseditable,
+        vallist,
+        parent,
+        icons=None,
+        uilist=None,
+        descriptions=None,
+    ):
         qt.QComboBox.__init__(self, parent)
 
         self.setting = setting
@@ -410,14 +439,15 @@ class Choice(qt.QComboBox):
 
         # stops combobox readjusting in size to fit contents
         self.setSizeAdjustPolicy(
-            qt.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            qt.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
 
         # whether to show ui text to replace some items
         toadd = uilist if uilist is not None else vallist
 
         if icons is None:
             # add items to list (text only)
-            self.addItems( list(toadd) )
+            self.addItems(list(toadd))
         else:
             # add pixmaps and text to list
             for icon, text in zip(icons, toadd):
@@ -436,7 +466,7 @@ class Choice(qt.QComboBox):
             # for cases when this is editable
             # set the text of the widget to the setting
             assert iseditable
-            self.setEditText( setting.toUIText() )
+            self.setEditText(setting.toUIText())
 
         # if a different item is selected
         self.textActivated[str].connect(self.slotActivated)
@@ -453,7 +483,7 @@ class Choice(qt.QComboBox):
     def focusOutEvent(self, *args):
         """Allows us to check the contents of the widget."""
         qt.QComboBox.focusOutEvent(self, *args)
-        self.slotActivated('')
+        self.slotActivated("")
 
     def slotActivated(self, val):
         """If a different item is chosen."""
@@ -491,6 +521,7 @@ class Choice(qt.QComboBox):
         if self.isEditable():
             self.setEditText(text)
 
+
 class ChoiceSwitch(Choice):
     """Show or hide other settings based on value."""
 
@@ -507,8 +538,9 @@ class ChoiceSwitch(Choice):
     def updateState(self):
         """Set hidden state of settings."""
         show, hide = self.setting.showfn(self.setting.val)
-        if hasattr(self.parent(), 'showHideSettings'):
+        if hasattr(self.parent(), "showHideSettings"):
             self.parent().showHideSettings(show, hide)
+
 
 class FillStyleExtended(ChoiceSwitch):
     """Extended fill style list."""
@@ -520,9 +552,7 @@ class FillStyleExtended(ChoiceSwitch):
             self._generateIcons()
 
         ChoiceSwitch.__init__(
-            self, setting, False,
-            utils.extfillstyles, parent,
-            icons=self._icons
+            self, setting, False, utils.extfillstyles, parent, icons=self._icons
         )
 
     @classmethod
@@ -531,10 +561,11 @@ class FillStyleExtended(ChoiceSwitch):
 
         from .. import document
         from . import collections
+
         brush = collections.BrushExtended("")
-        brush.color = 'black'
-        brush.patternspacing = '5pt'
-        brush.linewidth = '0.5pt'
+        brush.color = "black"
+        brush.patternspacing = "5pt"
+        brush.linewidth = "0.5pt"
 
         size = 12
         cls._icons = icons = []
@@ -543,7 +574,7 @@ class FillStyleExtended(ChoiceSwitch):
         path.addRect(0, 0, size, size)
 
         doc = document.Document()
-        phelper = document.PaintHelper(doc, (1,1))
+        phelper = document.PaintHelper(doc, (1, 1))
 
         for f in utils.extfillstyles:
             pix = qt.QPixmap(size, size)
@@ -555,6 +586,7 @@ class FillStyleExtended(ChoiceSwitch):
             utils.brushExtFillPath(painter, brush, path)
             painter.end()
             icons.append(qt.QIcon(pix))
+
 
 class MultiLine(qt.QTextEdit):
     """For editting multi-line settings."""
@@ -571,7 +603,7 @@ class MultiLine(qt.QTextEdit):
         self.setTabChangesFocus(True)
 
         # set the text of the widget to the
-        self.setPlainText( setting.toUIText() )
+        self.setPlainText(setting.toUIText())
 
         self.setting.setOnModified(self.onModified)
 
@@ -579,8 +611,7 @@ class MultiLine(qt.QTextEdit):
             self.setReadOnly(True)
 
         self.document().contentsChanged.connect(self.onSizeChange)
-        self.document().documentLayout().documentSizeChanged.connect(
-            self.onSizeChange)
+        self.document().documentLayout().documentSizeChanged.connect(self.onSizeChange)
 
         self.heightmin = 0
         self.heightmax = 2048
@@ -612,7 +643,8 @@ class MultiLine(qt.QTextEdit):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.setPlainText( self.setting.toUIText() )
+        self.setPlainText(self.setting.toUIText())
+
 
 class Notes(MultiLine):
     """For editing notes."""
@@ -620,6 +652,7 @@ class Notes(MultiLine):
     def __init__(self, setting, parent):
         MultiLine.__init__(self, setting, parent)
         self.setWordWrapMode(qt.QTextOption.WrapMode.WordWrap)
+
 
 class Distance(Choice):
     """For editing distance settings."""
@@ -632,14 +665,14 @@ class Distance(Choice):
     stripspcre = re.compile(r"\s")
 
     def __init__(self, setting, parent, allowauto=False, physical=False):
-        '''Initialise with blank list, then populate with sensible units.'''
+        """Initialise with blank list, then populate with sensible units."""
         Choice.__init__(self, setting, True, [], parent)
         self.allowauto = allowauto
         self.physical = physical
         self.updateComboList()
 
     def updateComboList(self):
-        '''Populates combo list with sensible list of other possible units.'''
+        """Populates combo list with sensible list of other possible units."""
 
         # turn off signals, so our modifications don't create more signals
         self.blockSignals(True)
@@ -648,22 +681,21 @@ class Distance(Choice):
         text = self.currentText()
 
         # get rid of non-numeric things from the string
-        num = self.stripnumre.sub('', text)
+        num = self.stripnumre.sub("", text)
 
         # here are a list of possible different units the user can choose
         # between. should this be in utils?
-        newitems = [ num+'pt', num+'cm', num+'mm',
-                     num+'in' ]
+        newitems = [num + "pt", num + "cm", num + "mm", num + "in"]
         if not self.physical:
-            newitems += [ num+'%', '1/'+num ]
+            newitems += [num + "%", "1/" + num]
 
         if self.allowauto:
-            newitems.insert(0, 'Auto')
+            newitems.insert(0, "Auto")
 
         # if we're already in this list, we position the current selection
         # to the correct item (up and down keys work properly then)
         # spaces are removed to make sure we get sensible matches
-        spcfree = self.stripspcre.sub('', text)
+        spcfree = self.stripspcre.sub("", text)
         try:
             index = newitems.index(spcfree)
         except ValueError:
@@ -682,30 +714,57 @@ class Distance(Choice):
         self.blockSignals(False)
 
     def slotActivated(self, val):
-        '''Populate the drop down list before activation.'''
+        """Populate the drop down list before activation."""
         self.updateComboList()
         Choice.slotActivated(self, val)
+
 
 class DistancePt(Choice):
     """For editing distances with defaults in points."""
 
     points = (
-        '0pt', '0.25pt', '0.5pt', '1pt', '1.5pt', '2pt', '3pt',
-        '4pt', '5pt', '6pt', '8pt', '10pt', '12pt', '14pt', '16pt',
-        '18pt', '20pt', '22pt', '24pt', '26pt', '28pt', '30pt',
-        '34pt', '40pt', '44pt', '50pt', '60pt', '70pt'
+        "0pt",
+        "0.25pt",
+        "0.5pt",
+        "1pt",
+        "1.5pt",
+        "2pt",
+        "3pt",
+        "4pt",
+        "5pt",
+        "6pt",
+        "8pt",
+        "10pt",
+        "12pt",
+        "14pt",
+        "16pt",
+        "18pt",
+        "20pt",
+        "22pt",
+        "24pt",
+        "26pt",
+        "28pt",
+        "30pt",
+        "34pt",
+        "40pt",
+        "44pt",
+        "50pt",
+        "60pt",
+        "70pt",
     )
 
     def __init__(self, setting, parent, allowauto=False):
-        '''Initialise with blank list, then populate with sensible units.'''
+        """Initialise with blank list, then populate with sensible units."""
         Choice.__init__(self, setting, True, DistancePt.points, parent)
+
 
 class DisplacementPt(DistancePt):
     """For editing displacements with defaults in points."""
 
     def __init__(self, setting, parent, allowauto=False):
-        '''Initialise with blank list, then populate with sensible units.'''
+        """Initialise with blank list, then populate with sensible units."""
         Choice.__init__(self, setting, True, DisplacementPt.points, parent)
+
 
 class Dataset(qt.QWidget):
     """Allow the user to choose between the possible datasets."""
@@ -737,7 +796,7 @@ class Dataset(qt.QWidget):
 
         layout = qt.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.choice)
         layout.addWidget(b)
         self.setLayout(layout)
@@ -748,14 +807,11 @@ class Dataset(qt.QWidget):
         # get datasets of the correct dimension
         datasets = []
         for name, ds in self.document.data.items():
-            okdims = (
-                ds.dimensions == self.dimensions or
-                self.dimensions == 'all'
-            )
+            okdims = ds.dimensions == self.dimensions or self.dimensions == "all"
             oktype = (
-                ds.datatype == self.datatype or
-                self.datatype == 'all' or
-                ds.datatype in self.datatype
+                ds.datatype == self.datatype
+                or self.datatype == "all"
+                or ds.datatype in self.datatype
             )
 
             if okdims and oktype:
@@ -776,12 +832,14 @@ class Dataset(qt.QWidget):
         """Bring up list of datasets."""
         if on:
             from ..qtwidgets.datasetbrowser import DatasetBrowserPopup
+
             d = DatasetBrowserPopup(
                 self.document,
                 self.choice.currentText(),
                 self.button,
                 filterdims=set((self.dimensions,)),
-                filterdtype=set((self.datatype,)) )
+                filterdtype=set((self.datatype,)),
+            )
             d.closing.connect(self.boxClosing)
             d.newdataset.connect(self.newDataset)
             d.newdatasets.connect(self.newDatasets)
@@ -799,11 +857,12 @@ class Dataset(qt.QWidget):
         """New datasets selected."""
         self.sigSettingChangedIteratively.emit(self, self.choice.setting, dsnames)
 
+
 class DatasetOrString(Dataset):
     """Allow use to choose a dataset or enter some text."""
 
     def __init__(self, setting, document, parent):
-        Dataset.__init__(self, setting, document, 1, 'all', parent)
+        Dataset.__init__(self, setting, document, 1, "all", parent)
 
         b = self.textbutton = DotDotButton()
         self.layout().addWidget(b)
@@ -815,8 +874,8 @@ class DatasetOrString(Dataset):
         # if button is down and there's no existing popup, bring up a new one
         if on:
             e = _EditBox(
-                self.choice.currentText(),
-                self.choice.setting.readonly, self.textbutton)
+                self.choice.currentText(), self.choice.setting.readonly, self.textbutton
+            )
 
             # we get notified with text when the popup closes
             e.closing.connect(self.textBoxClosing)
@@ -834,6 +893,7 @@ class DatasetOrString(Dataset):
             self.parentWidget().setFocus()
             self.choice.setFocus()
 
+
 class FillStyle(Choice):
     """For choosing between fill styles."""
 
@@ -845,11 +905,7 @@ class FillStyle(Choice):
         if self._icons is None:
             self._generateIcons()
 
-        Choice.__init__(
-            self, setting, False,
-            self._fills, parent,
-            icons=self._icons
-        )
+        Choice.__init__(self, setting, False, self._fills, parent, icons=self._icons)
 
     @classmethod
     def _generateIcons(cls):
@@ -857,7 +913,7 @@ class FillStyle(Choice):
 
         size = 12
         icons = []
-        c = qt.QColor('grey')
+        c = qt.QColor("grey")
         for f in cls._fills:
             pix = qt.QPixmap(size, size)
             pix.fill()
@@ -866,9 +922,10 @@ class FillStyle(Choice):
             brush = qt.QBrush(c, cls._fillcnvt[f])
             painter.fillRect(0, 0, size, size, brush)
             painter.end()
-            icons.append( qt.QIcon(pix) )
+            icons.append(qt.QIcon(pix))
 
         cls._icons = icons
+
 
 class Marker(Choice):
     """A control to let the user choose a marker."""
@@ -880,17 +937,15 @@ class Marker(Choice):
             self._generateIcons()
 
         Choice.__init__(
-            self, setting, False,
-            utils.MarkerCodes, parent,
-            icons=self._icons
+            self, setting, False, utils.MarkerCodes, parent, icons=self._icons
         )
 
     @classmethod
     def _generateIcons(cls):
         size = 16
         icons = []
-        brush = qt.QBrush( qt.QColor('darkgrey') )
-        pen = qt.QPen( qt.QBrush(qt.Qt.GlobalColor.black), 1. )
+        brush = qt.QBrush(qt.QColor("darkgrey"))
+        pen = qt.QPen(qt.QBrush(qt.Qt.GlobalColor.black), 1.0)
         for marker in utils.MarkerCodes:
             pix = qt.QPixmap(size, size)
             pix.fill()
@@ -898,11 +953,12 @@ class Marker(Choice):
             painter.setRenderHint(qt.QPainter.RenderHint.Antialiasing)
             painter.setBrush(brush)
             painter.setPen(pen)
-            utils.plotMarker(painter, size*0.5, size*0.5, marker, size*0.33)
+            utils.plotMarker(painter, size * 0.5, size * 0.5, marker, size * 0.33)
             painter.end()
-            icons.append( qt.QIcon(pix) )
+            icons.append(qt.QIcon(pix))
 
         cls._icons = icons
+
 
 class Arrow(Choice):
     """A control to let the user choose an arrowhead."""
@@ -914,9 +970,7 @@ class Arrow(Choice):
             self._generateIcons()
 
         Choice.__init__(
-            self, setting, False,
-            utils.ArrowCodes, parent,
-            icons=self._icons
+            self, setting, False, utils.ArrowCodes, parent, icons=self._icons
         )
 
     @classmethod
@@ -924,7 +978,7 @@ class Arrow(Choice):
         size = 16
         icons = []
         brush = qt.QBrush(qt.Qt.GlobalColor.black)
-        pen = qt.QPen( qt.QBrush(qt.Qt.GlobalColor.black), 1. )
+        pen = qt.QPen(qt.QBrush(qt.Qt.GlobalColor.black), 1.0)
         for arrow in utils.ArrowCodes:
             pix = qt.QPixmap(size, size)
             pix.fill()
@@ -933,14 +987,20 @@ class Arrow(Choice):
             painter.setBrush(brush)
             painter.setPen(pen)
             utils.plotLineArrow(
-                painter, size*0.4, size*0.5,
-                size*2, 0.,
-                arrowsize=size*0.2,
-                arrowleft=arrow, arrowright=arrow)
+                painter,
+                size * 0.4,
+                size * 0.5,
+                size * 2,
+                0.0,
+                arrowsize=size * 0.2,
+                arrowleft=arrow,
+                arrowright=arrow,
+            )
             painter.end()
-            icons.append( qt.QIcon(pix) )
+            icons.append(qt.QIcon(pix))
 
         cls._icons = icons
+
 
 class LineStyle(Choice):
     """For choosing between line styles."""
@@ -955,12 +1015,8 @@ class LineStyle(Choice):
         if self._icons is None:
             self._generateIcons()
 
-        Choice.__init__(
-            self, setting, False,
-            self._lines, parent,
-            icons=self._icons
-        )
-        self.setIconSize( qt.QSize(*self.size) )
+        Choice.__init__(self, setting, False, self._lines, parent, icons=self._icons)
+        self.setIconSize(qt.QSize(*self.size))
 
     @classmethod
     def _generateIcons(cls):
@@ -972,9 +1028,9 @@ class LineStyle(Choice):
 
         icons = []
         size = cls.size
-        setn = collections.Line('temp')
-        setn.get('color').set('black')
-        setn.get('width').set('1pt')
+        setn = collections.Line("temp")
+        setn.get("color").set("black")
+        setn.get("width").set("1pt")
 
         doc = document.Document()
         for lstyle in cls._lines:
@@ -987,16 +1043,17 @@ class LineStyle(Choice):
             phelper = document.PaintHelper(doc, (1, 1))
             painter.updateMetaData(phelper)
 
-            setn.get('style').set(lstyle)
+            setn.get("style").set(lstyle)
 
-            painter.setPen( setn.makeQPen(painter) )
+            painter.setPen(setn.makeQPen(painter))
             painter.drawLine(
-                int(size[0]*0.1), size[1]//2,
-                int(size[0]*0.9), size[1]//2)
+                int(size[0] * 0.1), size[1] // 2, int(size[0] * 0.9), size[1] // 2
+            )
             painter.end()
-            icons.append( qt.QIcon(pix) )
+            icons.append(qt.QIcon(pix))
 
         cls._icons = icons
+
 
 class _ColNotifier(qt.QObject):
     sigNewColor = qt.pyqtSignal(str)
@@ -1039,7 +1096,7 @@ class Color(qt.QWidget):
 
         layout = qt.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(c)
         layout.addWidget(b)
 
@@ -1050,8 +1107,7 @@ class Color(qt.QWidget):
     def slotButtonClicked(self):
         """Open dialog to edit color."""
 
-        col = qt.QColorDialog.getColor(
-            self.colors.get(self.setting.val), self)
+        col = qt.QColorDialog.getColor(self.colors.get(self.setting.val), self)
         if col.isValid():
             # change setting
             val = col.name()
@@ -1079,7 +1135,8 @@ class Color(qt.QWidget):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.setColor( self.setting.toUIText() )
+        self.setColor(self.setting.toUIText())
+
 
 class WidgetSelector(Choice):
     """For choosing from a list of widgets."""
@@ -1098,6 +1155,7 @@ class WidgetSelector(Choice):
     def slotModified(self, modified):
         """Update list of axes."""
         self._populateEntries()
+
 
 class WidgetChoice(WidgetSelector):
     """Choose a widget."""
@@ -1118,6 +1176,7 @@ class WidgetChoice(WidgetSelector):
         names.sort()
 
         utils.populateCombo(self, names)
+
 
 class Axis(WidgetSelector):
     """Choose an axis to plot against."""
@@ -1141,14 +1200,15 @@ class Axis(WidgetSelector):
         axes = set()
         while widget is not None:
             for w in widget.children:
-                if ( w.isaxis and (
-                        self.direction == 'both' or
-                        w.settings.direction == self.direction) ):
+                if w.isaxis and (
+                    self.direction == "both" or w.settings.direction == self.direction
+                ):
                     axes.add(w.name)
             widget = widget.parent
 
         names = sorted(axes)
         utils.populateCombo(self, names)
+
 
 class ListSet(qt.QFrame):
     """A widget for constructing settings which are lists of other
@@ -1179,9 +1239,9 @@ class ListSet(qt.QFrame):
         self.setting = setting
         self.controls = []
         self.layout = qt.QGridLayout(self)
-        s = self.layout.contentsMargins().left()//2
-        self.layout.setContentsMargins(s,s,s,s)
-        self.layout.setSpacing( self.layout.spacing()//4 )
+        s = self.layout.contentsMargins().left() // 2
+        self.layout.setContentsMargins(s, s, s, s)
+        self.layout.setSpacing(self.layout.spacing() // 4)
 
         self.doneinit = False
         self.onModified()
@@ -1204,7 +1264,7 @@ class ListSet(qt.QFrame):
         if len(self.setting.val) == len(self.controls) and self.doneinit:
             # no change in number of controls
             return
-        self.doneinit = True   # we need to add the add/remove buttons below
+        self.doneinit = True  # we need to add the add/remove buttons below
 
         # delete all children in case of refresh
         self.controls = []
@@ -1228,18 +1288,18 @@ class ListSet(qt.QFrame):
         # buttons at end
         bbox = qt.QWidget()
         h = qt.QHBoxLayout(bbox)
-        h.setContentsMargins(0,0,0,0)
+        h.setContentsMargins(0, 0, 0, 0)
         bbox.setLayout(h)
-        self.layout.addWidget(bbox, row+1, 0, 1, -1)
+        self.layout.addWidget(bbox, row + 1, 0, 1, -1)
 
         # a button to add a new entry
-        b = qt.QPushButton('Add')
+        b = qt.QPushButton("Add")
         h.addWidget(b)
         b.clicked.connect(self.onAddClicked)
         b.show()
 
         # a button to delete the last entry
-        b = qt.QPushButton('Delete')
+        b = qt.QPushButton("Delete")
         h.addWidget(b)
         b.clicked.connect(self.onDeleteClicked)
         b.setEnabled(len(self.setting.val) > 0)
@@ -1284,7 +1344,9 @@ class ListSet(qt.QFrame):
         """Add a color button to the list at the position specified."""
         wcolor = qt.QPushButton()
         wcolor.setFlat(True)
-        wcolor.setSizePolicy(qt.QSizePolicy.Policy.Maximum, qt.QSizePolicy.Policy.Maximum)
+        wcolor.setSizePolicy(
+            qt.QSizePolicy.Policy.Maximum, qt.QSizePolicy.Policy.Maximum
+        )
         wcolor.setMaximumHeight(24)
         wcolor.setMaximumWidth(24)
         wcolor.setToolTip(tooltip)
@@ -1358,13 +1420,13 @@ class ListSet(qt.QFrame):
         row, col = self.identifyPosn(sender)
 
         rows = self.setting.val
-        qcolor = self.setting.getDocument().evaluate.colors.get(
-            rows[row][col])
+        qcolor = self.setting.getDocument().evaluate.colors.get(rows[row][col])
         color = qt.QColorDialog.getColor(
             qcolor,
             self,
             "Choose color",
-            qt.QColorDialog.ColorDialogOption.ShowAlphaChannel )
+            qt.QColorDialog.ColorDialogOption.ShowAlphaChannel,
+        )
         if color.isValid():
             # change setting
             # this is a bit irritating, as have to do lots of
@@ -1378,13 +1440,12 @@ class ListSet(qt.QFrame):
             pix.fill(qcolor)
             sender.setIcon(qt.QIcon(pix))
 
+
 class LineSet(ListSet):
-    """A list of line styles.
-    """
+    """A list of line styles."""
 
     def __init__(self, setting, parent):
-        ListSet.__init__(
-            self, ('solid', '1pt', 'black', False), setting, parent)
+        ListSet.__init__(self, ("solid", "1pt", "black", False), setting, parent)
 
     def populateRow(self, row):
         """Add the widgets for the row given."""
@@ -1395,18 +1456,19 @@ class LineSet(ListSet):
 
         # make line style selector
         wlinestyle = self.addCombo(
-            _('Line style'), LineStyle._lines, LineStyle._icons, None)
+            _("Line style"), LineStyle._lines, LineStyle._icons, None
+        )
 
         # make line width edit box
         wwidth = qt.QLineEdit()
-        wwidth.setToolTip(_('Line width'))
+        wwidth.setToolTip(_("Line width"))
         wwidth.editingFinished.connect(self.onWidthChanged)
 
         # make color selector button
-        wcolor = self.addColorButton(_('Line color'))
+        wcolor = self.addColorButton(_("Line color"))
 
         # make hide checkbox
-        whide = self.addToggleButton( _('Hide line'))
+        whide = self.addToggleButton(_("Hide line"))
 
         # return created controls
         return [wlinestyle, wwidth, wcolor, whide]
@@ -1426,6 +1488,7 @@ class LineSet(ListSet):
 
         text = sender.text()
         from . import setting
+
         if setting.Distance.isDist(text):
             # valid distance
             styleClear(sender)
@@ -1433,6 +1496,7 @@ class LineSet(ListSet):
         else:
             # invalid distance
             styleError(sender)
+
 
 class _FillBox(qt.QScrollArea):
     """Pop up box for extended fill settings."""
@@ -1462,8 +1526,10 @@ class _FillBox(qt.QScrollArea):
         from ..windows.treeeditwindow import SettingsProxySingle, PropertyList
 
         fbox = self
+
         class DirectSetProxy(SettingsProxySingle):
             """Class to intercept changes of settings from UI."""
+
             def onSettingChanged(self, control, setting, val):
                 # set value in setting
                 setting.val = val
@@ -1472,7 +1538,7 @@ class _FillBox(qt.QScrollArea):
 
         # actual widget for changing the fill
         plist = PropertyList(doc)
-        plist.updateProperties( DirectSetProxy(doc, self.extbrush) )
+        plist.updateProperties(DirectSetProxy(doc, self.extbrush))
         self.setWidget(plist)
 
         utils.positionFloatingPopup(self, button)
@@ -1486,12 +1552,17 @@ class _FillBox(qt.QScrollArea):
         rowdata = [e.style, e.color, e.hide]
         # gradient dict (e.Gradient returns the val dict for a Setting)
         gradient = e.Gradient if e.Gradient is not None else {}
-        grad_enabled = bool(gradient.get('enabled', False))
-        if e.style != 'solid' or e.transparency > 0 or grad_enabled:
+        grad_enabled = bool(gradient.get("enabled", False))
+        if e.style != "solid" or e.transparency > 0 or grad_enabled:
             rowdata += [
-                e.transparency, e.linewidth, e.linestyle,
-                e.patternspacing, e.backcolor,
-                e.backtransparency, e.backhide ]
+                e.transparency,
+                e.linewidth,
+                e.linestyle,
+                e.patternspacing,
+                e.backcolor,
+                e.backtransparency,
+                e.backhide,
+            ]
             # gradient dict goes at index 10 (11-element row)
             if grad_enabled:
                 rowdata.append(gradient)
@@ -1505,8 +1576,10 @@ class _FillBox(qt.QScrollArea):
 
     def eventFilter(self, obj, event):
         """Grab clicks outside this window to close it."""
-        if ( isinstance(event, qt.QMouseEvent) and
-             event.buttons() != qt.Qt.MouseButton.NoButton ):
+        if (
+            isinstance(event, qt.QMouseEvent)
+            and event.buttons() != qt.Qt.MouseButton.NoButton
+        ):
             frame = qt.QRect(0, 0, self.width(), self.height())
             if not frame.contains(event.pos()):
                 self.close()
@@ -1528,12 +1601,12 @@ class _FillBox(qt.QScrollArea):
         self.closing.emit(self.row)
         qt.QScrollArea.closeEvent(self, event)
 
+
 class FillSet(ListSet):
     """A list of fill settings."""
 
     def __init__(self, setting, parent):
-        ListSet.__init__(
-            self, ('solid', 'black', False), setting, parent)
+        ListSet.__init__(self, ("solid", "black", False), setting, parent)
 
     def populateRow(self, row):
         """Add the widgets for the row given."""
@@ -1545,7 +1618,10 @@ class FillSet(ListSet):
         # make fill style selector
         wfillstyle = self.addCombo(
             _("Fill style"),
-            utils.extfillstyles, FillStyleExtended._icons, utils.extfillstyles)
+            utils.extfillstyles,
+            FillStyleExtended._icons,
+            utils.extfillstyles,
+        )
         wfillstyle.setMinimumWidth(self.pixsize)
 
         # make color selector button
@@ -1573,8 +1649,12 @@ class FillSet(ListSet):
     def editMore(self, on, row):
         if on:
             fb = _FillBox(
-                self.setting.getDocument(), self.setting,
-                row, self.buttonAtRow(row), self.parent())
+                self.setting.getDocument(),
+                self.setting,
+                row,
+                self.buttonAtRow(row),
+                self.parent(),
+            )
             fb.closing.connect(self.boxClosing)
             fb.sigSettingChanged.connect(self.sigSettingChanged)
             fb.show()
@@ -1583,6 +1663,7 @@ class FillSet(ListSet):
         """Called when the popup edit box closes."""
         # uncheck the .. button
         self.buttonAtRow(row).setChecked(False)
+
 
 class MultiSettingWidget(qt.QWidget):
     """A widget for storing multiple values in a tuple,
@@ -1600,7 +1681,7 @@ class MultiSettingWidget(qt.QWidget):
 
         self.grid = layout = qt.QGridLayout()
         layout.setHorizontalSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         self.last = ()
@@ -1654,7 +1735,7 @@ class MultiSettingWidget(qt.QWidget):
     def addPressed(self, row):
         """User adds a new row."""
         val = list(self.setting.val)
-        val.insert(row+1, '')
+        val.insert(row + 1, "")
         self.sigSettingChanged.emit(self, self.setting, tuple(val))
 
     def subPressed(self, row):
@@ -1698,8 +1779,9 @@ class MultiSettingWidget(qt.QWidget):
     def dataChanged(self, row):
         """Update row of setitng with new data"""
         val = list(self.setting.val)
-        val[row] = self.readControl( self.controls[row][0] )
+        val[row] = self.readControl(self.controls[row][0])
         self.sigSettingChanged.emit(self, self.setting, tuple(val))
+
 
 class Datasets(MultiSettingWidget):
     """A control for editing a list of datasets."""
@@ -1733,8 +1815,7 @@ class Datasets(MultiSettingWidget):
         """Get applicable datasets (sorted)."""
         datasets = []
         for name, ds in self.document.data.items():
-            if (ds.dimensions == self.dimensions and
-                ds.datatype == self.datatype):
+            if ds.dimensions == self.dimensions and ds.datatype == self.datatype:
                 datasets.append(name)
         datasets.sort()
         return datasets
@@ -1761,6 +1842,7 @@ class Datasets(MultiSettingWidget):
         for cntrls in self.controls:
             utils.populateCombo(cntrls[0], datasets)
 
+
 class Strings(MultiSettingWidget):
     """A list of strings."""
 
@@ -1786,6 +1868,7 @@ class Strings(MultiSettingWidget):
         for cntrls, val in zip(self.controls, self.setting.val):
             cntrls[0].setText(val)
 
+
 class Filename(qt.QWidget):
     """A widget for selecting a filename with a browse button."""
 
@@ -1804,16 +1887,15 @@ class Filename(qt.QWidget):
 
         layout = qt.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         # the actual edit control
         self.edit = qt.QLineEdit()
-        self.edit.setText( setting.toUIText() )
+        self.edit.setText(setting.toUIText())
         layout.addWidget(self.edit)
 
-        b = self.button = DotDotButton(
-            checkable=False, tooltip=_("Browse for file"))
+        b = self.button = DotDotButton(checkable=False, tooltip=_("Browse for file"))
         layout.addWidget(b)
 
         # connect up signals
@@ -1835,20 +1917,20 @@ class Filename(qt.QWidget):
     def buttonClicked(self):
         """Button clicked - show file open dialog."""
 
-        title = _('Choose file')
+        title = _("Choose file")
         filefilter = _("All files (*)")
-        if self.mode == 'image':
-            title = _('Choose image')
+        if self.mode == "image":
+            title = _("Choose image")
             filefilter = (
                 "Images (*.png *.jpg *.jpeg *.bmp *.svg *.tiff *.tif "
-                "*.gif *.xbm *.xpm);;" + filefilter)
-        
-        elif self.mode == 'svg':
-            title = _('Choose SVG file')
-            filefilter = ("Images (*.svg);;" + filefilter)
+                "*.gif *.xbm *.xpm);;" + filefilter
+            )
 
-        retn = qt.QFileDialog.getOpenFileName(
-            self, title, self.edit.text(), filefilter)
+        elif self.mode == "svg":
+            title = _("Choose SVG file")
+            filefilter = "Images (*.svg);;" + filefilter
+
+        retn = qt.QFileDialog.getOpenFileName(self, title, self.edit.text(), filefilter)
 
         if retn:
             filename = retn[0]
@@ -1869,7 +1951,8 @@ class Filename(qt.QWidget):
     @qt.pyqtSlot()
     def onModified(self):
         """called when the setting is changed remotely"""
-        self.edit.setText( self.setting.toUIText() )
+        self.edit.setText(self.setting.toUIText())
+
 
 class FontFamily(qt.QFontComboBox):
     """List the font families, showing each font."""
@@ -1881,14 +1964,15 @@ class FontFamily(qt.QFontComboBox):
 
         qt.QFontComboBox.__init__(self, parent)
         self.setting = setting
-        self.setFontFilters( qt.QFontComboBox.FontFilter.ScalableFonts )
+        self.setFontFilters(qt.QFontComboBox.FontFilter.ScalableFonts)
 
         # set initial value
         self.onModified()
 
         # stops combobox readjusting in size to fit contents
         self.setSizeAdjustPolicy(
-            qt.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            qt.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
 
         self.setting.setOnModified(self.onModified)
 
@@ -1898,7 +1982,7 @@ class FontFamily(qt.QFontComboBox):
     def focusOutEvent(self, *args):
         """Allows us to check the contents of the widget."""
         qt.QFontComboBox.focusOutEvent(self, *args)
-        self.slotActivated('')
+        self.slotActivated("")
 
     def slotActivated(self, val):
         """Update setting if a different item is chosen."""
@@ -1908,13 +1992,14 @@ class FontFamily(qt.QFontComboBox):
     @qt.pyqtSlot()
     def onModified(self):
         """Make control reflect chosen setting."""
-        self.setCurrentFont( qt.QFont(self.setting.toUIText()) )
+        self.setCurrentFont(qt.QFont(self.setting.toUIText()))
+
 
 class FontStyle(qt.QComboBox):
     """Font style associated with font family."""
 
     sigSettingChanged = qt.pyqtSignal(qt.QObject, object, object)
-    deftext = _('default')
+    deftext = _("default")
 
     def __init__(self, setting, familysetting, parent):
         """Create the combobox."""
@@ -1936,7 +2021,7 @@ class FontStyle(qt.QComboBox):
         """Update setting if a different item is chosen."""
         newval = self.currentText().strip()
         if newval == self.deftext:
-            newval = ''
+            newval = ""
         self.sigSettingChanged.emit(self, self.setting, newval)
 
     @qt.pyqtSlot()
@@ -1944,12 +2029,11 @@ class FontStyle(qt.QComboBox):
         """Make control reflect chosen setting."""
 
         font_family = self.familysetting.get()
-        styles = [self.deftext] + sorted(
-            qt.QFontDatabase.styles(font_family))
+        styles = [self.deftext] + sorted(qt.QFontDatabase.styles(font_family))
 
         val = self.setting.get().strip()
         if not val:
-            val = 'default'
+            val = "default"
         elif val not in styles:
             styles.append(val)
 
@@ -1957,20 +2041,19 @@ class FontStyle(qt.QComboBox):
         idx = self.findText(val)
         self.setCurrentIndex(idx)
 
+
 class ErrorStyle(Choice):
     """Choose different error bar styles."""
 
-    _icons = None         # generated icons
-    _errorstyles = None   # copied in by setting.py
+    _icons = None  # generated icons
+    _errorstyles = None  # copied in by setting.py
 
     def __init__(self, setting, parent):
         if self._icons is None:
             self._generateIcons()
 
         Choice.__init__(
-            self, setting, False,
-            self._errorstyles, parent,
-            icons=self._icons
+            self, setting, False, self._errorstyles, parent, icons=self._icons
         )
 
     @classmethod
@@ -1978,7 +2061,8 @@ class ErrorStyle(Choice):
         """Generate a list of pixmaps for drop down menu."""
         cls._icons = []
         for errstyle in cls._errorstyles:
-            cls._icons.append( utils.getIcon('error_%s' % errstyle) )
+            cls._icons.append(utils.getIcon("error_%s" % errstyle))
+
 
 class Colormap(Choice):
     """Give the user a preview of colormaps.
@@ -1994,12 +2078,8 @@ class Colormap(Choice):
         names = sorted(document.evaluate.colormaps)
 
         icons = Colormap._generateIcons(document, names)
-        Choice.__init__(
-            self, setn, True,
-            names, parent,
-            icons=icons
-        )
-        self.setIconSize( qt.QSize(*self.size) )
+        Choice.__init__(self, setn, True, names, parent, icons=icons)
+        self.setIconSize(qt.QSize(*self.size))
 
     @classmethod
     def _generateIcons(kls, document, names):
@@ -2025,12 +2105,14 @@ class Colormap(Choice):
                 else:
                     # generate icon
                     image = utils.applyColorMap(
-                        val, 'linear', fakedataset, 0., size[0]-1., 0)
+                        val, "linear", fakedataset, 0.0, size[0] - 1.0, 0
+                    )
                     pixmap = qt.QPixmap.fromImage(image)
                 icon = qt.QIcon(pixmap)
                 kls._icons[name] = icon
             retn.append(icon)
         return retn
+
 
 class AxisBound(Choice):
     """Control for setting bounds of axis.
@@ -2039,9 +2121,9 @@ class AxisBound(Choice):
     """
 
     def __init__(self, setting, *args):
-        Choice.__init__(self, setting, True, ['Auto'], *args)
+        Choice.__init__(self, setting, True, ["Auto"], *args)
 
-        modesetn = setting.parent.get('mode')
+        modesetn = setting.parent.get("mode")
         modesetn.setOnModified(self.modeChange)
 
     @qt.pyqtSlot()
@@ -2049,8 +2131,8 @@ class AxisBound(Choice):
         """Called if the mode of the axis changes.
         Re-set text as float or date."""
 
-        if self.currentText().lower() != 'auto':
-            self.setEditText( self.setting.toUIText() )
+        if self.currentText().lower() != "auto":
+            self.setEditText(self.setting.toUIText())
 
 
 class GradientBar(qt.QWidget):
@@ -2063,12 +2145,12 @@ class GradientBar(qt.QWidget):
       - drag a marker up/down out of the bar: remove it
     """
 
-    stopsChanged = qt.pyqtSignal(list)       # list of (offset, color)
-    selectionChanged = qt.pyqtSignal(int)    # selected stop index, -1 if none
+    stopsChanged = qt.pyqtSignal(list)  # list of (offset, color)
+    selectionChanged = qt.pyqtSignal(int)  # selected stop index, -1 if none
 
     def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
-        self._stops = [(0.0, '#ff0000'), (1.0, '#0000ff')]
+        self._stops = [(0.0, "#ff0000"), (1.0, "#0000ff")]
         self._selected = -1
         self._dragging = -1
         self.setMinimumHeight(30)
@@ -2095,10 +2177,9 @@ class GradientBar(qt.QWidget):
                 break
         else:
             return False
-        self._stops.append((round(off, 4), '#808080'))
+        self._stops.append((round(off, 4), "#808080"))
         self._stops.sort(key=lambda s: s[0])
-        self._selected = next(
-            i for i, (o, _) in enumerate(self._stops) if o == off)
+        self._selected = next(i for i, (o, _) in enumerate(self._stops) if o == off)
         self.update()
         self.selectionChanged.emit(self._selected)
         self.stopsChanged.emit(list(self._stops))
@@ -2126,8 +2207,7 @@ class GradientBar(qt.QWidget):
             col = color
         self._stops[index] = (off, col)
         self._stops.sort(key=lambda s: s[0])
-        self._selected = next(
-            i for i, (o, _) in enumerate(self._stops) if o == off)
+        self._selected = next(i for i, (o, _) in enumerate(self._stops) if o == off)
         self.update()
         self.stopsChanged.emit(list(self._stops))
 
@@ -2150,10 +2230,10 @@ class GradientBar(qt.QWidget):
 
         # checkerboard underlay to make alpha visible
         checker = qt.QPixmap(8, 8)
-        checker.fill(qt.QColor('#ffffff'))
+        checker.fill(qt.QColor("#ffffff"))
         cp = qt.QPainter(checker)
-        cp.fillRect(0, 0, 4, 4, qt.QColor('#c0c0c0'))
-        cp.fillRect(4, 4, 4, 4, qt.QColor('#c0c0c0'))
+        cp.fillRect(0, 0, 4, 4, qt.QColor("#c0c0c0"))
+        cp.fillRect(4, 4, 4, 4, qt.QColor("#c0c0c0"))
         cp.end()
         painter.drawTiledPixmap(rect.toRect(), checker)
 
@@ -2162,19 +2242,23 @@ class GradientBar(qt.QWidget):
         for off, color in self._stops:
             grad.setColorAt(off, qt.QColor(color))
         painter.fillRect(rect, grad)
-        painter.setPen(qt.QPen(qt.QColor('#777777')))
+        painter.setPen(qt.QPen(qt.QColor("#777777")))
         painter.drawRect(rect)
 
         # stop markers (triangles)
         for i, (off, color) in enumerate(self._stops):
             x = self._stopX(off)
-            tri = qt.QPolygonF([
-                qt.QPointF(x - 5, rect.bottom()),
-                qt.QPointF(x + 5, rect.bottom()),
-                qt.QPointF(x, rect.bottom() - 8)])
+            tri = qt.QPolygonF(
+                [
+                    qt.QPointF(x - 5, rect.bottom()),
+                    qt.QPointF(x + 5, rect.bottom()),
+                    qt.QPointF(x, rect.bottom() - 8),
+                ]
+            )
             painter.setBrush(
-                qt.QColor(color) if i != self._selected else qt.QColor('#ffffff'))
-            painter.setPen(qt.QPen(qt.QColor('#000000')))
+                qt.QColor(color) if i != self._selected else qt.QColor("#ffffff")
+            )
+            painter.setPen(qt.QPen(qt.QColor("#000000")))
             painter.drawPolygon(tri)
         painter.end()
 
@@ -2189,10 +2273,11 @@ class GradientBar(qt.QWidget):
             else:
                 # add a new stop at click position
                 off = round(self._offsetFromX(event.position().x()), 4)
-                self._stops.append((off, '#808080'))
+                self._stops.append((off, "#808080"))
                 self._stops.sort(key=lambda s: s[0])
                 self._selected = next(
-                    i for i, (o, _) in enumerate(self._stops) if o == off)
+                    i for i, (o, _) in enumerate(self._stops) if o == off
+                )
                 self._dragging = self._selected
                 self.update()
                 self.selectionChanged.emit(self._selected)
@@ -2204,8 +2289,7 @@ class GradientBar(qt.QWidget):
             color = self._stops[self._dragging][1]
             self._stops[self._dragging] = (off, color)
             self._stops.sort(key=lambda s: s[0])
-            self._dragging = next(
-                i for i, (o, _) in enumerate(self._stops) if o == off)
+            self._dragging = next(i for i, (o, _) in enumerate(self._stops) if o == off)
             self.update()
             self.stopsChanged.emit(list(self._stops))
 
@@ -2224,8 +2308,7 @@ class GradientBar(qt.QWidget):
     def mouseDoubleClickEvent(self, event):
         hit = self._stopHit(event.position())
         if hit >= 0:
-            col = qt.QColorDialog.getColor(
-                qt.QColor(self._stops[hit][1]), self)
+            col = qt.QColorDialog.getColor(qt.QColor(self._stops[hit][1]), self)
             if col.isValid():
                 self._stops[hit] = (self._stops[hit][0], col.name())
                 self.update()
@@ -2257,7 +2340,7 @@ class GradientFill(qt.QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Enable checkbox
-        self.enable_cb = qt.QCheckBox(_('Enable gradient fill'))
+        self.enable_cb = qt.QCheckBox(_("Enable gradient fill"))
         self.enable_cb.stateChanged.connect(self.slotEnableChanged)
         main_layout.addWidget(self.enable_cb)
 
@@ -2265,15 +2348,16 @@ class GradientFill(qt.QWidget):
         preset_layout = qt.QHBoxLayout()
         preset_layout.setSpacing(8)
 
-        preset_label = qt.QLabel(_('Preset:'))
+        preset_label = qt.QLabel(_("Preset:"))
         preset_layout.addWidget(preset_label)
 
         self.preset_combo = qt.QComboBox()
-        self.preset_combo.addItem(_('Custom'), userData=None)
+        self.preset_combo.addItem(_("Custom"), userData=None)
         # Add presets from gradient module
         self._get_preset = None
         try:
             from ..utils.gradient import list_presets, get_preset
+
             self._get_preset = get_preset
             for name, display_name in list_presets():
                 self.preset_combo.addItem(display_name, userData=name)
@@ -2288,27 +2372,27 @@ class GradientFill(qt.QWidget):
         type_layout = qt.QHBoxLayout()
         type_layout.setSpacing(8)
 
-        type_label = qt.QLabel(_('Type:'))
+        type_label = qt.QLabel(_("Type:"))
         type_layout.addWidget(type_label)
 
         self.type_combo = qt.QComboBox()
-        self.type_combo.addItems([_('Linear'), _('Radial')])
+        self.type_combo.addItems([_("Linear"), _("Radial")])
         self.type_combo.currentIndexChanged.connect(self.slotTypeChanged)
         type_layout.addWidget(self.type_combo)
 
         # Angle setting for linear
-        self.angle_label = qt.QLabel(_('Angle:'))
+        self.angle_label = qt.QLabel(_("Angle:"))
         type_layout.addWidget(self.angle_label)
 
         self.angle_spin = qt.QSpinBox()
         self.angle_spin.setRange(0, 360)
-        self.angle_spin.setSuffix('°')
+        self.angle_spin.setSuffix("°")
         self.angle_spin.valueChanged.connect(self.slotAngleChanged)
         type_layout.addWidget(self.angle_spin)
 
         # Reverse gradient button
-        self.reverse_btn = qt.QPushButton(_('⟲'))
-        self.reverse_btn.setToolTip(_('Reverse gradient colors'))
+        self.reverse_btn = qt.QPushButton(_("⟲"))
+        self.reverse_btn.setToolTip(_("Reverse gradient colors"))
         self.reverse_btn.setMaximumWidth(30)
         self.reverse_btn.clicked.connect(self.slotReverseClicked)
         type_layout.addWidget(self.reverse_btn)
@@ -2319,11 +2403,11 @@ class GradientFill(qt.QWidget):
         # Gradient-level transparency (0-100)
         trans_layout = qt.QHBoxLayout()
         trans_layout.setSpacing(8)
-        trans_label = qt.QLabel(_('Transparency:'))
+        trans_label = qt.QLabel(_("Transparency:"))
         trans_layout.addWidget(trans_label)
         self.transparency_spin = qt.QSpinBox()
         self.transparency_spin.setRange(0, 100)
-        self.transparency_spin.setSuffix('%')
+        self.transparency_spin.setSuffix("%")
         self.transparency_spin.valueChanged.connect(self.slotTransparencyChanged)
         trans_layout.addWidget(self.transparency_spin)
         trans_layout.addStretch()
@@ -2332,20 +2416,22 @@ class GradientFill(qt.QWidget):
         # Gradient midpoint (0-100%) - offset where middle color appears
         mid_layout = qt.QHBoxLayout()
         mid_layout.setSpacing(8)
-        mid_label = qt.QLabel(_('Midpoint:'))
+        mid_label = qt.QLabel(_("Midpoint:"))
         mid_layout.addWidget(mid_label)
         self.midpoint_spin = qt.QSpinBox()
         self.midpoint_spin.setRange(0, 100)
-        self.midpoint_spin.setSuffix('%')
-        self.midpoint_spin.setToolTip(_('Gradient offset where the middle color appears. Empty = automatic.'))
-        self.midpoint_spin.setSpecialValueText(_('Auto'))
+        self.midpoint_spin.setSuffix("%")
+        self.midpoint_spin.setToolTip(
+            _("Gradient offset where the middle color appears. Empty = automatic.")
+        )
+        self.midpoint_spin.setSpecialValueText(_("Auto"))
         self.midpoint_spin.valueChanged.connect(self.slotMidpointChanged)
         mid_layout.addWidget(self.midpoint_spin)
         mid_layout.addStretch()
         main_layout.addLayout(mid_layout)
 
         # Color stops — interactive gradient bar (drag/click/dblclick editor)
-        stops_label = qt.QLabel(_('Color stops:'))
+        stops_label = qt.QLabel(_("Color stops:"))
         main_layout.addWidget(stops_label)
 
         self.gradient_bar = GradientBar()
@@ -2357,27 +2443,27 @@ class GradientFill(qt.QWidget):
         sel_layout = qt.QHBoxLayout()
         sel_layout.setSpacing(8)
 
-        add_btn = qt.QPushButton(_('Add'))
-        add_btn.setToolTip(_('Add a stop in the middle'))
+        add_btn = qt.QPushButton(_("Add"))
+        add_btn.setToolTip(_("Add a stop in the middle"))
         add_btn.clicked.connect(self.slotAddStop)
         sel_layout.addWidget(add_btn)
 
-        remove_btn = qt.QPushButton(_('Del'))
-        remove_btn.setToolTip(_('Remove the selected stop'))
+        remove_btn = qt.QPushButton(_("Del"))
+        remove_btn.setToolTip(_("Remove the selected stop"))
         remove_btn.clicked.connect(self.slotRemoveStop)
         sel_layout.addWidget(remove_btn)
 
         sel_layout.addSpacing(8)
-        sel_layout.addWidget(qt.QLabel(_('Pos:')))
+        sel_layout.addWidget(qt.QLabel(_("Pos:")))
         self.sel_offset_spin = qt.QDoubleSpinBox()
         self.sel_offset_spin.setRange(0.0, 100.0)
         self.sel_offset_spin.setDecimals(2)
-        self.sel_offset_spin.setSuffix('%')
+        self.sel_offset_spin.setSuffix("%")
         self.sel_offset_spin.setMaximumWidth(75)
         self.sel_offset_spin.valueChanged.connect(self.slotSelectedOffsetChanged)
         sel_layout.addWidget(self.sel_offset_spin)
 
-        self.sel_color_btn = qt.QPushButton(_('Color'))
+        self.sel_color_btn = qt.QPushButton(_("Color"))
         self.sel_color_btn.clicked.connect(self.slotSelectedColorClicked)
         sel_layout.addWidget(self.sel_color_btn)
 
@@ -2397,22 +2483,27 @@ class GradientFill(qt.QWidget):
         self.updating = True
         val = self.setting.val
 
-        self.enable_cb.setChecked(val.get('enabled', False))
-        self.type_combo.setCurrentIndex(0 if val.get('type', 'linear') == 'linear' else 1)
-        self.angle_spin.setValue(int(val.get('angle', 90)))
-        self.transparency_spin.setValue(int(val.get('transparency', 0)))
+        self.enable_cb.setChecked(val.get("enabled", False))
+        self.type_combo.setCurrentIndex(
+            0 if val.get("type", "linear") == "linear" else 1
+        )
+        self.angle_spin.setValue(int(val.get("angle", 90)))
+        self.transparency_spin.setValue(int(val.get("transparency", 0)))
 
         # Load midpoint
-        midpoint = val.get('midpoint')
+        midpoint = val.get("midpoint")
         if midpoint is not None:
             self.midpoint_spin.setValue(int(midpoint * 100))
         else:
             self.midpoint_spin.setValue(0)  # Auto
 
         # Load color stops into the interactive bar
-        stops = val.get('stops', [(0.0, '#ff0000'), (1.0, '#0000ff')])
+        stops = val.get("stops", [(0.0, "#ff0000"), (1.0, "#0000ff")])
         # Normalize: convert [[]] to [()] for consistency
-        stops = [tuple(s) if isinstance(s, (list, tuple)) and len(s) == 2 else s for s in stops]
+        stops = [
+            tuple(s) if isinstance(s, (list, tuple)) and len(s) == 2 else s
+            for s in stops
+        ]
         self.gradient_bar.setStops(stops)
         self._selsetting = True
         self.sel_offset_spin.setValue(0.0)
@@ -2427,20 +2518,20 @@ class GradientFill(qt.QWidget):
             return
 
         enabled = self.enable_cb.isChecked()
-        grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
+        grad_type = "linear" if self.type_combo.currentIndex() == 0 else "radial"
         angle = self.angle_spin.value()
 
         val = {
-            'enabled': enabled,
-            'type': grad_type,
-            'angle': angle,
-            'transparency': self.transparency_spin.value(),
-            'stops': self.gradient_bar.stops()
+            "enabled": enabled,
+            "type": grad_type,
+            "angle": angle,
+            "transparency": self.transparency_spin.value(),
+            "stops": self.gradient_bar.stops(),
         }
 
         # Save midpoint
         if self.midpoint_spin.value() > 0:
-            val['midpoint'] = self.midpoint_spin.value() / 100.0
+            val["midpoint"] = self.midpoint_spin.value() / 100.0
 
         self.sigSettingChanged.emit(self, self.setting, val)
 
@@ -2451,11 +2542,15 @@ class GradientFill(qt.QWidget):
             self.preview.setGradient(None)
             return
 
-        grad_type = 'linear' if self.type_combo.currentIndex() == 0 else 'radial'
+        grad_type = "linear" if self.type_combo.currentIndex() == 0 else "radial"
         angle = self.angle_spin.value()
         stops = self.gradient_bar.stops()
         transparency = self.transparency_spin.value()
-        midpoint = self.midpoint_spin.value() / 100.0 if self.midpoint_spin.value() > 0 else None
+        midpoint = (
+            self.midpoint_spin.value() / 100.0
+            if self.midpoint_spin.value() > 0
+            else None
+        )
 
         self.preview.setGradient(grad_type, angle, stops, transparency, midpoint)
 
@@ -2488,7 +2583,7 @@ class GradientFill(qt.QWidget):
     def slotReverseClicked(self):
         """Reverse the gradient colors."""
         val = self.setting.val
-        stops = val.get('stops', [])
+        stops = val.get("stops", [])
 
         # Reverse the stops list
         reversed_stops = [(1.0 - offset, color) for offset, color in reversed(stops)]
@@ -2503,8 +2598,8 @@ class GradientFill(qt.QWidget):
                     normalized_stops.append((norm_offset, color))
                 reversed_stops = normalized_stops
 
-        val['stops'] = reversed_stops
-        val['reversed'] = not val.get('reversed', False)
+        val["stops"] = reversed_stops
+        val["reversed"] = not val.get("reversed", False)
         self.setting.set(val)
         self.loadFromSetting()
         self.saveToSetting()
@@ -2524,9 +2619,10 @@ class GradientFill(qt.QWidget):
         if preset:
             self.updating = True
             self.type_combo.setCurrentIndex(
-                0 if preset.get('type', 'linear') == 'linear' else 1)
-            self.angle_spin.setValue(int(preset.get('angle', 90)))
-            self.gradient_bar.setStops(preset.get('stops', []))
+                0 if preset.get("type", "linear") == "linear" else 1
+            )
+            self.angle_spin.setValue(int(preset.get("angle", 90)))
+            self.gradient_bar.setStops(preset.get("stops", []))
             self.updating = False
             self.updatePreview()
             self.saveToSetting()
@@ -2567,7 +2663,7 @@ class GradientFill(qt.QWidget):
             self.sel_color_btn.setEnabled(True)
             self.sel_offset_spin.setValue(off * 100.0)
             self.sel_color_btn.setText(color)
-            self.sel_color_btn.setStyleSheet(f'background-color: {color}')
+            self.sel_color_btn.setStyleSheet(f"background-color: {color}")
         else:
             self.sel_offset_spin.setEnabled(False)
             self.sel_color_btn.setEnabled(False)
@@ -2610,7 +2706,9 @@ class GradientPreview(qt.QWidget):
         self.midpoint = None
         self.gradient = None
 
-    def setGradient(self, grad_type, angle=None, stops=None, transparency=0, midpoint=None):
+    def setGradient(
+        self, grad_type, angle=None, stops=None, transparency=0, midpoint=None
+    ):
         """Set gradient parameters. Pass None to clear."""
         if grad_type is None:
             self.gradient = None
@@ -2628,7 +2726,7 @@ class GradientPreview(qt.QWidget):
         w = self.width() if self.width() > 0 else 200
         h = self.height() if self.height() > 0 else 24
 
-        if self.grad_type == 'linear':
+        if self.grad_type == "linear":
             rad = math.radians(self.angle)
             x1 = w / 2 - math.cos(rad) * w / 2
             y1 = h / 2 - math.sin(rad) * h / 2
@@ -2638,13 +2736,13 @@ class GradientPreview(qt.QWidget):
         else:  # radial
             grad = qt.QRadialGradient(w / 2, h / 2, max(w, h) / 2)
 
-        alpha = 1.0 if self.transparency >= 100 else \
-            (100 - self.transparency) / 100.0
+        alpha = 1.0 if self.transparency >= 100 else (100 - self.transparency) / 100.0
 
         # Apply midpoint remapping if configured
         stops = self.stops
         if self.midpoint is not None:
             from ..utils.gradient import remap_stops_for_midpoint
+
             stops = remap_stops_for_midpoint(stops, self.midpoint)
         else:
             stops = self.stops
@@ -2663,19 +2761,19 @@ class GradientPreview(qt.QWidget):
 
         if self.gradient is None:
             # Draw checkered background for no gradient
-            painter.fillRect(self.rect(), qt.QColor('#cccccc'))
+            painter.fillRect(self.rect(), qt.QColor("#cccccc"))
             return
 
         # checkerboard underlay so transparency is visible
         checker = qt.QPixmap(8, 8)
-        checker.fill(qt.QColor('#ffffff'))
+        checker.fill(qt.QColor("#ffffff"))
         cp = qt.QPainter(checker)
-        cp.fillRect(0, 0, 4, 4, qt.QColor('#c0c0c0'))
-        cp.fillRect(4, 4, 4, 4, qt.QColor('#c0c0c0'))
+        cp.fillRect(0, 0, 4, 4, qt.QColor("#c0c0c0"))
+        cp.fillRect(4, 4, 4, 4, qt.QColor("#c0c0c0"))
         cp.end()
         painter.drawTiledPixmap(self.rect(), checker)
 
-        if self.grad_type == 'linear':
+        if self.grad_type == "linear":
             self.gradient.setStart(0, self.height() / 2)
             rad = math.radians(self.angle - 90)
             x2 = self.width() * math.cos(rad)
@@ -2687,9 +2785,3 @@ class GradientPreview(qt.QWidget):
 
         brush = qt.QBrush(self.gradient)
         painter.fillRect(self.rect(), brush)
-
-
-
-
-
-

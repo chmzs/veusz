@@ -18,8 +18,7 @@
 #
 ##############################################################################
 
-"""Helper for doing the plotting of the document.
-"""
+"""Helper for doing the plotting of the document."""
 
 from .. import qtall as qt
 from .. import utils
@@ -31,6 +30,7 @@ except ImportError:
     def RecordPaintDevice(width, height, dpix, dpiy):
         return qt.QPicture()
 
+
 class DrawState:
     """Each widget plotted has a recorded state in this object."""
 
@@ -41,8 +41,11 @@ class DrawState:
 
         self.widget = widget
         self.record = RecordPaintDevice(
-            int(helper.pagesize[0]), int(helper.pagesize[1]),
-            int(helper.dpi[0]), int(helper.dpi[1]))
+            int(helper.pagesize[0]),
+            int(helper.pagesize[1]),
+            int(helper.dpi[0]),
+            int(helper.dpi[1]),
+        )
         self.bounds = bounds
         self.clip = clip
 
@@ -51,6 +54,7 @@ class DrawState:
 
         # list of child widgets states
         self.children = []
+
 
 class PainterRoot(qt.QPainter):
     """Base class for painting of widgets."""
@@ -76,16 +80,18 @@ class PainterRoot(qt.QPainter):
 
     def docColorAuto(self, index):
         """Return automatic doc color given index."""
-        return self.colors.getIndex(index+1)
+        return self.colors.getIndex(index + 1)
 
     def __enter__(self):
         pass
+
     def __exit__(self, exc_type, exc_value, traceback):
         pass
 
+
 class DirectPainter(PainterRoot):
-    """Painter class for direct painting with PaintHelper below.
-    """
+    """Painter class for direct painting with PaintHelper below."""
+
 
 class RecordPainter(PainterRoot):
     """This is the painter subclass for rendering in Veusz, which keeps
@@ -96,11 +102,12 @@ class RecordPainter(PainterRoot):
         self.widget = widget
 
     def __enter__(self):
-        #print ' '*len(self.helper.widgetstack), self.widget
+        # print ' '*len(self.helper.widgetstack), self.widget
         self.helper.widgetstack.append(self.widget)
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.helper.widgetstack.pop()
+
 
 class PaintHelper:
     """Helper used when painting widgets.
@@ -113,9 +120,15 @@ class PaintHelper:
 
     """
 
-    def __init__(self, document, pagesize,
-                 scaling=1, devicepixelratio=1, dpi=(100, 100),
-                 directpaint=None):
+    def __init__(
+        self,
+        document,
+        pagesize,
+        scaling=1,
+        devicepixelratio=1,
+        dpi=(100, 100),
+        directpaint=None,
+    ):
         """
         pagesize: tuple (pixelw, pixelh), which can be float.
          This is the page size in the coordinates presented to graph drawing.
@@ -132,12 +145,12 @@ class PaintHelper:
         # scaling factor, excluding high-DPI factor (for controlgraphs)
         self.cgscale = scaling / devicepixelratio
         self.devicepixelratio = devicepixelratio
-        self.pixperpt = self.dpi[1] / 72.
+        self.pixperpt = self.dpi[1] / 72.0
 
         # page size in native pixels (without default zoom)
         self.rawpagesize = max(pagesize[0], 1), max(pagesize[1], 1)
         # page size in graph pixels
-        self.pagesize = self.rawpagesize[0]/scaling, self.rawpagesize[1]/scaling
+        self.pagesize = self.rawpagesize[0] / scaling, self.rawpagesize[1] / scaling
 
         # keep track of states of all widgets
         # maps (widget, layer) to DrawState
@@ -171,8 +184,8 @@ class PaintHelper:
     def sizeAtDpi(self, dpi):
         """Return a tuple size for the page given an output device dpi."""
         return (
-            int(self.pagesize[0]/self.dpi[0] * dpi),
-            int(self.pagesize[1]/self.dpi[1] * dpi)
+            int(self.pagesize[0] / self.dpi[0] * dpi),
+            int(self.pagesize[1] / self.dpi[1] * dpi),
         )
 
     def painter(self, widget, bounds, clip=None, layer=None):
@@ -209,8 +222,11 @@ class PaintHelper:
         if clip is not None:
             # have to clip before scaling, avoiding a qt bug where the clipping
             # seems to happen in the wrong place
-            p.setClipRect(qt.QRectF(
-                clip.topLeft()*self.scaling, clip.bottomRight()*self.scaling))
+            p.setClipRect(
+                qt.QRectF(
+                    clip.topLeft() * self.scaling, clip.bottomRight() * self.scaling
+                )
+            )
 
         # scale (used for zooming)
         if self.scaling != 1:
@@ -222,18 +238,17 @@ class PaintHelper:
 
     def setControlGraph(self, widget, cgis):
         """Records the control graph list for the widget given."""
-        self.states[(widget,0)].cgis = cgis
+        self.states[(widget, 0)].cgis = cgis
 
     def getControlGraph(self, widget):
         """Return control graph for widget (or None)."""
         try:
-            return self.states[(widget,0)].cgis
+            return self.states[(widget, 0)].cgis
         except KeyError:
             return None
 
     def renderToPainter(self, painter):
-        """Render saved output to painter.
-        """
+        """Render saved output to painter."""
         self._renderState(self.rootstate, painter)
 
     def _renderState(self, state, painter, indent=0):
@@ -244,8 +259,8 @@ class PaintHelper:
         painter.restore()
 
         for child in state.children:
-            #print '  '*indent, child.widget
-            self._renderState(child, painter, indent=indent+1)
+            # print '  '*indent, child.widget
+            self._renderState(child, painter, indent=indent + 1)
 
     def identifyWidgetAtPoint(self, x, y, antialias=True):
         """What widget has drawn at the point x,y?
@@ -266,7 +281,7 @@ class PaintHelper:
         # make a small image filled with a specific color
         box = 3
         specialcolor = qt.QColor(254, 255, 254)
-        origpix = qt.QPixmap(2*box+1, 2*box+1)
+        origpix = qt.QPixmap(2 * box + 1, 2 * box + 1)
         origpix.fill(specialcolor)
         origimg = origpix.toImage()
         # store most recent widget here
@@ -285,7 +300,9 @@ class PaintHelper:
             painter.setRenderHint(qt.QPainter.RenderHint.TextAntialiasing, antialias)
             # this makes the small image draw from x-box->x+box, y-box->y+box
             # translate would get overriden by coordinate system playback
-            painter.setWindow(int(x-box), int(y-box), int(box*2+1), int(box*2+1))
+            painter.setWindow(
+                int(x - box), int(y - box), int(box * 2 + 1), int(box * 2 + 1)
+            )
             state.record.play(painter)
             painter.end()
             newimg = pixmap.toImage()
@@ -300,8 +317,8 @@ class PaintHelper:
         widget = lastwidget[0]
 
         # need to re-render 3d scene to look for clicks
-        if widget and widget.typename == 'scene3d':
-            bounds = [0,0,100,100]
+        if widget and widget.typename == "scene3d":
+            bounds = [0, 0, 100, 100]
             for w in self.states:
                 if w[0] is widget:
                     bounds = self.states[w].bounds
@@ -333,7 +350,7 @@ class PaintHelper:
 
     def widgetBounds(self, widget):
         """Return bounds of widget."""
-        return self.states[(widget,0)].bounds
+        return self.states[(widget, 0)].bounds
 
     def widgetBoundsIterator(self, widgettype=None):
         """Returns bounds for each widget.

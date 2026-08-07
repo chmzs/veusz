@@ -26,9 +26,11 @@ from .. import document
 from .. import datasets
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="DataCreate2D"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def checkGetStep(text):
     """Check step syntax is okay.
@@ -36,7 +38,7 @@ def checkGetStep(text):
     Returns None if fails
     """
 
-    parts = text.split(':')
+    parts = text.split(":")
     if len(parts) == 3:
         try:
             return tuple([float(x) for x in parts])
@@ -44,16 +46,17 @@ def checkGetStep(text):
             pass
     return None
 
-class DataCreate2DDialog(VeuszDialog):
 
+class DataCreate2DDialog(VeuszDialog):
     def __init__(self, parent, document):
         """Initialise dialog with document."""
 
-        VeuszDialog.__init__(self, parent, 'datacreate2d.ui')
+        VeuszDialog.__init__(self, parent, "datacreate2d.ui")
         self.document = document
 
         self.createbutton = self.buttonBox.addButton(
-            _("C&reate"), qt.QDialogButtonBox.ButtonRole.ApplyRole )
+            _("C&reate"), qt.QDialogButtonBox.ButtonRole.ApplyRole
+        )
         self.createbutton.clicked.connect(self.createButtonClickedSlot)
 
         self.fromxyfunc.toggled.connect(self.fromxyfuncSlot)
@@ -63,8 +66,10 @@ class DataCreate2DDialog(VeuszDialog):
         document.signalModified.connect(self.updateDatasetLists)
 
         for combo in (
-                self.namecombo, self.xexprcombo, self.yexprcombo,
-                self.zexprcombo
+            self.namecombo,
+            self.xexprcombo,
+            self.yexprcombo,
+            self.zexprcombo,
         ):
             combo.editTextChanged.connect(self.enableDisableCreate)
 
@@ -73,30 +78,35 @@ class DataCreate2DDialog(VeuszDialog):
 
     # change mode according to radio pressed
     def fromxyfuncSlot(self, checked):
-        self.mode = 'xyfunc'
-        if checked: self.updateDatasetLists()
+        self.mode = "xyfunc"
+        if checked:
+            self.updateDatasetLists()
+
     def fromxyzexprSlot(self, checked):
-        self.mode = 'xyzexpr'
-        if checked: self.updateDatasetLists()
+        self.mode = "xyzexpr"
+        if checked:
+            self.updateDatasetLists()
+
     def from2dexprSlot(self, checked):
-        self.mode = '2dexpr'
-        if checked: self.updateDatasetLists()
+        self.mode = "2dexpr"
+        if checked:
+            self.updateDatasetLists()
 
     def escapeDatasets(self, dsnames):
         """Escape dataset names if they are not typical python ones."""
 
         for i in range(len(dsnames)):
             if not utils.validPythonIdentifier(dsnames[i]):
-                dsnames[i] = '`%s`' % dsnames[i]
+                dsnames[i] = "`%s`" % dsnames[i]
 
     def updateDatasetLists(self):
         """Update controls depending on selected mode."""
 
         # get list of 1d and 2d numeric datasets
-        datasets = [[],[]]
+        datasets = [[], []]
         for name, ds in self.document.data.items():
-            if ds.datatype == 'numeric':
-                datasets[ds.dimensions-1].append(name)
+            if ds.datatype == "numeric":
+                datasets[ds.dimensions - 1].append(name)
         datasets[0].sort()
         datasets[1].sort()
 
@@ -107,12 +117,12 @@ class DataCreate2DDialog(VeuszDialog):
         # help the user by listing existing datasets
         utils.populateCombo(self.namecombo, datasets[0])
 
-        if self.mode == 'xyzexpr':
+        if self.mode == "xyzexpr":
             # enable everything
             for combo in self.xexprcombo, self.yexprcombo, self.zexprcombo:
                 combo.setDisabled(False)
                 utils.populateCombo(combo, datasets[0])
-        elif self.mode == '2dexpr':
+        elif self.mode == "2dexpr":
             # only enable the z expression button
             self.xexprcombo.setDisabled(True)
             self.yexprcombo.setDisabled(True)
@@ -124,9 +134,9 @@ class DataCreate2DDialog(VeuszDialog):
                 combo.setDisabled(False)
 
             # put in some examples to help the the user
-            utils.populateCombo(self.xexprcombo, ['0:10:0.1'])
-            utils.populateCombo(self.yexprcombo, ['0:10:0.1'])
-            utils.populateCombo(self.zexprcombo, ['x+y'])
+            utils.populateCombo(self.xexprcombo, ["0:10:0.1"])
+            utils.populateCombo(self.yexprcombo, ["0:10:0.1"])
+            utils.populateCombo(self.zexprcombo, ["x+y"])
 
     def reEditDataset(self, ds, dsname):
         """Allow dataset to be edited again."""
@@ -148,38 +158,38 @@ class DataCreate2DDialog(VeuszDialog):
 
         elif isinstance(ds, datasets.Dataset2DXYFunc):
             self.fromxyfunc.click()
-            self.xexprcombo.setEditText('%g:%g:%g' % tuple(ds.xstep))
-            self.yexprcombo.setEditText('%g:%g:%g' % tuple(ds.ystep))
+            self.xexprcombo.setEditText("%g:%g:%g" % tuple(ds.xstep))
+            self.yexprcombo.setEditText("%g:%g:%g" % tuple(ds.ystep))
             self.zexprcombo.setEditText(ds.expr)
 
         else:
-            raise RuntimeError('Invalid dataset type')
+            raise RuntimeError("Invalid dataset type")
 
     def enableDisableCreate(self):
         """Enable or disable create button."""
 
         # get contents of combo boxes
         text = {}
-        for name in ('xexpr', 'yexpr', 'zexpr', 'name'):
-            text[name] = getattr(self, name+'combo').currentText().strip()
+        for name in ("xexpr", "yexpr", "zexpr", "name"):
+            text[name] = getattr(self, name + "combo").currentText().strip()
 
         disable = False
         # need name and zexpr
-        disable = disable or not text['name'] or not text['zexpr']
+        disable = disable or not text["name"] or not text["zexpr"]
 
-        if self.mode == 'xyzexpr':
+        if self.mode == "xyzexpr":
             # need x and yexpr
-            disable = disable or not text['xexpr'] or not text['yexpr']
+            disable = disable or not text["xexpr"] or not text["yexpr"]
 
-        elif self.mode == '2dexpr':
+        elif self.mode == "2dexpr":
             # nothing else
             pass
 
-        elif self.mode == 'xyfunc':
+        elif self.mode == "xyfunc":
             # need x and yexpr in special step format min:max:step
             disable = disable or (
-                checkGetStep(text['xexpr']) is None or
-                checkGetStep(text['yexpr']) is None
+                checkGetStep(text["xexpr"]) is None
+                or checkGetStep(text["yexpr"]) is None
             )
 
         # finally check button
@@ -189,33 +199,32 @@ class DataCreate2DDialog(VeuszDialog):
         """Create button pressed."""
 
         text = {}
-        for name in ('xexpr', 'yexpr', 'zexpr', 'name'):
-            text[name] = getattr(self, name+'combo').currentText().strip()
+        for name in ("xexpr", "yexpr", "zexpr", "name"):
+            text[name] = getattr(self, name + "combo").currentText().strip()
 
         link = self.linkcheckbox.checkState() == qt.Qt.CheckState.Checked
 
         # create and apply operation, catching evaluation errors
         try:
-            if self.mode == 'xyzexpr':
+            if self.mode == "xyzexpr":
                 # build operation
                 op = document.OperationDataset2DCreateExpressionXYZ(
-                    text['name'],
-                    text['xexpr'], text['yexpr'], text['zexpr'],
-                    link)
+                    text["name"], text["xexpr"], text["yexpr"], text["zexpr"], link
+                )
 
-            elif self.mode == '2dexpr':
+            elif self.mode == "2dexpr":
                 op = document.OperationDataset2DCreateExpression(
-                    text['name'], text['zexpr'], link)
+                    text["name"], text["zexpr"], link
+                )
 
-            elif self.mode == 'xyfunc':
-                xstep = checkGetStep(text['xexpr'])
-                ystep = checkGetStep(text['yexpr'])
+            elif self.mode == "xyfunc":
+                xstep = checkGetStep(text["xexpr"])
+                ystep = checkGetStep(text["yexpr"])
 
                 # build operation
                 op = document.OperationDataset2DXYFunc(
-                    text['name'],
-                    xstep, ystep,
-                    text['zexpr'], link)
+                    text["name"], xstep, ystep, text["zexpr"], link
+                )
 
             # check expression is okay
             op.validateExpression(self.document)
@@ -223,20 +232,19 @@ class DataCreate2DDialog(VeuszDialog):
             # try to make dataset
             self.document.applyOperation(op)
             # forces an evaluation
-            self.document.data[text['name']].data
+            self.document.data[text["name"]].data
 
-        except (document.CreateDatasetException,
-                datasets.DatasetException) as e:
-
-            msg = _("Failed to create dataset '%s'") % text['name']
+        except (document.CreateDatasetException, datasets.DatasetException) as e:
+            msg = _("Failed to create dataset '%s'") % text["name"]
             s = str(e)
             if s:
-                msg += ' (%s)' % s
+                msg += " (%s)" % s
         else:
-            msg = _("Created dataset '%s'") % text['name']
+            msg = _("Created dataset '%s'") % text["name"]
 
         self.notifylabel.setText(msg)
         qt.QTimer.singleShot(4000, self.notifylabel.clear)
+
 
 def recreateDataset(mainwindow, document, dataset, datasetname):
     """Open dialog to recreate a DatasetExpression / DatasetRange."""

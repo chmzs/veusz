@@ -1,4 +1,4 @@
-﻿#    Copyright (C) 2008 Jeremy S. Sanders
+#    Copyright (C) 2008 Jeremy S. Sanders
 #    Email: Jeremy Sanders <jeremy@jeremysanders.net>
 #
 #    This file is part of Veusz.
@@ -30,79 +30,111 @@ from .. import utils
 from . import pickable
 from .plotters import GenericPlotter
 
-def _(text, disambiguation=None, context='Function'):
+
+def _(text, disambiguation=None, context="Function"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class FunctionPlotter(GenericPlotter):
     """Function plotting class."""
 
-    typename='function'
-    allowusercreation=True
-    description=_('Plot a function')
+    typename = "function"
+    allowusercreation = True
+    description = _("Plot a function")
 
     @classmethod
     def addSettings(klass, s):
         """Construct list of settings."""
         GenericPlotter.addSettings(s)
 
-        s.add( setting.Color(
-            'color',
-            'auto',
-            descr=_('Master color'),
-            usertext=_('Color'),
-            formatting=True), 0 )
-        s.add( setting.Int(
-            'steps',
-            50,
-            minval = 3,
-            descr = _('Number of steps to evaluate the function over'),
-            usertext=_('Steps'), formatting=True), 1 )
+        s.add(
+            setting.Color(
+                "color",
+                "auto",
+                descr=_("Master color"),
+                usertext=_("Color"),
+                formatting=True,
+            ),
+            0,
+        )
+        s.add(
+            setting.Int(
+                "steps",
+                50,
+                minval=3,
+                descr=_("Number of steps to evaluate the function over"),
+                usertext=_("Steps"),
+                formatting=True,
+            ),
+            1,
+        )
 
-        s.add( setting.Choice(
-            'variable', ['x', 'y'], 'x',
-            descr=_('Variable the function is a function of'),
-            usertext=_('Variable')), 0 )
-        s.add( setting.Str(
-            'function', 'x',
-            descr=_('Function expression'),
-            usertext=_('Function')), 0 )
+        s.add(
+            setting.Choice(
+                "variable",
+                ["x", "y"],
+                "x",
+                descr=_("Variable the function is a function of"),
+                usertext=_("Variable"),
+            ),
+            0,
+        )
+        s.add(
+            setting.Str(
+                "function", "x", descr=_("Function expression"), usertext=_("Function")
+            ),
+            0,
+        )
 
-        s.add(setting.FloatOrAuto(
-            'min', 'Auto',
-            descr=_('Minimum value at which to plot function'),
-            usertext=_('Min')))
+        s.add(
+            setting.FloatOrAuto(
+                "min",
+                "Auto",
+                descr=_("Minimum value at which to plot function"),
+                usertext=_("Min"),
+            )
+        )
 
-        s.add(setting.FloatOrAuto(
-            'max', 'Auto',
-            descr=_('Maximum value at which to plot function'),
-            usertext=_('Max')))
+        s.add(
+            setting.FloatOrAuto(
+                "max",
+                "Auto",
+                descr=_("Maximum value at which to plot function"),
+                usertext=_("Max"),
+            )
+        )
 
-        s.add( setting.Line(
-            'Line',
-            descr=_('Function line settings'),
-            usertext=_('Plot line')),
-            pixmap='settings_plotline' )
-        s.Line.get('color').newDefault(setting.Reference('../color'))
+        s.add(
+            setting.Line(
+                "Line", descr=_("Function line settings"), usertext=_("Plot line")
+            ),
+            pixmap="settings_plotline",
+        )
+        s.Line.get("color").newDefault(setting.Reference("../color"))
 
-        s.add( setting.PlotterFill(
-            'FillBelow',
-            descr=_('Fill below/left function'),
-            usertext=_('Fill below')),
-            pixmap='settings_plotfillbelow' )
-        s.add( setting.PlotterFill(
-            'FillAbove',
-            descr=_('Fill mode above/right function'),
-            usertext=_('Fill above')),
-            pixmap='settings_plotfillabove' )
+        s.add(
+            setting.PlotterFill(
+                "FillBelow",
+                descr=_("Fill below/left function"),
+                usertext=_("Fill below"),
+            ),
+            pixmap="settings_plotfillbelow",
+        )
+        s.add(
+            setting.PlotterFill(
+                "FillAbove",
+                descr=_("Fill mode above/right function"),
+                usertext=_("Fill above"),
+            ),
+            pixmap="settings_plotfillabove",
+        )
 
     @classmethod
     def addSettingsCompatLevel(klass, s, level):
         if level >= 1:
-            s.FillBelow.get('color').newDefault(
-                setting.Reference('../color') )
-            s.FillAbove.get('color').newDefault(
-                setting.Reference('../color') )
+            s.FillBelow.get("color").newDefault(setting.Reference("../color"))
+            s.FillAbove.get("color").newDefault(setting.Reference("../color"))
 
     @property
     def userdescription(self):
@@ -112,29 +144,30 @@ class FunctionPlotter(GenericPlotter):
     def logEvalError(self, ex):
         """Write error message to document log for exception ex."""
         self.document.log(
-            "Error evaluating expression in function widget '%s': '%s'" % (
-                self.name, str(ex)))
+            "Error evaluating expression in function widget '%s': '%s'"
+            % (self.name, str(ex))
+        )
 
     def affectsAxisRange(self):
         s = self.settings
-        if s.variable == 'x':
-            return ((s.yAxis, 'both'),)
+        if s.variable == "x":
+            return ((s.yAxis, "both"),)
         else:
-            return ((s.xAxis, 'both'),)
+            return ((s.xAxis, "both"),)
 
     def requiresAxisRange(self):
         s = self.settings
-        if s.variable == 'x':
-            return (('both', s.xAxis),)
+        if s.variable == "x":
+            return (("both", s.xAxis),)
         else:
-            return (('both', s.yAxis),)
+            return (("both", s.yAxis),)
 
     def getRange(self, axis, depname, axrange):
         """Adjust the range of the axis depending on the values plotted."""
         s = self.settings
 
         # ignore empty function
-        if s.function.strip() == '':
+        if s.function.strip() == "":
             return
 
         # ignore if function isn't sensible
@@ -143,7 +176,7 @@ class FunctionPlotter(GenericPlotter):
             return
 
         # find axis to find variable range over
-        varaxis = self.lookupAxis( {'x': s.xAxis, 'y': s.yAxis}[s.variable] )
+        varaxis = self.lookupAxis({"x": s.xAxis, "y": s.yAxis}[s.variable])
         if not varaxis:
             return
 
@@ -151,9 +184,9 @@ class FunctionPlotter(GenericPlotter):
         varaxrange = list(varaxis.getPlottedRange())
 
         # trim to range
-        if s.min != 'Auto':
+        if s.min != "Auto":
             varaxrange[0] = max(s.min, varaxrange[0])
-        if s.max != 'Auto':
+        if s.max != "Auto":
             varaxrange[1] = min(s.max, varaxrange[1])
 
         if varaxrange[0] == varaxrange[1]:
@@ -164,20 +197,20 @@ class FunctionPlotter(GenericPlotter):
             if varaxis.settings.log:
                 # log spaced steps
                 l1, l2 = N.log(varaxrange[1]), N.log(varaxrange[0])
-                delta = (l2-l1)/20.
-                points = N.exp(N.arange(l1, l2+delta, delta))
+                delta = (l2 - l1) / 20.0
+                points = N.exp(N.arange(l1, l2 + delta, delta))
             else:
                 # linear spaced steps
-                delta = (varaxrange[1] - varaxrange[0])/20.
-                points = N.arange(varaxrange[0], varaxrange[1]+delta, delta)
-        except (ZeroDivisionError, ValueError) as e:
+                delta = (varaxrange[1] - varaxrange[0]) / 20.0
+                points = N.arange(varaxrange[0], varaxrange[1] + delta, delta)
+        except (ZeroDivisionError, ValueError):
             # delta is zero
             return
 
         env = self.initEnviron()
         env[s.variable] = points
         try:
-            vals = eval(compiled, env) + points*0.
+            vals = eval(compiled, env) + points * 0.0
         except:
             # something wrong in the evaluation
             return
@@ -194,18 +227,17 @@ class FunctionPlotter(GenericPlotter):
             axrange[1] = max(N.max(finitevals), axrange[1])
 
     def _plotLine(self, painter, xpts, ypts, bounds, clip):
-        """ Plot the points in xpts, ypts."""
+        """Plot the points in xpts, ypts."""
         x1, y1, x2, y2 = bounds
 
-        maxdeltax = (x2-x1)*3/4
-        maxdeltay = (y2-y1)*3/4
+        maxdeltax = (x2 - x1) * 3 / 4
+        maxdeltay = (y2 - y1) * 3 / 4
 
         # idea is to collect points until we go out of the bounds
         # or reach the end, then plot them
         pts = qt.QPolygonF()
         lastx = lasty = -65536
         for x, y in zip(xpts, ypts):
-
             # ignore point if it outside sensible bounds
             if x < -32767 or y < -32767 or x > 32767 or y > 32767:
                 if len(pts) >= 2:
@@ -213,14 +245,14 @@ class FunctionPlotter(GenericPlotter):
                     pts.clear()
             else:
                 # if the jump wasn't too large, add the point to the points
-                if abs(x-lastx) < maxdeltax and abs(y-lasty) < maxdeltay:
-                    pts.append( qt.QPointF(x, y) )
+                if abs(x - lastx) < maxdeltax and abs(y - lasty) < maxdeltay:
+                    pts.append(qt.QPointF(x, y))
                 else:
                     # draw what we have until now, and start a new line
                     if len(pts) >= 2:
                         utils.plotClippedPolyline(painter, clip, pts)
                     pts.clear()
-                    pts.append( qt.QPointF(x, y) )
+                    pts.append(qt.QPointF(x, y))
 
             lastx = x
             lasty = y
@@ -229,8 +261,7 @@ class FunctionPlotter(GenericPlotter):
         if len(pts) >= 2:
             utils.plotClippedPolyline(painter, clip, pts)
 
-    def _fillRegion(self, painter, pxpts, pypts, bounds, belowleft, clip,
-                    brush):
+    def _fillRegion(self, painter, pxpts, pypts, bounds, belowleft, clip, brush):
         """Fill the region above/below or left/right of the points.
 
         belowleft fills below if the variable is 'x', or left if 'y'
@@ -249,25 +280,29 @@ class FunctionPlotter(GenericPlotter):
         fillto_val = brush.filltoValue
 
         # Determine target y/x based on fillto
-        if self.settings.variable == 'x':
-            if ft == 'custom' and fillto_val not in ('Auto', None):
-                val_arr = yAxis.dataToPlotterCoords(bounds, N.array([float(fillto_val)]))
+        if self.settings.variable == "x":
+            if ft == "custom" and fillto_val not in ("Auto", None):
+                val_arr = yAxis.dataToPlotterCoords(
+                    bounds, N.array([float(fillto_val)])
+                )
                 target_y = val_arr[0]
-            elif ft == 'top':
+            elif ft == "top":
                 target_y = y1
-            elif ft == 'bottom':
+            elif ft == "bottom":
                 target_y = y2
             else:
                 target_y = y2 if belowleft else y1
             startpt = qt.QPointF(pxpts[0], target_y)
             endpt = qt.QPointF(pxpts[-1], target_y)
         else:
-            if ft == 'custom' and fillto_val not in ('Auto', None):
-                val_arr = xAxis.dataToPlotterCoords(bounds, N.array([float(fillto_val)]))
+            if ft == "custom" and fillto_val not in ("Auto", None):
+                val_arr = xAxis.dataToPlotterCoords(
+                    bounds, N.array([float(fillto_val)])
+                )
                 target_x = val_arr[0]
-            elif ft == 'left':
+            elif ft == "left":
                 target_x = x1
-            elif ft == 'right':
+            elif ft == "right":
                 target_x = x2
             else:
                 target_x = x1 if belowleft else x2
@@ -292,13 +327,13 @@ class FunctionPlotter(GenericPlotter):
         """Draw the plot symbol and/or line."""
 
         s = self.settings
-        yp = y + height/2
+        yp = y + height / 2
 
         # draw line
         if not s.Line.hide:
-            painter.setBrush( qt.QBrush() )
-            painter.setPen( s.Line.makeQPen(painter) )
-            painter.drawLine( qt.QPointF(x, yp), qt.QPointF(x+width, yp) )
+            painter.setBrush(qt.QBrush())
+            painter.setPen(s.Line.makeQPen(painter))
+            painter.drawLine(qt.QPointF(x, yp), qt.QPointF(x + width, yp))
 
     def initEnviron(self):
         """Set up function environment."""
@@ -309,14 +344,17 @@ class FunctionPlotter(GenericPlotter):
 
         s = self.settings
 
-        if ( axes[0] is None or axes[1] is None or
-             axes[0].settings.direction != 'horizontal' or
-             axes[1].settings.direction != 'vertical' ):
+        if (
+            axes[0] is None
+            or axes[1] is None
+            or axes[0].settings.direction != "horizontal"
+            or axes[1].settings.direction != "vertical"
+        ):
             return None, None
 
         # get axes function is plotted along and on and
         # plot coordinates along axis function plotted along
-        if s.variable == 'x':
+        if s.variable == "x":
             axis1, axis2 = axes[0], axes[1]
             minval, maxval = posn[0], posn[2]
         else:
@@ -324,16 +362,16 @@ class FunctionPlotter(GenericPlotter):
             minval, maxval = posn[1], posn[3]
 
         # get equally spaced coordinates along axis in plotter coords
-        plotpts = N.arange(s.steps) * ((maxval-minval) / (s.steps-1)) + minval
+        plotpts = N.arange(s.steps) * ((maxval - minval) / (s.steps - 1)) + minval
         # convert to axis coordinates
         axispts = axis1.plotterToDataCoords(posn, plotpts)
 
         # trim according to min and max. have to convert back to plotter too.
-        if s.min != 'Auto':
-            axispts = axispts[ axispts >= s.min ]
+        if s.min != "Auto":
+            axispts = axispts[axispts >= s.min]
             plotpts = axis1.dataToPlotterCoords(posn, axispts)
-        if s.max != 'Auto':
-            axispts = axispts[ axispts <= s.max ]
+        if s.max != "Auto":
+            axispts = axispts[axispts <= s.max]
             plotpts = axis1.dataToPlotterCoords(posn, axispts)
 
         return axispts, plotpts
@@ -343,9 +381,12 @@ class FunctionPlotter(GenericPlotter):
 
         s = self.settings
 
-        if ( axes[0] is None or axes[1] is None or
-             axes[0].settings.direction != 'horizontal' or
-             axes[1].settings.direction != 'vertical' ):
+        if (
+            axes[0] is None
+            or axes[1] is None
+            or axes[0].settings.direction != "horizontal"
+            or axes[1].settings.direction != "vertical"
+        ):
             return None, None
 
         if axispts is None:
@@ -355,7 +396,7 @@ class FunctionPlotter(GenericPlotter):
         if not compiled:
             return None, None
 
-        axis2 = axes[1] if s.variable == 'x' else axes[0]
+        axis2 = axes[1] if s.variable == "x" else axes[0]
 
         # evaluate function
         env = self.initEnviron()
@@ -374,7 +415,7 @@ class FunctionPlotter(GenericPlotter):
         ipts, pipts = self.getIndependentPoints(axes, posn)
         dpts, pdpts = self.calcDependentPoints(ipts, axes, posn)
 
-        if self.settings.variable == 'x':
+        if self.settings.variable == "x":
             return (ipts, dpts), (pipts, pdpts)
         else:
             return (dpts, ipts), (pdpts, pipts)
@@ -385,17 +426,16 @@ class FunctionPlotter(GenericPlotter):
         axisnames = [s.xAxis, s.yAxis]
         axes = self.parent.getAxes(axisnames)
 
-        if s.variable == 'x':
-            axisnames[1] = axisnames[1] + '(' + axisnames[0] + ')'
+        if s.variable == "x":
+            axisnames[1] = axisnames[1] + "(" + axisnames[0] + ")"
         else:
-            axisnames[0] = axisnames[0] + '(' + axisnames[1] + ')'
+            axisnames[0] = axisnames[0] + "(" + axisnames[1] + ")"
 
         (xpts, ypts), (pxpts, pypts) = self.calcFunctionPoints(axes, posn)
 
-        return pickable.GenericPickable(
-            self, axisnames, (xpts, ypts), (pxpts, pypts) )
+        return pickable.GenericPickable(self, axisnames, (xpts, ypts), (pxpts, pypts))
 
-    def pickPoint(self, x0, y0, bounds, distance='radial'):
+    def pickPoint(self, x0, y0, bounds, distance="radial"):
         return self._pickable(bounds).pickPoint(x0, y0, bounds, distance)
 
     def pickIndex(self, oldindex, direction, bounds):
@@ -407,36 +447,39 @@ class FunctionPlotter(GenericPlotter):
         s = self.settings
 
         # exit if hidden or function blank
-        if s.function.strip() == '':
+        if s.function.strip() == "":
             return
         # get the points to plot by evaluating the function
         (xpts, ypts), (pxpts, pypts) = self.calcFunctionPoints(axes, posn)
 
         # draw the function line
-        if ( pxpts is None or pypts is None or
-             pxpts.ndim != 1 or pypts.ndim != 1 ):
+        if pxpts is None or pypts is None or pxpts.ndim != 1 or pypts.ndim != 1:
             # not sure how to deal with errors here
-            painter.setPen( setting.settingdb.color('error') )
+            painter.setPen(setting.settingdb.color("error"))
             f = qt.QFont()
             f.setPointSize(20)
             painter.setFont(f)
             painter.drawText(
                 cliprect,
                 qt.Qt.AlignmentFlag.AlignCenter,
-                "Cannot evaluate '%s'" % s.function)
+                "Cannot evaluate '%s'" % s.function,
+            )
         else:
             if not s.FillBelow.hide:
                 self._fillRegion(
-                    painter, pxpts, pypts, posn, True, cliprect, s.FillBelow)
+                    painter, pxpts, pypts, posn, True, cliprect, s.FillBelow
+                )
 
             if not s.FillAbove.hide:
                 self._fillRegion(
-                    painter, pxpts, pypts, posn, False, cliprect, s.FillAbove)
+                    painter, pxpts, pypts, posn, False, cliprect, s.FillAbove
+                )
 
             if not s.Line.hide:
-                painter.setBrush( qt.QBrush() )
-                painter.setPen( s.Line.makeQPen(painter) )
+                painter.setBrush(qt.QBrush())
+                painter.setPen(s.Line.makeQPen(painter))
                 self._plotLine(painter, pxpts, pypts, posn, cliprect)
+
 
 # allow the factory to instantiate an function plotter
 document.thefactory.register(FunctionPlotter)

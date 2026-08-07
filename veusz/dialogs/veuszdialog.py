@@ -28,6 +28,7 @@ from .. import utils
 # register functions to open up dialogs to recreate a dataset
 recreate_register = {}
 
+
 class VeuszDialog(qt.QDialog):
     """Base dialog class.
     - Loads self from ui file.
@@ -45,18 +46,18 @@ class VeuszDialog(qt.QDialog):
         flag = qt.Qt.WindowType.Dialog
         if not modal:
             flag |= (
-                qt.Qt.WindowType.CustomizeWindowHint |
-                qt.Qt.WindowType.WindowMinimizeButtonHint |
-                qt.Qt.WindowType.WindowMaximizeButtonHint |
-                qt.Qt.WindowType.WindowCloseButtonHint |
-                qt.Qt.WindowType.WindowTitleHint |
-                qt.Qt.WindowType.WindowSystemMenuHint
+                qt.Qt.WindowType.CustomizeWindowHint
+                | qt.Qt.WindowType.WindowMinimizeButtonHint
+                | qt.Qt.WindowType.WindowMaximizeButtonHint
+                | qt.Qt.WindowType.WindowCloseButtonHint
+                | qt.Qt.WindowType.WindowTitleHint
+                | qt.Qt.WindowType.WindowSystemMenuHint
             )
 
         qt.QDialog.__init__(self, mainwindow, flag)
         self.setAttribute(qt.Qt.WidgetAttribute.WA_DeleteOnClose)
 
-        qt.loadUi(os.path.join(utils.resourceDirectory, 'ui', uifile), self)
+        qt.loadUi(os.path.join(utils.resourceDirectory, "ui", uifile), self)
 
         self.mainwindow = mainwindow
 

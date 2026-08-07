@@ -23,14 +23,14 @@ Creates an xml file designed to be processed into a web page using xsl
 
 import re
 
-import veusz.widgets as widgets
 import veusz.document as document
 import veusz.setting as setting
 
-#import cElementTree as ET
-#import elementtree.ElementTree as ET
+# import cElementTree as ET
+# import elementtree.ElementTree as ET
 
 import xml.etree.ElementTree as ET
+
 
 def processSetting(parent, setn):
     """Convert setting to xml element."""
@@ -42,9 +42,8 @@ def processSetting(parent, setn):
     ET.SubElement(setnxml, "formatting").text = str(setn.formatting)
 
     typename = str(type(setn))
-    typename = re.match(r"^<class '(.*)'>$",
-                        typename).group(1)
-    typename = typename.split('.')[-1]
+    typename = re.match(r"^<class '(.*)'>$", typename).group(1)
+    typename = typename.split(".")[-1]
     ET.SubElement(setnxml, "type").text = typename
 
     # show list of possible choices if there is one
@@ -57,6 +56,7 @@ def processSetting(parent, setn):
     else:
         ET.SubElement(setnxml, "default").text = "to reference"
 
+
 def processSettings(parent, setns):
     """Convert setting to xml element."""
     setnsxml = ET.SubElement(parent, "settings")
@@ -66,6 +66,7 @@ def processSettings(parent, setns):
     ET.SubElement(setnsxml, "description").text = setns.descr
     for s in setns.getSettingList():
         processSetting(setnsxml, s)
+
 
 def processWidgetType(root, name):
     """Produce documentation for a widget type."""
@@ -86,38 +87,41 @@ def processWidgetType(root, name):
 
     ET.SubElement(widgetxml, "usercreation").text = str(klass.allowusercreation)
 
-    thesettings = setting.Settings('')
+    thesettings = setting.Settings("")
     klass.addSettings(thesettings)
 
-    #for s in thesettings.getSettingList():
+    # for s in thesettings.getSettingList():
     processSettings(widgetxml, thesettings)
     for s in thesettings.getSettingsList():
         processSettings(widgetxml, s)
 
+
 def indent(elem, level=0):
     """Indent output, from elementtree manual."""
-    i = "\n" + level*"  "
+    i = "\n" + level * "  "
     if len(elem):
         if not elem.text or not elem.text.strip():
             elem.text = i + "  "
         if not elem.tail or not elem.tail.strip():
             elem.tail = i
         for elem in elem:
-            indent(elem, level+1)
+            indent(elem, level + 1)
         if not elem.tail or not elem.tail.strip():
             elem.tail = i
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
+
 def addXSL(filename):
     f = open(filename)
     l = f.readlines()
     f.close()
     l.insert(1, '<?xml-stylesheet type="text/xsl" href="widget_doc.xsl"?>\n')
-    f = open(filename, 'w')
+    f = open(filename, "w")
     f.writelines(l)
     f.close()
+
 
 def main():
     widgettypes = document.thefactory.listWidgets()
@@ -128,8 +132,9 @@ def main():
 
     tree = ET.ElementTree(root)
     indent(root)
-    tree.write('widget_doc.xml', encoding="utf8")
-    addXSL('widget_doc.xml')
+    tree.write("widget_doc.xml", encoding="utf8")
+    addXSL("widget_doc.xml")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

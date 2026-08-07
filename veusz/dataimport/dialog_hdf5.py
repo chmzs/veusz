@@ -29,46 +29,53 @@ from . import defn_hdf5
 from . import fits_hdf5_tree
 from . import fits_hdf5_helpers
 
+
 def _(text, disambiguation=None, context="Import_HDF5"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 # lazily imported
 h5py = None
 
+
 def dispname(child):
     """Get display name for HDF5 group/dataset."""
-    return child.name.split('/')[-1]
+    return child.name.split("/")[-1]
+
 
 def computedatatype(dtype):
     """Compute 'simple' datatype for tree widget from dtype."""
 
-    datatype = 'invalid'
+    datatype = "invalid"
     k = dtype.kind
-    if k in ('b', 'i', 'u', 'f'):
-        datatype = 'numeric'
-    elif k in ('S', 'a'):
-        datatype = 'text'
-    elif k == 'O':
+    if k in ("b", "i", "u", "f"):
+        datatype = "numeric"
+    elif k in ("S", "a"):
+        datatype = "text"
+    elif k == "O":
         # FIXME: only supporting variable length strings so far
         typ = h5py.check_dtype(vlen=dtype)
         if typ is str:
-            datatype = 'text'
+            datatype = "text"
     return datatype
+
 
 def makedatanode(parent, ds):
     """Make a node in the tree for importable data."""
 
     # combine shape from dataset and column (if any)
-    shape = tuple(list(ds.shape)+list(ds.dtype.shape))
+    shape = tuple(list(ds.shape) + list(ds.dtype.shape))
     dtype = computedatatype(ds.dtype)
 
     vszattrs = {}
     for attr in ds.attrs:
-        if attr[:4] == 'vsz_':
+        if attr[:4] == "vsz_":
             vszattrs[attr] = defn_hdf5.bconv(ds.attrs[attr])
 
     return fits_hdf5_tree.FileDataNode(
-        parent, ds.name, vszattrs, dtype, ds.dtype, shape, dispname(ds))
+        parent, ds.name, vszattrs, dtype, ds.dtype, shape, dispname(ds)
+    )
+
 
 def addsub(parent, grp, datanodes):
     """Recursively descend through groups in the hdf5 file."""
@@ -80,7 +87,8 @@ def addsub(parent, grp, datanodes):
             continue
         if isinstance(hchild, h5py.Group):
             childnode = fits_hdf5_tree.FileGroupNode(
-                parent, hchild.name, dispname(hchild))
+                parent, hchild.name, dispname(hchild)
+            )
             addsub(childnode, hchild, datanodes)
         elif isinstance(hchild, h5py.Dataset):
             try:
@@ -89,24 +97,23 @@ def addsub(parent, grp, datanodes):
                 # raised if datatype not supported by h5py
                 continue
 
-            if dtype.kind == 'V':
+            if dtype.kind == "V":
                 # compound data type - add a special group for
                 # the compound, then its children
                 childnode = fits_hdf5_tree.FileCompoundNode(
-                    parent, hchild.name, dispname(hchild), hchild.shape)
+                    parent, hchild.name, dispname(hchild), hchild.shape
+                )
 
                 for field in sorted(hchild.dtype.fields.keys()):
                     # get types and shape for individual sub-parts
                     fdtype = hchild.dtype[field]
                     fdatatype = computedatatype(fdtype)
-                    fshape = tuple(
-                        list(hchild[field].shape)+list(fdtype.shape))
+                    fshape = tuple(list(hchild[field].shape) + list(fdtype.shape))
 
-                    fattrs = fits_hdf5_helpers.filterAttrsByName(
-                        hchild.attrs, field)
+                    fattrs = fits_hdf5_helpers.filterAttrsByName(hchild.attrs, field)
                     fnode = fits_hdf5_tree.FileDataNode(
                         childnode,
-                        hchild.name+'/'+field,
+                        hchild.name + "/" + field,
                         fattrs,
                         fdatatype,
                         fdtype,
@@ -124,6 +131,7 @@ def addsub(parent, grp, datanodes):
 
         parent.children.append(childnode)
 
+
 def constructTree(hdf5file):
     """Turn hdf5 file into a tree of nodes.
 
@@ -131,16 +139,17 @@ def constructTree(hdf5file):
     """
 
     datanodes = []
-    root = fits_hdf5_tree.FileGroupNode(None, '', '/')
+    root = fits_hdf5_tree.FileGroupNode(None, "", "/")
     addsub(root, hdf5file, datanodes)
     return root, datanodes
+
 
 class ImportTabHDF5(importdialog.ImportTab):
     """Tab for importing HDF5 file."""
 
     resource = "import_hdf5.ui"
-    filetypes = ('.hdf', '.hdf5', '.h5', '.he5')
-    filefilter = _('HDF5 files')
+    filetypes = (".hdf", ".hdf5", ".h5", ".he5")
+    filefilter = _("HDF5 files")
 
     def __init__(self, *args):
         importdialog.ImportTab.__init__(self, *args)
@@ -148,7 +157,7 @@ class ImportTabHDF5(importdialog.ImportTab):
 
     def showError(self, err):
         node = fits_hdf5_tree.ErrorNode(None, err)
-        model = fits_hdf5_tree.GenericTreeModel(self, node, [''])
+        model = fits_hdf5_tree.GenericTreeModel(self, node, [""])
         self.hdftreeview.setModel(model)
         self.oldselection = (None, None)
         self.newCurrentSel(None, None)
@@ -159,16 +168,22 @@ class ImportTabHDF5(importdialog.ImportTab):
 
         valid = qt.QDoubleValidator(self)
         valid.setNotation(qt.QDoubleValidator.Notation.ScientificNotation)
-        for w in (self.hdftwodminx, self.hdftwodminy,
-                  self.hdftwodmaxx, self.hdftwodmaxy):
+        for w in (
+            self.hdftwodminx,
+            self.hdftwodminy,
+            self.hdftwodmaxx,
+            self.hdftwodmaxy,
+        ):
             w.setValidator(valid)
 
-        self.hdftextdate.addItems([
-            _('No'),
-            'YYYY-MM-DD|T|hh:mm:ss',
-            'DD/MM/YY| |hh:mm:ss',
-            'M/D/YY| |hh:mm:ss',
-        ])
+        self.hdftextdate.addItems(
+            [
+                _("No"),
+                "YYYY-MM-DD|T|hh:mm:ss",
+                "DD/MM/YY| |hh:mm:ss",
+                "M/D/YY| |hh:mm:ss",
+            ]
+        )
 
     def doPreview(self, filename, encoding):
         """Show file as tree."""
@@ -195,10 +210,8 @@ class ImportTabHDF5(importdialog.ImportTab):
             self.showError(_("Cannot open file"))
             return False
 
-        fits_hdf5_tree.setupTreeView(
-            self.hdftreeview, self.rootnode, self.datanodes)
-        self.hdftreeview.selectionModel().currentChanged.connect(
-            self.newCurrentSel)
+        fits_hdf5_tree.setupTreeView(self.hdftreeview, self.rootnode, self.datanodes)
+        self.hdftreeview.selectionModel().currentChanged.connect(self.newCurrentSel)
 
         # update widgets for options at bottom
         self.oldselection = (None, None)
@@ -209,32 +222,31 @@ class ImportTabHDF5(importdialog.ImportTab):
     def showOptionsOneD(self, node):
         """Show options for 1d datasets on dialog."""
 
-        dt = node.options.get('convert_datetime')
-        self.hdfoneddate.setCurrentIndex({
-            None: 0,
-            'veusz': 1,
-            'unix': 2}[dt])
+        dt = node.options.get("convert_datetime")
+        self.hdfoneddate.setCurrentIndex({None: 0, "veusz": 1, "unix": 2}[dt])
 
     def showOptionsTwoD(self, node):
         """Update options for 2d datasets on dialog."""
-        ranges = node.options.get('twodranges')
+        ranges = node.options.get("twodranges")
         if ranges is None:
-            ranges = [None]*4
+            ranges = [None] * 4
 
-        for w, v in zip((self.hdftwodminx, self.hdftwodminy,
-                         self.hdftwodmaxx, self.hdftwodmaxy), ranges):
+        for w, v in zip(
+            (self.hdftwodminx, self.hdftwodminy, self.hdftwodmaxx, self.hdftwodmaxy),
+            ranges,
+        ):
             if v is None:
                 w.clear()
             else:
                 w.setText(setting.uilocale.toString(v))
 
-        readas1d = node.options.get('twod_as_oned')
+        readas1d = node.options.get("twod_as_oned")
         self.hdftwodimport1d.setChecked(bool(readas1d))
 
     def showOptionsText(self, node):
         """Update options for text datasets on dialog."""
 
-        text = node.options.get('convert_datetime')
+        text = node.options.get("convert_datetime")
         if not text:
             self.hdftextdate.setCurrentIndex(0)
         else:
@@ -248,41 +260,44 @@ class ImportTabHDF5(importdialog.ImportTab):
         idx = self.hdfoneddate.currentIndex()
         if idx == 0:
             try:
-                del node.options['convert_datetime']
+                del node.options["convert_datetime"]
             except KeyError:
                 pass
         else:
-            node.options['convert_datetime'] = {
-                1: 'veusz',
-                2: 'unix'}[idx]
+            node.options["convert_datetime"] = {1: "veusz", 2: "unix"}[idx]
 
     def updateOptionsTwoD(self, node):
         """Read options for 2d datasets on dialog."""
 
         rangeout = []
-        for w in (self.hdftwodminx, self.hdftwodminy,
-                  self.hdftwodmaxx, self.hdftwodmaxy):
+        for w in (
+            self.hdftwodminx,
+            self.hdftwodminy,
+            self.hdftwodmaxx,
+            self.hdftwodmaxy,
+        ):
             txt = w.text()
             val, ok = setting.uilocale.toDouble(txt)
-            if not ok: val = None
+            if not ok:
+                val = None
             rangeout.append(val)
 
         if rangeout == [None, None, None, None]:
             try:
-                del node.options['twodranges']
+                del node.options["twodranges"]
             except KeyError:
                 pass
 
         elif None not in rangeout:
             # update
-            node.options['twodranges'] = tuple(rangeout)
+            node.options["twodranges"] = tuple(rangeout)
 
         readas1d = self.hdftwodimport1d.isChecked()
         if readas1d:
-            node.options['twod_as_oned'] = True
+            node.options["twod_as_oned"] = True
         else:
             try:
-                del node.options['twod_as_oned']
+                del node.options["twod_as_oned"]
             except KeyError:
                 pass
 
@@ -290,24 +305,24 @@ class ImportTabHDF5(importdialog.ImportTab):
         """Read options for text datasets on dialog."""
 
         dtext = self.hdftextdate.currentText().strip()
-        if self.hdftextdate.currentIndex() == 0 or dtext == '':
+        if self.hdftextdate.currentIndex() == 0 or dtext == "":
             try:
-                del node.options['convert_datetime']
+                del node.options["convert_datetime"]
             except KeyError:
                 pass
         else:
-            node.options['convert_datetime'] = dtext
+            node.options["convert_datetime"] = dtext
 
     def updateOptions(self):
         """Update options for nodes from dialog."""
         if self.oldselection[0] is not None:
             node, name = self.oldselection
             # update node options
-            if name == 'oned':
+            if name == "oned":
                 self.updateOptionsOneD(node)
-            elif name == 'twod':
+            elif name == "twod":
                 self.updateOptionsTwoD(node)
-            elif name == 'text':
+            elif name == "text":
                 self.updateOptionsText(node)
 
     def newCurrentSel(self, new, old):
@@ -321,23 +336,23 @@ class ImportTabHDF5(importdialog.ImportTab):
             node = new.internalPointer()
             if isinstance(node, fits_hdf5_tree.FileDataNode):
                 if node.getDims() == 2 and node.numeric:
-                    toshow = 'twod'
+                    toshow = "twod"
                     self.showOptionsTwoD(node)
                 elif node.getDims() == 1 and node.numeric:
-                    toshow = 'oned'
+                    toshow = "oned"
                     self.showOptionsOneD(node)
                 elif node.text:
-                    toshow = 'text'
+                    toshow = "text"
                     self.showOptionsText(node)
 
         # so we know which options to update next
         self.oldselection = (node, toshow)
 
         for widget, name in (
-            (self.hdfonedgrp, 'oned'),
-            (self.hdftwodgrp, 'twod'),
-            (self.hdftextgrp, 'text'),
-            ):
+            (self.hdfonedgrp, "oned"),
+            (self.hdftwodgrp, "twod"),
+            (self.hdftextgrp, "text"),
+        ):
             if name == toshow:
                 widget.show()
             else:
@@ -360,14 +375,15 @@ class ImportTabHDF5(importdialog.ImportTab):
                 namemap[node.fullname] = inname
             if node.slice:
                 slices[node.fullname] = node.slice
-            if 'twodranges' in node.options:
-                twodranges[node.fullname]= node.options['twodranges']
-            if 'twod_as_oned' in node.options:
+            if "twodranges" in node.options:
+                twodranges[node.fullname] = node.options["twodranges"]
+            if "twod_as_oned" in node.options:
                 twod_as_oned.add(node.fullname)
-            if 'convert_datetime' in node.options:
-                convert_datetime[node.fullname] = node.options['convert_datetime']
+            if "convert_datetime" in node.options:
+                convert_datetime[node.fullname] = node.options["convert_datetime"]
 
         items = []
+
         def recursiveitems(node):
             if isinstance(node, fits_hdf5_tree.FileGroupNode):
                 if node.grpimport:
@@ -391,7 +407,8 @@ class ImportTabHDF5(importdialog.ImportTab):
             twod_as_oned=twod_as_oned,
             convert_datetime=convert_datetime,
             tags=tags,
-            prefix=prefix, suffix=suffix,
+            prefix=prefix,
+            suffix=suffix,
             linked=linked,
         )
 
@@ -403,14 +420,16 @@ class ImportTabHDF5(importdialog.ImportTab):
 
             # inform user
             self.hdfimportstatus.setText(
-                _("Import complete (%i datasets)") % len(op.outnames))
+                _("Import complete (%i datasets)") % len(op.outnames)
+            )
 
             # feature feedback
-            utils.feedback.importcts['hdf5'] += 1
+            utils.feedback.importcts["hdf5"] += 1
 
         except base.ImportingError as e:
             self.hdfimportstatus.setText(_("Error: %s") % str(e))
 
         qt.QTimer.singleShot(4000, self.hdfimportstatus.clear)
 
-importdialog.registerImportTab(_('HDF&5'), ImportTabHDF5)
+
+importdialog.registerImportTab(_("HDF&5"), ImportTabHDF5)

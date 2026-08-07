@@ -29,11 +29,14 @@ from . import defn_fits
 from . import fits_hdf5_tree
 from . import fits_hdf5_helpers
 
+
 def _(text, disambiguation=None, context="Import_FITS"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 # lazily imported
 fits = None
+
 
 def loadFITSModule():
     global fits
@@ -45,6 +48,7 @@ def loadFITSModule():
         except ImportError:
             pass
 
+
 def makeimagenode(parent, hdu, idx, name, dispname, datanodes):
     """Node for image-like HDUs."""
 
@@ -52,7 +56,7 @@ def makeimagenode(parent, hdu, idx, name, dispname, datanodes):
         return fits_hdf5_tree.EmptyDataNode(parent, name, dispname)
 
     attrs, colattrs = fits_hdf5_helpers.hduVeuszAttrs(hdu)
-    datatype = 'numeric'
+    datatype = "numeric"
     shape = hdu.shape
 
     node = fits_hdf5_tree.FileDataNode(
@@ -60,11 +64,13 @@ def makeimagenode(parent, hdu, idx, name, dispname, datanodes):
         name,
         attrs,
         datatype,
-        str(hdu.header.get('BITPIX', '')),
+        str(hdu.header.get("BITPIX", "")),
         shape,
-        dispname)
+        dispname,
+    )
     datanodes.append(node)
     parent.children.append(node)
+
 
 def constructTree(fitsfile):
     """Turn fits file into a tree of nodes.
@@ -74,23 +80,24 @@ def constructTree(fitsfile):
 
     hdunames = fits_hdf5_helpers.getFITSHduNames(fitsfile)
 
-    root = fits_hdf5_tree.FileGroupNode(None, '/', '/')
+    root = fits_hdf5_tree.FileGroupNode(None, "/", "/")
 
     # now iterate over file
     datanodes = []
     for idx, hdu in enumerate(fitsfile):
         hduname = hdunames[idx]
-        dispname = '%s [%i]' % (hduname, idx)
+        dispname = "%s [%i]" % (hduname, idx)
 
         if hdu.is_image:
             # image hdu
-            makeimagenode(root, hdu, idx, '/%s' % hduname, dispname, datanodes)
+            makeimagenode(root, hdu, idx, "/%s" % hduname, dispname, datanodes)
 
-        elif hasattr(hdu, 'columns'):
+        elif hasattr(hdu, "columns"):
             # parent for table
             tabshape = hdu.data.shape
             childnode = fits_hdf5_tree.FileCompoundNode(
-                root, '/%s' % hduname, dispname, tabshape)
+                root, "/%s" % hduname, dispname, tabshape
+            )
             root.children.append(childnode)
 
             attrs, colattrs = fits_hdf5_helpers.hduVeuszAttrs(hdu)
@@ -99,34 +106,37 @@ def constructTree(fitsfile):
             for col in hdu.columns:
                 cname = col.name.lower()
                 cdatatype, clen = fits_hdf5_helpers.convertFITSDataFormat(
-                    col.format.strip())
-                cshape = tabshape if clen==1 else tuple(list(tabshape)+[clen])
+                    col.format.strip()
+                )
+                cshape = tabshape if clen == 1 else tuple(list(tabshape) + [clen])
                 # attributes specific to column
                 cattrs = colattrs.get(cname, {})
 
                 cnode = fits_hdf5_tree.FileDataNode(
                     childnode,
-                    '/%s/%s' % (hduname, cname),
+                    "/%s/%s" % (hduname, cname),
                     cattrs,
                     cdatatype,
                     col.format,
                     cshape,
-                    cname)
+                    cname,
+                )
                 childnode.children.append(cnode)
                 datanodes.append(cnode)
 
     return root, datanodes
 
+
 class ImportTabFITS(importdialog.ImportTab):
     """Tab for importing FITS file."""
 
     resource = "import_fits.ui"
-    filetypes = ('.fits', '.fit', '.FITS', '.FIT')
-    filefilter = _('FITS files')
+    filetypes = (".fits", ".fit", ".FITS", ".FIT")
+    filefilter = _("FITS files")
 
     def showError(self, err):
         node = fits_hdf5_tree.ErrorNode(None, err)
-        model = fits_hdf5_tree.GenericTreeModel(self, node, [''])
+        model = fits_hdf5_tree.GenericTreeModel(self, node, [""])
         self.fitstreeview.setModel(model)
         self.oldselection = (None, None)
         self.newCurrentSel(None, None)
@@ -137,8 +147,12 @@ class ImportTabFITS(importdialog.ImportTab):
 
         valid = qt.QDoubleValidator(self)
         valid.setNotation(qt.QDoubleValidator.Notation.ScientificNotation)
-        for w in (self.fitstwodminx, self.fitstwodminy,
-                  self.fitstwodmaxx, self.fitstwodmaxy):
+        for w in (
+            self.fitstwodminx,
+            self.fitstwodminy,
+            self.fitstwodmaxx,
+            self.fitstwodmaxy,
+        ):
             w.setValidator(valid)
 
     def doPreview(self, filename, encoding):
@@ -163,10 +177,8 @@ class ImportTabFITS(importdialog.ImportTab):
             self.showError(_("Cannot open file"))
             return False
 
-        fits_hdf5_tree.setupTreeView(
-            self.fitstreeview, self.rootnode, self.datanodes)
-        self.fitstreeview.selectionModel().currentChanged.connect(
-            self.newCurrentSel)
+        fits_hdf5_tree.setupTreeView(self.fitstreeview, self.rootnode, self.datanodes)
+        self.fitstreeview.selectionModel().currentChanged.connect(self.newCurrentSel)
 
         # update widgets for options at bottom
         self.oldselection = (None, None)
@@ -176,26 +188,33 @@ class ImportTabFITS(importdialog.ImportTab):
 
     def showOptionsTwoD(self, node):
         """Update options for 2d datasets on dialog."""
-        ranges = node.options.get('twodranges')
+        ranges = node.options.get("twodranges")
         if ranges is None:
-            ranges = [None]*4
+            ranges = [None] * 4
 
-        for w, v in zip((self.fitstwodminx, self.fitstwodminy,
-                         self.fitstwodmaxx, self.fitstwodmaxy), ranges):
+        for w, v in zip(
+            (
+                self.fitstwodminx,
+                self.fitstwodminy,
+                self.fitstwodmaxx,
+                self.fitstwodmaxy,
+            ),
+            ranges,
+        ):
             if v is None:
                 w.clear()
             else:
                 w.setText(setting.uilocale.toString(v))
 
-        readas1d = node.options.get('twod_as_oned')
+        readas1d = node.options.get("twod_as_oned")
         self.fitstwodimport1d.setChecked(bool(readas1d))
 
-        wcsmode = node.options.get('wcsmode', 'linear_wcs')
+        wcsmode = node.options.get("wcsmode", "linear_wcs")
         idx = {
-            'linear_wcs': 0,
-            'pixel': 1,
-            'pixel_wcs': 2,
-            'fraction': 3,
+            "linear_wcs": 0,
+            "pixel": 1,
+            "pixel_wcs": 2,
+            "fraction": 3,
         }[wcsmode]
         self.fitswcsmode.setCurrentIndex(idx)
 
@@ -204,42 +223,47 @@ class ImportTabFITS(importdialog.ImportTab):
 
         rangeout = []
         for w in (
-                self.fitstwodminx, self.fitstwodminy,
-                self.fitstwodmaxx, self.fitstwodmaxy):
+            self.fitstwodminx,
+            self.fitstwodminy,
+            self.fitstwodmaxx,
+            self.fitstwodmaxy,
+        ):
             txt = w.text()
             val, ok = setting.uilocale.toDouble(txt)
-            if not ok: val = None
+            if not ok:
+                val = None
             rangeout.append(val)
 
         if rangeout == [None, None, None, None]:
             try:
-                del node.options['twodranges']
+                del node.options["twodranges"]
             except KeyError:
                 pass
 
         elif None not in rangeout:
             # update
-            node.options['twodranges'] = tuple(rangeout)
+            node.options["twodranges"] = tuple(rangeout)
 
         readas1d = self.fitstwodimport1d.isChecked()
         if readas1d:
-            node.options['twod_as_oned'] = True
+            node.options["twod_as_oned"] = True
         else:
             try:
-                del node.options['twod_as_oned']
+                del node.options["twod_as_oned"]
             except KeyError:
                 pass
 
-        wcsmode = ['linear_wcs', 'pixel', 'pixel_wcs', 'fraction'][
-            self.fitswcsmode.currentIndex()]
-        node.options['wcsmode'] = wcsmode
+        wcsmode = ["linear_wcs", "pixel", "pixel_wcs", "fraction"][
+            self.fitswcsmode.currentIndex()
+        ]
+        node.options["wcsmode"] = wcsmode
 
     def updateOptions(self):
         """Update options for nodes from dialog."""
         if self.oldselection[0] is not None:
             node, name = self.oldselection
             # update node options
-            if name == 'twod':
+            if name == "twod":
                 self.updateOptionsTwoD(node)
 
     def newCurrentSel(self, new, old):
@@ -253,15 +277,13 @@ class ImportTabFITS(importdialog.ImportTab):
             node = new.internalPointer()
             if isinstance(node, fits_hdf5_tree.FileDataNode):
                 if node.getDims() == 2 and node.numeric:
-                    toshow = 'twod'
+                    toshow = "twod"
                     self.showOptionsTwoD(node)
 
         # so we know which options to update next
         self.oldselection = (node, toshow)
 
-        for widget, name in (
-            (self.fitstwodgrp, 'twod'),
-        ):
+        for widget, name in ((self.fitstwodgrp, "twod"),):
             if name == toshow:
                 widget.show()
             else:
@@ -284,15 +306,15 @@ class ImportTabFITS(importdialog.ImportTab):
                 namemap[node.fullname] = inname
             if node.slice:
                 slices[node.fullname] = node.slice
-            if 'twodranges' in node.options:
-                twodranges[node.fullname]= node.options['twodranges']
-            if 'twod_as_oned' in node.options:
+            if "twodranges" in node.options:
+                twodranges[node.fullname] = node.options["twodranges"]
+            if "twod_as_oned" in node.options:
                 twod_as_oned.add(node.fullname)
-            if ('wcsmode' in node.options and
-                node.options['wcsmode'] != 'linear_wcs'):
-                wcsmodes[node.fullname] = node.options['wcsmode']
+            if "wcsmode" in node.options and node.options["wcsmode"] != "linear_wcs":
+                wcsmodes[node.fullname] = node.options["wcsmode"]
 
         items = []
+
         def recursiveitems(node):
             if isinstance(node, fits_hdf5_tree.FileGroupNode):
                 if node.grpimport:
@@ -316,7 +338,8 @@ class ImportTabFITS(importdialog.ImportTab):
             twod_as_oned=twod_as_oned,
             wcsmodes=wcsmodes,
             tags=tags,
-            prefix=prefix, suffix=suffix,
+            prefix=prefix,
+            suffix=suffix,
             linked=linked,
         )
 
@@ -328,14 +351,16 @@ class ImportTabFITS(importdialog.ImportTab):
 
             # inform user
             self.fitsimportstatus.setText(
-                _("Import complete (%i datasets)") % len(op.outnames))
+                _("Import complete (%i datasets)") % len(op.outnames)
+            )
 
             # feature feedback
-            utils.feedback.importcts['fits'] += 1
+            utils.feedback.importcts["fits"] += 1
 
         except base.ImportingError as e:
             self.fitsimportstatus.setText(_("Error: %s") % str(e))
 
         qt.QTimer.singleShot(4000, self.fitsimportstatus.clear)
 
-importdialog.registerImportTab(_('FI&TS'), ImportTabFITS)
+
+importdialog.registerImportTab(_("FI&TS"), ImportTabFITS)

@@ -50,10 +50,11 @@ import numpy as N
 from .. import utils
 from .. import datasets
 from .. import qtall as qt
-from .import base
+from . import base
 
 # a regular expression for splitting descriptor into tokens
-descrtokens_split_re = re.compile(r'''
+descrtokens_split_re = re.compile(
+    r"""
 (
  `[^`]*`       |  # quoted name
  [ ,]          |  # comma or space
@@ -61,15 +62,21 @@ descrtokens_split_re = re.compile(r'''
  \+- | \+ | -  |  # error bars
  \[.*?\]          # indices
 )
-''', re.VERBOSE)
+""",
+    re.VERBOSE,
+)
 
-range_re = re.compile(r'''^
+range_re = re.compile(
+    r"""^
  \[
  (-?[0-9]+)?
  :
  (-?[0-9]+)?
  \]
-$''', re.VERBOSE)
+$""",
+    re.VERBOSE,
+)
+
 
 def interpretDescriptor(descr):
     """Get a descriptor and create a set of descriptor objects."""
@@ -77,35 +84,38 @@ def interpretDescriptor(descr):
     parts = []
 
     split = descrtokens_split_re.split(descr.strip())
-    tokens = [x for x in split if x != '']
+    tokens = [x for x in split if x != ""]
     # make sure that last dataset is added
-    tokens += ['DUMMY']
+    tokens += ["DUMMY"]
 
     name = datatype = idxrange = None
     columns = []
     for tokenindex, token in enumerate(tokens):
         # skip spaces
-        if token == ' ':
-            if tokenindex > 0 and tokens[tokenindex-1] == ',':
-                columns.append(',')
+        if token == " ":
+            if tokenindex > 0 and tokens[tokenindex - 1] == ",":
+                columns.append(",")
             continue
 
         # ignore column
-        if token == ',':
+        if token == ",":
             if tokenindex == 0 or (
-                    tokens[tokenindex-1] == ',' or
-                    tokens[tokenindex-1] == ' ' ):
-                columns.append(',')
+                tokens[tokenindex - 1] == "," or tokens[tokenindex - 1] == " "
+            ):
+                columns.append(",")
             continue
 
         # does token match datatype name?
-        if ( token[0] == '(' and token[-1] == ')' and
-             token[1:-1] in datatype_name_convert ):
+        if (
+            token[0] == "("
+            and token[-1] == ")"
+            and token[1:-1] in datatype_name_convert
+        ):
             datatype = datatype_name_convert[token[1:-1]]
             continue
 
         # match error bars
-        if token in ('+', '-', '+-'):
+        if token in ("+", "-", "+-"):
             columns.append(token)
             continue
 
@@ -124,48 +134,55 @@ def interpretDescriptor(descr):
             continue
 
         # quoted dataset name, so remove quotes
-        if token[0] == '`' and token[-1] == '`':
+        if token[0] == "`" and token[-1] == "`":
             token = token[1:-1]
 
         # add previous entry
         if name is not None:
-            parts.append( DescriptorPart(name, datatype, columns, idxrange) )
+            parts.append(DescriptorPart(name, datatype, columns, idxrange))
             name = datatype = idxrange = None
             columns = []
 
-        columns.append('D')
+        columns.append("D")
         name = token
 
     return parts
 
+
 class DescriptorError(ValueError):
     """Used to indicate an error with the descriptor."""
+
     pass
+
 
 # this is a regular expression to match properly quoted strings
 # hopefully a matching expression can be passed to eval
-string_re = re.compile( r'''
+string_re = re.compile(
+    r"""
 ^
 u?"" |            # match empty double-quoted string
 u?".*?[^\\]" |    # match double-quoted string, ignoring escaped quotes
 u?'' |            # match empty single-quoted string
 u?'.*?[^\\]'      # match single-quoted string, ignoring escaped quotes
 $
-''', re.VERBOSE )
+""",
+    re.VERBOSE,
+)
 
 # a line starting with text
-text_start_re = re.compile( r'^[A-Za-z]' )
+text_start_re = re.compile(r"^[A-Za-z]")
 
 # convert data type strings in descriptor to internal datatype
 datatype_name_convert = {
-    'float': 'float',
-    'numeric': 'float',
-    'number': 'float',
-    'text': 'string',
-    'string': 'string',
-    'date': 'date',
-    'time': 'date'
+    "float": "float",
+    "numeric": "float",
+    "number": "float",
+    "text": "string",
+    "string": "string",
+    "date": "date",
+    "time": "date",
 }
+
 
 def guessDataType(val):
     """Try to work out data type from sample value (val)
@@ -180,24 +197,25 @@ def guessDataType(val):
     # obvious float
     try:
         float(val)
-        return 'float'
+        return "float"
     except ValueError:
         pass
 
     # do all libcs check for these?
-    if val.lower() in ('inf', '+inf', '-inf', 'nan'):
-        return 'float'
+    if val.lower() in ("inf", "+inf", "-inf", "nan"):
+        return "float"
 
     # obvious string
     if string_re.match(val):
-        return 'string'
+        return "string"
 
     # date
     if utils.isDateTime(val):
-        return 'date'
+        return "date"
 
     # assume string otherwise
-    return 'string'
+    return "string"
+
 
 class DescriptorPart:
     """Represents part of a descriptor."""
@@ -226,16 +244,16 @@ class DescriptorPart:
         """Read data from stream, and write to thedatasets."""
 
         # loop over column range
-        for index in range(self.startindex, self.stopindex+1):
+        for index in range(self.startindex, self.stopindex + 1):
             # name for variable
             if self.single:
                 name = self.name
             else:
-                name = '%s_%i' % (self.name, index)
+                name = "%s_%i" % (self.name, index)
 
             # if we're reading multiple blocks
             if block is not None:
-                name += '_%i' % block
+                name += "_%i" % block
 
             # loop over columns until we run out, or we don't need any
             for col in self.columns:
@@ -245,7 +263,7 @@ class DescriptorPart:
                     return
                 # append a suffix to specify whether error or value
                 # \0 is used as the user cannot enter it
-                fullname = '%s\0%s' % (name, col)
+                fullname = "%s\0%s" % (name, col)
 
                 # get dataset (or get new one)
                 try:
@@ -258,7 +276,7 @@ class DescriptorPart:
                     self.datatype = guessDataType(val)
 
                 # convert according to datatype
-                if self.datatype == 'float':
+                if self.datatype == "float":
                     try:
                         # do conversion
                         dat = float(val)
@@ -266,12 +284,12 @@ class DescriptorPart:
                         dat = N.nan
                         self.errorcount += 1
 
-                elif self.datatype == 'string':
+                elif self.datatype == "string":
                     if string_re.match(val):
                         conv = val
-                        if conv[0:1] != 'u':
+                        if conv[0:1] != "u":
                             # a hack for python2
-                            conv = 'u' + val
+                            conv = "u" + val
                         try:
                             dat = ast.literal_eval(conv)
                         except:
@@ -279,39 +297,49 @@ class DescriptorPart:
                     else:
                         dat = val
 
-                elif self.datatype == 'date':
+                elif self.datatype == "date":
                     dat = utils.dateStringToDate(val)
 
                 # add data into dataset
                 dataset.append(dat)
 
-    def setOutput(self, thedatasets, outmap, block=None,
-                  linkedfile=None,
-                  prefix="", suffix="", tail=None):
+    def setOutput(
+        self,
+        thedatasets,
+        outmap,
+        block=None,
+        linkedfile=None,
+        prefix="",
+        suffix="",
+        tail=None,
+    ):
         """Set the read-in data in the document."""
 
         # we didn't read any data
         if self.datatype is None:
             return
 
-        for index in range(self.startindex, self.stopindex+1):
+        for index in range(self.startindex, self.stopindex + 1):
             # name for variable
             if self.single:
-                name = '%s' % (self.name,)
+                name = "%s" % (self.name,)
             else:
-                name = '%s_%i' % (self.name, index)
+                name = "%s_%i" % (self.name, index)
             if block is not None:
-                name += '_%i' % block
+                name += "_%i" % block
 
             # does the dataset exist?
-            if name+'\0D' in thedatasets:
-                vals = thedatasets[name+'\0D']
+            if name + "\0D" in thedatasets:
+                vals = thedatasets[name + "\0D"]
                 pos = neg = sym = None
 
                 # retrieve the data for this dataset
-                if name+'\0+' in thedatasets: pos = thedatasets[name+'\0+']
-                if name+'\0-' in thedatasets: neg = thedatasets[name+'\0-']
-                if name+'\0+-' in thedatasets: sym = thedatasets[name+'\0+-']
+                if name + "\0+" in thedatasets:
+                    pos = thedatasets[name + "\0+"]
+                if name + "\0-" in thedatasets:
+                    neg = thedatasets[name + "\0-"]
+                if name + "\0+-" in thedatasets:
+                    sym = thedatasets[name + "\0+-"]
 
                 # make sure components are the same length
                 minlength = 99999999999999
@@ -325,21 +353,22 @@ class DescriptorPart:
                 # only remember last N values
                 if tail is not None:
                     vals = vals[-tail:]
-                    if sym is not None: sym = sym[-tail:]
-                    if pos is not None: pos = pos[-tail:]
-                    if neg is not None: neg = neg[-tail:]
+                    if sym is not None:
+                        sym = sym[-tail:]
+                    if pos is not None:
+                        pos = pos[-tail:]
+                    if neg is not None:
+                        neg = neg[-tail:]
 
                 # create the dataset
-                if self.datatype == 'float':
-                    ds = datasets.Dataset( data = vals, serr = sym,
-                                           nerr = neg, perr = pos,
-                                           linked = linkedfile )
-                elif self.datatype == 'date':
-                    ds = datasets.DatasetDateTime( data=vals,
-                                                   linked=linkedfile )
-                elif self.datatype == 'string':
-                    ds = datasets.DatasetText( data=vals,
-                                               linked = linkedfile )
+                if self.datatype == "float":
+                    ds = datasets.Dataset(
+                        data=vals, serr=sym, nerr=neg, perr=pos, linked=linkedfile
+                    )
+                elif self.datatype == "date":
+                    ds = datasets.DatasetDateTime(data=vals, linked=linkedfile)
+                elif self.datatype == "string":
+                    ds = datasets.DatasetText(data=vals, linked=linkedfile)
                 else:
                     raise RuntimeError("Invalid data type")
 
@@ -348,13 +377,15 @@ class DescriptorPart:
             else:
                 break
 
+
 class Stream:
     """This object reads through an input data source (override
     readLine) and interprets data from the source."""
 
     # this is a regular expression for finding data items in data stream
     # I'll try to explain this bit-by-bit (these are ORd, and matched in order)
-    find_re = re.compile( r'''
+    find_re = re.compile(
+        r"""
     `.+?`[^ \t\n\r#!%;]* | # match dataset name quoted in back-ticks
                            # we also need to match following characters to catch
                            # corner cases in the descriptor
@@ -365,7 +396,9 @@ class Stream:
     [#!%;](?=descriptor) | # match separately comment char before descriptor
     [#!%;].* |      # match comment to end of line
     [^ \t\n\r#!%;]+ # match normal space/tab separated items
-    ''', re.VERBOSE )
+    """,
+        re.VERBOSE,
+    )
 
     def __init__(self):
         """Initialise stream object."""
@@ -404,13 +437,14 @@ class Stream:
 
             # break up and append to buffer (removing comments)
             cmpts = self.find_re.findall(line)
-            self.remainingline += [ x for x in cmpts if x[0] not in '#!%;']
+            self.remainingline += [x for x in cmpts if x[0] not in "#!%;"]
 
-            if self.remainingline and self.remainingline[-1] == '\\':
+            if self.remainingline and self.remainingline[-1] == "\\":
                 # this is a continuation: drop this item and read next line
                 self.remainingline.pop()
             else:
                 return True
+
 
 class FileStream(Stream):
     """A stream based on a python-style file (or iterable)."""
@@ -425,13 +459,15 @@ class FileStream(Stream):
         StopIteration is raised if there is no more data."""
         return next(self.file)
 
+
 class StringStream(FileStream):
-    '''For reading data from a string.'''
+    """For reading data from a string."""
 
     def __init__(self, text):
         """A stream which reads in from a text string."""
 
-        FileStream.__init__( self, io.StringIO(text) )
+        FileStream.__init__(self, io.StringIO(text))
+
 
 class CSVStream(Stream):
     """Read text from csv file."""
@@ -440,10 +476,8 @@ class CSVStream(Stream):
         Stream.__init__(self)
 
         self.csvfile = utils.get_unicode_csv_reader(
-            filename,
-            delimiter=delim,
-            quotechar=textdelim,
-            encoding=encoding )
+            filename, delimiter=delim, quotechar=textdelim, encoding=encoding
+        )
         self.localename = locale
         self.locale = qt.QLocale(locale)
 
@@ -461,7 +495,7 @@ class CSVStream(Stream):
             i += 1
         line = line[i:]
 
-        if self.localename == 'en_US':
+        if self.localename == "en_US":
             # no conversion
             self.remainingline += line
         else:
@@ -469,19 +503,20 @@ class CSVStream(Stream):
                 v, ok = self.locale.toDouble(t)
                 if ok:
                     # add on converted text - yuck - double conversion
-                    self.remainingline.append('%e' % v)
+                    self.remainingline.append("%e" % v)
                 else:
                     self.remainingline.append(t)
         return True
 
+
 class SimpleRead:
-    '''Class to read in datasets from a stream.
+    """Class to read in datasets from a stream.
 
     The descriptor specifies the format of data to read from the stream
     Read the docstring for this module for information
 
     tail attribute if set says to only use last tail data points when setting
-    '''
+    """
 
     def __init__(self, descriptor):
         # convert descriptor to part objects
@@ -489,7 +524,7 @@ class SimpleRead:
         self._parseDescriptor(descriptor)
 
         # construct data names automatically
-        self.autodescr = (descriptor == '')
+        self.autodescr = descriptor == ""
 
         # get read for reading data
         self.clearState()
@@ -525,17 +560,20 @@ class SimpleRead:
 
         # loop over lines
         while stream.newLine():
-            if stream.remainingline[:1] == ['descriptor']:
+            if stream.remainingline[:1] == ["descriptor"]:
                 # a change descriptor statement
-                descriptor =  ' '.join(stream.remainingline[1:])
+                descriptor = " ".join(stream.remainingline[1:])
                 self._parseDescriptor(descriptor)
                 allparts += self.parts
                 self.autodescr = False
-            elif ( self.ignoretext and len(stream.remainingline) > 0 and
-                   text_start_re.match(stream.remainingline[0]) and
-                   len(self.parts) > 0 and
-                   self.parts[0].datatype != 'string' and
-                   stream.remainingline[0] not in ('inf', 'nan') ):
+            elif (
+                self.ignoretext
+                and len(stream.remainingline) > 0
+                and text_start_re.match(stream.remainingline[0])
+                and len(self.parts) > 0
+                and self.parts[0].datatype != "string"
+                and stream.remainingline[0] not in ("inf", "nan")
+            ):
                 # ignore the line if it is text and ignore text is on
                 # and first column is not text
                 pass
@@ -547,8 +585,7 @@ class SimpleRead:
                 # automatically create parts if data are remaining
                 if self.autodescr:
                     while len(stream.remainingline) > 0:
-                        p = DescriptorPart(
-                            str(len(self.parts)+1), None, 'D', None )
+                        p = DescriptorPart(str(len(self.parts) + 1), None, "D", None)
                         p.readFromStream(stream, self.datasets)
                         self.parts.append(p)
                         allparts.append(p)
@@ -570,7 +607,7 @@ class SimpleRead:
 
             # if this is a blank line, separating data then advance to a new
             # block
-            if len(line) == 0 or line[0].lower() == 'no':
+            if len(line) == 0 or line[0].lower() == "no":
                 # blank lines separate blocks
                 if block in blocks:
                     block += 1
@@ -582,8 +619,7 @@ class SimpleRead:
                 # automatically create parts if data are remaining
                 if self.autodescr:
                     while len(stream.remainingline) > 0:
-                        p = DescriptorPart(
-                            str(len(self.parts)+1), None, 'D', None )
+                        p = DescriptorPart(str(len(self.parts) + 1), None, "D", None)
                         p.readFromStream(stream, self.datasets, block=block)
                         self.parts.append(p)
                         allparts.append(p)
@@ -611,14 +647,12 @@ class SimpleRead:
         of entries read."""
         out = {}
         for name in self.datasets:
-            if name[-2:] == '\0D':
+            if name[-2:] == "\0D":
                 out[name[:-2]] = len(self.datasets[name])
         return out
 
-    def setOutput(self, out, linkedfile=None,
-                  prefix='', suffix=''):
-        """Set the data in the out dict.
-        """
+    def setOutput(self, out, linkedfile=None, prefix="", suffix=""):
+        """Set the data in the out dict."""
 
         # iterate over blocks used
         if self.blocks is None:
@@ -627,23 +661,29 @@ class SimpleRead:
             blocks = self.blocks
 
         # if automatically making parts, use a prefix/suffix if not set
-        if self.autodescr and prefix == '' and suffix == '':
-            prefix = 'col'
+        if self.autodescr and prefix == "" and suffix == "":
+            prefix = "col"
 
         for block in blocks:
             for part in self.parts:
                 part.setOutput(
-                    self.datasets, out,
+                    self.datasets,
+                    out,
                     block=block,
                     linkedfile=linkedfile,
-                    prefix=prefix, suffix=suffix,
-                    tail=self.tail)
+                    prefix=prefix,
+                    suffix=suffix,
+                    tail=self.tail,
+                )
+
 
 #####################################################################
 # 2D data reading
 
+
 class Read2DError(base.ImportingError):
     pass
+
 
 class SimpleRead2D:
     def __init__(self, name, params):
@@ -661,13 +701,13 @@ class SimpleRead2D:
 
     def _paramXRange(self, cols):
         try:
-            self.params.xrange = ( float(cols[1]), float(cols[2]) )
+            self.params.xrange = (float(cols[1]), float(cols[2]))
         except ValueError:
             raise Read2DError("xrange is not two numerical values")
 
     def _paramYRange(self, cols):
         try:
-            self.params.yrange = ( float(cols[1]), float(cols[2]) )
+            self.params.yrange = (float(cols[1]), float(cols[2]))
         except ValueError:
             raise Read2DError("yrange is not two numerical values")
 
@@ -717,16 +757,16 @@ class SimpleRead2D:
         """
 
         settings = {
-            'xrange': self._paramXRange,
-            'yrange': self._paramYRange,
-            'xedge': lambda cols: self._getNumList('xedge', cols),
-            'yedge': lambda cols: self._getNumList('yedge', cols),
-            'xcent': lambda cols: self._getNumList('xcent', cols),
-            'ycent': lambda cols: self._getNumList('ycent', cols),
-            'invertrows': self._paramInvertRows,
-            'invertcols': self._paramInvertCols,
-            'transpose': self._paramTranspose,
-            'gridatedge': self._paramGridAtEdge,
+            "xrange": self._paramXRange,
+            "yrange": self._paramYRange,
+            "xedge": lambda cols: self._getNumList("xedge", cols),
+            "yedge": lambda cols: self._getNumList("yedge", cols),
+            "xcent": lambda cols: self._getNumList("xcent", cols),
+            "ycent": lambda cols: self._getNumList("ycent", cols),
+            "invertrows": self._paramInvertRows,
+            "invertcols": self._paramInvertCols,
+            "transpose": self._paramTranspose,
+            "gridatedge": self._paramGridAtEdge,
         }
 
         rows = []
@@ -754,18 +794,20 @@ class SimpleRead2D:
                 if v is None:
                     break
                 try:
-                    line.append( float(v) )
+                    line.append(float(v))
                 except ValueError:
                     raise Read2DError("Could not interpret number '%s'" % v)
 
             rows.insert(0, line)
 
         if self.params.gridatedge:
-
-            if any( [getattr(self, x) is not None
-                     for x in ("xedge", "yedge", "xcent", "ycent")] ):
-                raise Read2DError(
-                    "x|y grid|cent are incompatible with gridatedge")
+            if any(
+                [
+                    getattr(self, x) is not None
+                    for x in ("xedge", "yedge", "xcent", "ycent")
+                ]
+            ):
+                raise Read2DError("x|y grid|cent are incompatible with gridatedge")
 
             if len(rows) > 0:
                 self.xcent = N.array(rows[-1])
@@ -774,7 +816,7 @@ class SimpleRead2D:
             self.ycent = N.array([r[0] for r in rows[:-1]])
 
             # chop out grid
-            rows = [ r[1:] for r in rows[:-1] ]
+            rows = [r[1:] for r in rows[:-1]]
 
         # dodgy formatting probably...
         if len(rows) == 0:
@@ -790,9 +832,9 @@ class SimpleRead2D:
             raise Read2DError("Dataset was not 2D")
 
         if self.params.invertcols:
-            self.data = self.data[:,::-1]
+            self.data = self.data[:, ::-1]
         if self.params.invertrows:
-            self.data = self.data[::-1,:]
+            self.data = self.data[::-1, :]
 
         # transpose matrix if requested
         if self.params.transpose:
@@ -801,44 +843,42 @@ class SimpleRead2D:
             self.xcent, self.ycent = self.ycent, self.xcent
 
         # check orders of coords - flip if wrong
-        for attr in 'xedge', 'xcent', 'yedge', 'ycent':
+        for attr in "xedge", "xcent", "yedge", "ycent":
             v = getattr(self, attr)
             if v is not None:
                 order = utils.checkOrder(v)
                 if order == 0:
-                    raise Read2DError(
-                        '%s must be ascending or descending' % attr)
+                    raise Read2DError("%s must be ascending or descending" % attr)
                 elif order == -1:
                     # flip direction of coord and data
                     setattr(self, attr, v[::-1])
-                    if attr[0] == 'x':
-                        self.data = self.data[:,::-1]
+                    if attr[0] == "x":
+                        self.data = self.data[:, ::-1]
                     else:
-                        self.data = self.data[::-1,:]
+                        self.data = self.data[::-1, :]
 
         # more sanity checks
-        if ( (self.xedge is not None and
-              len(self.xedge) != self.data.shape[1]+1) or
-             (self.yedge is not None and
-              len(self.yedge) != self.data.shape[0]+1) ):
+        if (self.xedge is not None and len(self.xedge) != self.data.shape[1] + 1) or (
+            self.yedge is not None and len(self.yedge) != self.data.shape[0] + 1
+        ):
             raise Read2DError("xedge and yedge lengths must be data shape+1")
 
-        if ( (self.xcent is not None and
-              len(self.xcent) != self.data.shape[1]) or
-             (self.ycent is not None and
-              len(self.ycent) != self.data.shape[0]) ):
+        if (self.xcent is not None and len(self.xcent) != self.data.shape[1]) or (
+            self.ycent is not None and len(self.ycent) != self.data.shape[0]
+        ):
             raise Read2DError("xcent and ycent lengths must be data shape")
 
     def setOutput(self, out, linkedfile=None):
-        """Set the data in the output dict out
-        """
+        """Set the data in the output dict out"""
 
         ds = datasets.Dataset2D(
             self.data,
             xrange=self.params.xrange,
             yrange=self.params.yrange,
-            xedge=self.xedge, yedge=self.yedge,
-            xcent=self.xcent, ycent=self.ycent
+            xedge=self.xedge,
+            yedge=self.yedge,
+            xcent=self.xcent,
+            ycent=self.ycent,
         )
 
         ds.linked = linkedfile
@@ -846,11 +886,14 @@ class SimpleRead2D:
         fullname = self.params.prefix + self.name + self.params.suffix
         out[fullname] = ds
 
+
 #####################################################################
 # n-dimensional data reading
 
+
 class ReadNDError(base.ImportingError):
     pass
+
 
 class SimpleReadND:
     def __init__(self, name, params):
@@ -886,8 +929,8 @@ class SimpleReadND:
         """
 
         settings = {
-            'transpose': self._paramTranspose,
-            'shape': self._paramShape,
+            "transpose": self._paramTranspose,
+            "shape": self._paramShape,
         }
 
         vals = []
@@ -930,7 +973,7 @@ class SimpleReadND:
 
                     # move to next value at current level
                     dimstack[dimidx] += 1
-                    for i in range(dimidx+1, len(dimstack)):
+                    for i in range(dimidx + 1, len(dimstack)):
                         dimstack[i] = 0
                     dimidx = len(dimstack)
 
@@ -949,12 +992,14 @@ class SimpleReadND:
             # flatten so we can reshape properly later (this is to
             # allow free form input with the shape option)
             fdata = []
+
             def flatten(d):
                 for x in d:
                     if isinstance(x, list):
                         flatten(x)
                     else:
                         fdata.append(x)
+
             flatten(vals)
             vals = N.hstack((fdata))
 
@@ -980,8 +1025,7 @@ class SimpleReadND:
             self.data = N.transpose(self.data).copy()
 
     def setOutput(self, out, linkedfile=None):
-        """Set the data in the output dict out
-        """
+        """Set the data in the output dict out"""
 
         ds = datasets.DatasetND(self.data)
         ds.linked = linkedfile

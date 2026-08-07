@@ -27,9 +27,11 @@ import os
 from .. import qtall as qt
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="ReloadDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ReloadData(VeuszDialog):
     """Dialog for reloading linked datasets."""
@@ -42,7 +44,7 @@ class ReloadData(VeuszDialog):
         filenames: if a set() only reload from these filenames
         """
 
-        VeuszDialog.__init__(self, parent, 'reloaddata.ui')
+        VeuszDialog.__init__(self, parent, "reloaddata.ui")
         self.document = document
         self.filenames = filenames
 
@@ -65,7 +67,8 @@ class ReloadData(VeuszDialog):
 
         # manual reload
         self.reloadbutton = self.buttonBox.addButton(
-            "&Reload again", qt.QDialogButtonBox.ButtonRole.ApplyRole)
+            "&Reload again", qt.QDialogButtonBox.ButtonRole.ApplyRole
+        )
         self.reloadbutton.clicked.connect(self.reloadData)
 
         # close by default, not reload
@@ -81,7 +84,7 @@ class ReloadData(VeuszDialog):
             filename = lf.filename
             try:
                 s = os.stat(filename)
-                files.append( (filename, s.st_mtime, s.st_size) )
+                files.append((filename, s.st_mtime, s.st_size))
             except OSError:
                 pass
         files.sort()
@@ -90,7 +93,7 @@ class ReloadData(VeuszDialog):
     def intervalUpdate(self, *args):
         """Reload at intervals option toggled."""
         if self.intervalCheck.isChecked():
-            self.intervalTimer.start( self.intervalTime.value()*1000 )
+            self.intervalTimer.start(self.intervalTime.value() * 1000)
         else:
             self.intervalTimer.stop()
 
@@ -109,8 +112,7 @@ class ReloadData(VeuszDialog):
         errors = {}
         try:
             # try to reload the datasets
-            datasets, errors = self.document.reloadLinkedDatasets(
-                self.filenames)
+            datasets, errors = self.document.reloadLinkedDatasets(self.filenames)
         except EnvironmentError as e:
             lines.append(_("Error reading file: %s") % str(e))
 
@@ -122,10 +124,7 @@ class ReloadData(VeuszDialog):
         # show errors in read data
         for var, count in errors.items():
             if count:
-                lines.append(
-                    _('%i conversions failed for dataset "%s"') %
-                    (count, var)
-                )
+                lines.append(_('%i conversions failed for dataset "%s"') % (count, var))
 
         # show successes
         # group datasets by linked file
@@ -139,14 +138,14 @@ class ReloadData(VeuszDialog):
 
         # list datasets for each linked file
         for lname, link in linked:
-            lines.append('')
-            lines.append(_('Linked to %s') % lname)
+            lines.append("")
+            lines.append(_("Linked to %s") % lname)
             for var in sorted(datasets):
                 ds = self.document.data[var]
                 if ds.linked is link:
-                    lines.append( ' %s: %s' % (var, ds.description()) )
+                    lines.append(" %s: %s" % (var, ds.description()))
 
         if len(datasets) == 0:
-            lines.append(_('Nothing to do. No linked datasets.'))
+            lines.append(_("Nothing to do. No linked datasets."))
 
-        self.outputedit.setPlainText('\n'.join(lines))
+        self.outputedit.setPlainText("\n".join(lines))

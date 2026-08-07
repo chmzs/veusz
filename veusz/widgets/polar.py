@@ -33,13 +33,15 @@ from .. import document
 from .. import setting
 from .. import utils
 
-def _(text, disambiguation=None, context='Polar'):
+
+def _(text, disambiguation=None, context="Polar"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 def radianToAlign(a):
     # fraction of circle
-    f = a / (2*math.pi)
+    f = a / (2 * math.pi)
 
     # slow, but ok here as we don't expect values much outside range
     while f < 0:
@@ -64,147 +66,185 @@ def radianToAlign(a):
     else:
         return (-1, -1)
 
+
 class OldLine(setting.Line):
-    '''Polar tick settings.'''
+    """Polar tick settings."""
 
     def __init__(self, name):
-        setting.Line.__init__(self, name, setnsmode='hide')
+        setting.Line.__init__(self, name, setnsmode="hide")
 
-        self.add( setting.SettingBackwardCompat(
-            'number', '../RadiiLine/number', None))
-        self.add( setting.SettingBackwardCompat(
-            'hidespokes', '../SpokeLine/length', None))
-        self.add( setting.SettingBackwardCompat(
-            'hideannuli', '../SpokeAnnuli/length', None))
+        self.add(setting.SettingBackwardCompat("number", "../RadiiLine/number", None))
+        self.add(
+            setting.SettingBackwardCompat("hidespokes", "../SpokeLine/length", None)
+        )
+        self.add(
+            setting.SettingBackwardCompat("hideannuli", "../SpokeAnnuli/length", None)
+        )
+
 
 class SpokeLine(setting.Line):
-    '''Spokes in polar plot.'''
+    """Spokes in polar plot."""
 
     def __init__(self, name, **args):
         setting.Line.__init__(self, name, **args)
-        self.add( setting.Int(
-            'number', 12,
-            minval=1,
-            descr=_('Number of spokes to use'),
-            usertext=_('Number')) )
-        self.get('color').newDefault('grey')
+        self.add(
+            setting.Int(
+                "number",
+                12,
+                minval=1,
+                descr=_("Number of spokes to use"),
+                usertext=_("Number"),
+            )
+        )
+        self.get("color").newDefault("grey")
+
 
 class RadiiLine(setting.Line):
-    '''Radii in polar plot.'''
+    """Radii in polar plot."""
 
     def __init__(self, name, **args):
         setting.Line.__init__(self, name, **args)
-        self.add( setting.Int(
-            'number', 6,
-            minval=1,
-            descr=_('Number of radial ticks to aim for'),
-            usertext=_('Number')) )
-        self.get('color').newDefault('grey')
+        self.add(
+            setting.Int(
+                "number",
+                6,
+                minval=1,
+                descr=_("Number of radial ticks to aim for"),
+                usertext=_("Number"),
+            )
+        )
+        self.get("color").newDefault("grey")
+
 
 class TickLabel(axis.TickLabel):
     """For tick label."""
+
     def __init__(self, *args, **argsv):
         axis.TickLabel.__init__(self, *args, **argsv)
-        self.remove('offset')
-        self.remove('rotate')
-        self.remove('hide')
-        self.add( setting.Bool(
-            'hideradial', False,
-            descr=_('Hide radial labels'),
-            usertext=_('Hide radial') ) )
-        self.add( setting.Bool(
-            'hidetangential', False,
-            descr=_('Hide spoke labels'),
-            usertext=_('Hide spokes') ) )
+        self.remove("offset")
+        self.remove("rotate")
+        self.remove("hide")
+        self.add(
+            setting.Bool(
+                "hideradial",
+                False,
+                descr=_("Hide radial labels"),
+                usertext=_("Hide radial"),
+            )
+        )
+        self.add(
+            setting.Bool(
+                "hidetangential",
+                False,
+                descr=_("Hide spoke labels"),
+                usertext=_("Hide spokes"),
+            )
+        )
+
 
 class Polar(NonOrthGraph):
-    '''Polar plotter.'''
+    """Polar plotter."""
 
-    typename='polar'
+    typename = "polar"
     allowusercreation = True
-    description = _('Polar graph')
+    description = _("Polar graph")
 
     @classmethod
     def addSettings(klass, s):
-        '''Construct list of settings.'''
+        """Construct list of settings."""
         NonOrthGraph.addSettings(s)
 
-        s.add( setting.FloatOrAuto(
-            'minradius', 'Auto',
-            descr=_('Minimum value of radius'),
-            usertext=_('Min radius')) )
-        s.add( setting.FloatOrAuto(
-            'maxradius', 'Auto',
-            descr=_('Maximum value of radius'),
-            usertext=_('Max radius')) )
-        s.add( setting.Choice(
-            'units',
-            ('degrees', 'radians', 'fractions', 'percentages'),
-            'degrees',
-            descr=_('Angular units'),
-            usertext=_('Units')) )
-        s.add( setting.Choice(
-            'direction',
-            ('clockwise', 'anticlockwise'),
-            'anticlockwise',
-            descr=_('Angle direction'),
-            usertext=_('Direction')) )
-        s.add( setting.Choice(
-            'position0',
-            ('right', 'top', 'left', 'bottom'),
-            'right',
-            descr=_('Direction of 0 angle'),
-            usertext=_('Position of 0°')) )
-        s.add( setting.Bool(
-            'log', False,
-            descr=_('Logarithmic radial axis'),
-            usertext=_('Log')) )
+        s.add(
+            setting.FloatOrAuto(
+                "minradius",
+                "Auto",
+                descr=_("Minimum value of radius"),
+                usertext=_("Min radius"),
+            )
+        )
+        s.add(
+            setting.FloatOrAuto(
+                "maxradius",
+                "Auto",
+                descr=_("Maximum value of radius"),
+                usertext=_("Max radius"),
+            )
+        )
+        s.add(
+            setting.Choice(
+                "units",
+                ("degrees", "radians", "fractions", "percentages"),
+                "degrees",
+                descr=_("Angular units"),
+                usertext=_("Units"),
+            )
+        )
+        s.add(
+            setting.Choice(
+                "direction",
+                ("clockwise", "anticlockwise"),
+                "anticlockwise",
+                descr=_("Angle direction"),
+                usertext=_("Direction"),
+            )
+        )
+        s.add(
+            setting.Choice(
+                "position0",
+                ("right", "top", "left", "bottom"),
+                "right",
+                descr=_("Direction of 0 angle"),
+                usertext=_("Position of 0°"),
+            )
+        )
+        s.add(
+            setting.Bool(
+                "log", False, descr=_("Logarithmic radial axis"), usertext=_("Log")
+            )
+        )
 
-        s.add( TickLabel(
-            'TickLabels',
-            descr=_('Radial tick labels'),
-            usertext=_('Radial tick labels')),
-            pixmap='settings_axisticklabels' )
+        s.add(
+            TickLabel(
+                "TickLabels",
+                descr=_("Radial tick labels"),
+                usertext=_("Radial tick labels"),
+            ),
+            pixmap="settings_axisticklabels",
+        )
 
-        s.add( OldLine('Tick') )
+        s.add(OldLine("Tick"))
 
-        s.add( SpokeLine(
-            'SpokeLine',
-            descr=_('Spoke line'),
-            usertext=_('Spoke line')),
-            pixmap='settings_axismajorticks' )
+        s.add(
+            SpokeLine("SpokeLine", descr=_("Spoke line"), usertext=_("Spoke line")),
+            pixmap="settings_axismajorticks",
+        )
 
-        s.add( RadiiLine(
-            'RadiiLine',
-            descr=_('Radii line'),
-            usertext=_('Radii line')),
-            pixmap='settings_contourline' )
+        s.add(
+            RadiiLine("RadiiLine", descr=_("Radii line"), usertext=_("Radii line")),
+            pixmap="settings_contourline",
+        )
 
-        s.get('leftMargin').newDefault('1cm')
-        s.get('rightMargin').newDefault('1cm')
-        s.get('topMargin').newDefault('1cm')
-        s.get('bottomMargin').newDefault('1cm')
+        s.get("leftMargin").newDefault("1cm")
+        s.get("rightMargin").newDefault("1cm")
+        s.get("topMargin").newDefault("1cm")
+        s.get("bottomMargin").newDefault("1cm")
 
     @property
     def userdescription(self):
         s = self.settings
-        return _("'units=%s, direction=%s, log=%s") % (
-            s.units, s.direction, str(s.log))
+        return _("'units=%s, direction=%s, log=%s") % (s.units, s.direction, str(s.log))
 
     def coordRanges(self):
-        '''Get ranges of coordinates.'''
+        """Get ranges of coordinates."""
 
         angularrange = {
-            'degrees': [0., 360.],
-            'radians': [0., 2*math.pi],
-            'fractions': [0., 1.],
-            'percentages': [0., 100.],
+            "degrees": [0.0, 360.0],
+            "radians": [0.0, 2 * math.pi],
+            "fractions": [0.0, 1.0],
+            "percentages": [0.0, 100.0],
         }[self.settings.units]
 
-        return [
-            [self._minradius, self._maxradius],
-            angularrange
-        ]
+        return [[self._minradius, self._maxradius], angularrange]
 
     def toPlotAngle(self, angles):
         """Convert one or more angles to angle on plot."""
@@ -212,20 +252,23 @@ class Polar(NonOrthGraph):
 
         # unit conversions
         mult = {
-            'degrees': math.pi/180,
-            'radians': 1,
-            'fractions': 2*math.pi,
-            'percentages': 0.02*math.pi,
+            "degrees": math.pi / 180,
+            "radians": 1,
+            "fractions": 2 * math.pi,
+            "percentages": 0.02 * math.pi,
         }
         angles = angles * mult[s.units]
 
         # change direction
-        if self.settings.direction == 'anticlockwise':
+        if self.settings.direction == "anticlockwise":
             angles = -angles
         # add offset
         angles -= {
-            'right': 0, 'top': 0.5*math.pi, 'left': math.pi,
-            'bottom': 1.5*math.pi}[self.settings.position0]
+            "right": 0,
+            "top": 0.5 * math.pi,
+            "left": math.pi,
+            "bottom": 1.5 * math.pi,
+        }[self.settings.position0]
         return angles
 
     def toPlotRadius(self, radii):
@@ -233,15 +276,13 @@ class Polar(NonOrthGraph):
         if self.settings.log:
             logmin = N.log(self._minradius)
             logmax = N.log(self._maxradius)
-            r = (N.log(N.clip(radii, 1e-99, 1e99)) - logmin) / (
-                logmax - logmin)
+            r = (N.log(N.clip(radii, 1e-99, 1e99)) - logmin) / (logmax - logmin)
         else:
-            r = (radii - self._minradius) / (
-                self._maxradius - self._minradius)
-        return N.where(r > 0., r, 0.)
+            r = (radii - self._minradius) / (self._maxradius - self._minradius)
+        return N.where(r > 0.0, r, 0.0)
 
     def graphToPlotCoords(self, coorda, coordb):
-        '''Convert coordinates in r, theta to x, y.'''
+        """Convert coordinates in r, theta to x, y."""
 
         ca = self.toPlotRadius(coorda)
         cb = self.toPlotAngle(coordb)
@@ -250,47 +291,46 @@ class Polar(NonOrthGraph):
         y = self._yc + ca * N.sin(cb) * self._yscale
         return x, y
 
-    def drawFillPts(self, painter, extfill, cliprect,
-                    ptsx, ptsy):
-        '''Draw points for plotting a fill.'''
+    def drawFillPts(self, painter, extfill, cliprect, ptsx, ptsy):
+        """Draw points for plotting a fill."""
         pts = qt.QPolygonF()
         utils.addNumpyToPolygonF(pts, ptsx, ptsy)
 
         filltype = extfill.filltype
-        if filltype == 'center':
-            pts.append( qt.QPointF(self._xc, self._yc) )
+        if filltype == "center":
+            pts.append(qt.QPointF(self._xc, self._yc))
             utils.brushExtFillPolygon(painter, extfill, cliprect, pts)
-        elif filltype == 'outside':
+        elif filltype == "outside":
             pp = qt.QPainterPath()
             pp.moveTo(self._xc, self._yc)
             pp.arcTo(cliprect, 0, 360)
             pp.addPolygon(pts)
             utils.brushExtFillPath(painter, extfill, pp)
-        elif filltype == 'polygon':
+        elif filltype == "polygon":
             utils.brushExtFillPolygon(painter, extfill, cliprect, pts)
 
     def drawGraph(self, painter, bounds, datarange, outerbounds=None):
-        '''Plot graph area and axes.'''
+        """Plot graph area and axes."""
 
         s = self.settings
 
         if datarange is None:
-            datarange = [0., 1., 0., 1.]
+            datarange = [0.0, 1.0, 0.0, 1.0]
 
-        if s.maxradius == 'Auto':
+        if s.maxradius == "Auto":
             self._maxradius = datarange[1]
         else:
             self._maxradius = s.maxradius
 
-        if s.minradius == 'Auto':
+        if s.minradius == "Auto":
             if s.log:
-                if datarange[0] > 0.:
+                if datarange[0] > 0.0:
                     self._minradius = datarange[0]
                 else:
-                    self._minradius = self._maxradius / 100.
+                    self._minradius = self._maxradius / 100.0
             else:
                 if datarange[0] >= 0:
-                    self._minradius = 0.
+                    self._minradius = 0.0
                 else:
                     self._minradius = datarange[0]
         else:
@@ -303,28 +343,33 @@ class Polar(NonOrthGraph):
         if self._minradius == self._maxradius:
             self._maxradius = self._minradius + 1
 
-        self._xscale = (bounds[2]-bounds[0])*0.5
-        self._yscale = (bounds[3]-bounds[1])*0.5
-        self._xc = 0.5*(bounds[0]+bounds[2])
-        self._yc = 0.5*(bounds[3]+bounds[1])
+        self._xscale = (bounds[2] - bounds[0]) * 0.5
+        self._yscale = (bounds[3] - bounds[1]) * 0.5
+        self._xc = 0.5 * (bounds[0] + bounds[2])
+        self._yc = 0.5 * (bounds[3] + bounds[1])
 
         path = qt.QPainterPath()
-        path.addEllipse(qt.QRectF(
-            qt.QPointF(bounds[0], bounds[1]),
-            qt.QPointF(bounds[2], bounds[3]) ))
+        path.addEllipse(
+            qt.QRectF(
+                qt.QPointF(bounds[0], bounds[1]), qt.QPointF(bounds[2], bounds[3])
+            )
+        )
         utils.brushExtFillPath(
-            painter, s.Background, path, stroke=s.Border.makeQPenWHide(painter))
+            painter, s.Background, path, stroke=s.Border.makeQPenWHide(painter)
+        )
 
     def setClip(self, painter, bounds):
-        '''Set clipping for graph.'''
+        """Set clipping for graph."""
         p = qt.QPainterPath()
-        p.addEllipse(qt.QRectF(
-            qt.QPointF(bounds[0], bounds[1]),
-            qt.QPointF(bounds[2], bounds[3]) ))
+        p.addEllipse(
+            qt.QRectF(
+                qt.QPointF(bounds[0], bounds[1]), qt.QPointF(bounds[2], bounds[3])
+            )
+        )
         painter.setClipPath(p)
 
     def drawAxes(self, painter, bounds, datarange, outerbounds=None):
-        '''Plot axes.'''
+        """Plot axes."""
 
         s = self.settings
 
@@ -334,20 +379,24 @@ class Polar(NonOrthGraph):
         # handle reversed axes using min and max below
         r = [self._minradius, self._maxradius]
         atick = AxisTicks(
-            min(r), max(r),
-            radiiL.number, radiiL.number*4,
-            extendmin=False, extendmax=False,
-            logaxis=s.log)
+            min(r),
+            max(r),
+            radiiL.number,
+            radiiL.number * 4,
+            extendmin=False,
+            extendmax=False,
+            logaxis=s.log,
+        )
         atick.getTicks()
         majtick = atick.tickvals
 
         # drop 0 at origin
-        if self._minradius == 0. and not s.log:
+        if self._minradius == 0.0 and not s.log:
             majtick = majtick[1:]
 
         # pen for radii circles and axis
-        painter.setPen( radiiL.makeQPenWHide(painter) )
-        painter.setBrush( qt.QBrush() )
+        painter.setPen(radiiL.makeQPenWHide(painter))
+        painter.setBrush(qt.QBrush())
 
         # draw ticks as circles
         if not radiiL.hide:
@@ -356,68 +405,78 @@ class Polar(NonOrthGraph):
                 if radius > 0:
                     rect = qt.QRectF(
                         qt.QPointF(
-                            self._xc - radius*self._xscale,
-                            self._yc - radius*self._yscale ),
+                            self._xc - radius * self._xscale,
+                            self._yc - radius * self._yscale,
+                        ),
                         qt.QPointF(
-                            self._xc + radius*self._xscale,
-                            self._yc + radius*self._yscale ) )
+                            self._xc + radius * self._xscale,
+                            self._yc + radius * self._yscale,
+                        ),
+                    )
                     painter.drawEllipse(rect)
 
         # setup axes plot
         tl = s.TickLabels
         scale, fmt = tl.scale, tl.format
-        if fmt == 'Auto':
+        if fmt == "Auto":
             fmt = atick.autoformat
-        painter.setPen( tl.makeQPen(painter) )
+        painter.setPen(tl.makeQPen(painter))
         font = tl.makeQFont(painter)
 
         # draw ticks
         if not s.TickLabels.hideradial:
             for tick in majtick:
-                num = utils.formatNumber(
-                    tick*scale, fmt,locale=self.document.locale)
+                num = utils.formatNumber(tick * scale, fmt, locale=self.document.locale)
                 x = self.toPlotRadius(tick) * self._xscale + self._xc
                 r = utils.Renderer(
-                    painter, font, x, self._yc, num,
+                    painter,
+                    font,
+                    x,
+                    self._yc,
+                    num,
                     alignhorz=-1,
-                    alignvert=-1, usefullheight=True,
-                    doc=self.document)
+                    alignvert=-1,
+                    usefullheight=True,
+                    doc=self.document,
+                )
                 r.render()
 
         numspokes = spokesL.number
-        if s.units == 'degrees':
-            vals = N.linspace(0., 360., numspokes+1)[:-1]
-            labels = ['%g°' % x for x in vals]
-        elif s.units == 'radians':
+        if s.units == "degrees":
+            vals = N.linspace(0.0, 360.0, numspokes + 1)[:-1]
+            labels = ["%g°" % x for x in vals]
+        elif s.units == "radians":
             labels = []
             for i in range(numspokes):
                 # use fraction module to work out labels
                 # angle in radians (/pi)
-                f = fractions.Fraction(2*i, numspokes)
+                f = fractions.Fraction(2 * i, numspokes)
                 if f.numerator == 0:
-                    txt = '0'
+                    txt = "0"
                 else:
-                    txt = '%iπ/%i' % (f.numerator, f.denominator)
+                    txt = "%iπ/%i" % (f.numerator, f.denominator)
                     # remove superfluous 1* or /1
-                    if txt[-2:] == '/1': txt = txt[:-2]
-                    txt = txt.lstrip('1')
+                    if txt[-2:] == "/1":
+                        txt = txt[:-2]
+                    txt = txt.lstrip("1")
                 labels.append(txt)
-        elif s.units == 'fractions':
+        elif s.units == "fractions":
             labels = []
             for i in range(numspokes):
-                val = i/numspokes
-                label = ('%.2f' % val).rstrip('0').rstrip('.')
+                val = i / numspokes
+                label = ("%.2f" % val).rstrip("0").rstrip(".")
                 labels.append(label)
-        elif s.units == 'percentages':
+        elif s.units == "percentages":
             labels = []
             for i in range(numspokes):
-                txt = '%.1f' % (100*i/numspokes)
-                if txt[-2:] == '.0': txt = txt[:-2]
+                txt = "%.1f" % (100 * i / numspokes)
+                if txt[-2:] == ".0":
+                    txt = txt[:-2]
                 labels.append(txt)
         else:
             raise RuntimeError()
 
-        if s.direction == 'anticlockwise':
+        if s.direction == "anticlockwise":
             labels = labels[0:1] + labels[1:][::-1]
 
         # these are the angles the spokes lie in
@@ -425,38 +484,44 @@ class Polar(NonOrthGraph):
         angles = 2 * math.pi * N.arange(numspokes) / numspokes
 
         # rotate labels if zero not at right
-        if s.position0 == 'top':
-            angles -= math.pi/2
-        elif s.position0 == 'left':
+        if s.position0 == "top":
+            angles -= math.pi / 2
+        elif s.position0 == "left":
             angles += math.pi
-        elif s.position0 == 'bottom':
-            angles += math.pi/2
+        elif s.position0 == "bottom":
+            angles += math.pi / 2
 
         # draw labels around plot
         if not s.TickLabels.hidetangential:
             for angle, label in zip(angles, labels):
                 align = radianToAlign(angle)
-                x = self._xc +  N.cos(angle) * self._xscale
-                y = self._yc +  N.sin(angle) * self._yscale
+                x = self._xc + N.cos(angle) * self._xscale
+                y = self._yc + N.sin(angle) * self._yscale
                 r = utils.Renderer(
-                    painter, font, x, y, label,
+                    painter,
+                    font,
+                    x,
+                    y,
+                    label,
                     alignhorz=align[0],
                     alignvert=align[1],
-                    usefullheight=True)
+                    usefullheight=True,
+                )
                 r.render()
 
         # draw spokes
         if not spokesL.hide:
-            painter.setPen( spokesL.makeQPenWHide(painter) )
-            painter.setBrush( qt.QBrush() )
+            painter.setPen(spokesL.makeQPenWHide(painter))
+            painter.setBrush(qt.QBrush())
             angle = 2 * math.pi / numspokes
             lines = []
             for i in range(numspokes):
-                x = self._xc +  N.cos(angle*i) * self._xscale
-                y = self._yc +  N.sin(angle*i) * self._yscale
+                x = self._xc + N.cos(angle * i) * self._xscale
+                y = self._yc + N.sin(angle * i) * self._yscale
                 lines.append(
-                    qt.QLineF(
-                        qt.QPointF(self._xc, self._yc), qt.QPointF(x, y)) )
+                    qt.QLineF(qt.QPointF(self._xc, self._yc), qt.QPointF(x, y))
+                )
             painter.drawLines(lines)
+
 
 document.thefactory.register(Polar)

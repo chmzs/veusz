@@ -24,29 +24,32 @@ from .. import document
 from . import simpleread
 from . import base
 
+
 def _(text, disambiguation=None, context="Import_ND"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportParamsND(base.ImportParamsBase):
     """nD import parameters.
 
-     transpose: transpose array
-     mode: text or csv
-     csvdelimiter/csvtextdelimiter: csv text delimiters
-     csvlocale: locale when importing csv
+    transpose: transpose array
+    mode: text or csv
+    csvdelimiter/csvtextdelimiter: csv text delimiters
+    csvlocale: locale when importing csv
     """
 
     defaults = {
-        'dataset': None,
-        'datastr': None,
-        'shape': None,
-        'transpose': False,
-        'mode': 'text',
-        'csvdelimiter': ',',
-        'csvtextdelimiter': '"',
-        'csvlocale': 'en_US',
+        "dataset": None,
+        "datastr": None,
+        "shape": None,
+        "transpose": False,
+        "mode": "text",
+        "csvdelimiter": ",",
+        "csvtextdelimiter": '"',
+        "csvlocale": "en_US",
     }
     defaults.update(base.ImportParamsBase.defaults)
+
 
 class LinkedFileND(base.LinkedFileBase):
     """Class representing a file linked to an nD dataset."""
@@ -58,15 +61,14 @@ class LinkedFileND(base.LinkedFileBase):
     def saveToFile(self, fileobj, relpath=None):
         """Save the link to the document file."""
         self._saveHelper(
-            fileobj,
-            'ImportFileND',
-            ('filename', 'dataset'),
-            relpath=relpath)
+            fileobj, "ImportFileND", ("filename", "dataset"), relpath=relpath
+        )
+
 
 class OperationDataImportND(base.OperationDataImportBase):
     """Import an n-D matrix from a file."""
 
-    descr = _('import nD data')
+    descr = _("import nD data")
 
     def doImport(self):
         """Import data."""
@@ -74,13 +76,12 @@ class OperationDataImportND(base.OperationDataImportBase):
         p = self.params
 
         # get stream
-        if p.mode == 'csv':
+        if p.mode == "csv":
             stream = simpleread.CSVStream(
-                p.filename, p.csvdelimiter, p.csvtextdelimiter,
-                p.csvlocale, p.encoding)
+                p.filename, p.csvdelimiter, p.csvtextdelimiter, p.csvlocale, p.encoding
+            )
         elif p.filename is not None:
-            stream = simpleread.FileStream(
-                utils.openEncoding(p.filename, p.encoding) )
+            stream = simpleread.FileStream(utils.openEncoding(p.filename, p.encoding))
         elif p.datastr is not None:
             stream = simpleread.StringStream(p.datastr)
         else:
@@ -96,15 +97,22 @@ class OperationDataImportND(base.OperationDataImportBase):
         sr.readData(stream)
         sr.setOutput(self.outdatasets, linkedfile=LF)
 
-def ImportFileND(
-        comm, filename, dataset,
-        shape=None,
-        transpose=False,
-        mode='text', csvdelimiter=',', csvtextdelimiter='"',
-        csvlocale='en_US',
-        prefix="", suffix="", encoding='utf_8',
-        linked=False):
 
+def ImportFileND(
+    comm,
+    filename,
+    dataset,
+    shape=None,
+    transpose=False,
+    mode="text",
+    csvdelimiter=",",
+    csvtextdelimiter='"',
+    csvlocale="en_US",
+    prefix="",
+    suffix="",
+    encoding="utf_8",
+    linked=False,
+):
     """Import n-dimensional data from a file.
     filename is the name of the file to read
     dataset is the dataset to read
@@ -137,14 +145,17 @@ def ImportFileND(
         csvdelimiter=csvdelimiter,
         csvtextdelimiter=csvtextdelimiter,
         csvlocale=csvlocale,
-        prefix=prefix, suffix=suffix,
-        linked=linked)
+        prefix=prefix,
+        suffix=suffix,
+        linked=linked,
+    )
     op = OperationDataImportND(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ', '.join(op.outnames))
+        print("Imported datasets %s" % ", ".join(op.outnames))
     return op.outnames
+
 
 def ImportStringND(comm, dataset, dstring, shape=None, transpose=False):
     """Read n-dimensional data from the string specified.
@@ -157,17 +168,15 @@ def ImportStringND(comm, dataset, dstring, shape=None, transpose=False):
     """
 
     params = ImportParamsND(
-        dataset=dataset,
-        datastr=dstring,
-        shape=shape,
-        transpose=transpose)
+        dataset=dataset, datastr=dstring, shape=shape, transpose=transpose
+    )
     op = OperationDataImportND(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ', '.join(op.outnames))
+        print("Imported datasets %s" % ", ".join(op.outnames))
     return op.outnames
 
-document.registerImportCommand('ImportFileND', ImportFileND)
-document.registerImportCommand(
-    'ImportStringND', ImportStringND, filenamearg=-1)
+
+document.registerImportCommand("ImportFileND", ImportFileND)
+document.registerImportCommand("ImportStringND", ImportStringND, filenamearg=-1)

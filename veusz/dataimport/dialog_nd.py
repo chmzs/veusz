@@ -28,8 +28,10 @@ from . import defn_nd
 from . import simpleread
 from . import dialog_csv
 
+
 def _(text, disambiguation=None, context="Import_ND"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportTabND(importdialog.ImportTab):
     """Tab for importing from a ND data file."""
@@ -101,7 +103,8 @@ class ImportTabND(importdialog.ImportTab):
                 csvdelimiter = dialog_csv.csv_delimiter_map[csvdelimiter]
             csvtextdelimiter = str(self.nd_csvtextdelim.text())
             csvlocale = dialog_csv.csvLocaleIndexToLocale(
-                self.nd_csvlocale.currentIndex())
+                self.nd_csvlocale.currentIndex()
+            )
 
             shapetxt = self.nd_shapeedit.text().strip()
             if shapetxt == _("Auto"):
@@ -124,10 +127,11 @@ class ImportTabND(importdialog.ImportTab):
                 csvdelimiter=csvdelimiter,
                 csvtextdelimiter=csvtextdelimiter,
                 csvlocale=csvlocale,
-                prefix=prefix, suffix=suffix,
+                prefix=prefix,
+                suffix=suffix,
                 tags=tags,
                 linked=linked,
-                encoding=encoding
+                encoding=encoding,
             )
 
             # do the importing
@@ -137,14 +141,11 @@ class ImportTabND(importdialog.ImportTab):
             # show result
             output = [_("Successfully read:")]
             for ds in op.outnames:
-                output.append("%s: %s" % (
-                    ds,
-                    doc.data[ds].description())
-                )
+                output.append("%s: %s" % (ds, doc.data[ds].description()))
             output = "\n".join(output)
 
             # feature feedback
-            utils.feedback.importcts['nd'] += 1
+            utils.feedback.importcts["nd"] += 1
 
         except error as e:
             output = e.args[0]
@@ -154,5 +155,6 @@ class ImportTabND(importdialog.ImportTab):
 
         # show status in preview box
         self.nd_previewedit.setPlainText(output)
+
 
 importdialog.registerImportTab(_("&ND"), ImportTabND)

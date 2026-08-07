@@ -29,6 +29,7 @@ from .. import qtall as qt
 inch_mm = 25.4
 inch_pt = 72.0
 
+
 def printpath(path):
     """Debugging print path."""
     print("Contents of", path)
@@ -36,32 +37,35 @@ def printpath(path):
         el = path.elementAt(i)
         print(" ", el.type, el.x, el.y)
 
+
 def fltStr(v, prec=2):
     """Change a float to a string, using a maximum number of decimal places
     but removing trailing zeros."""
 
     # ensures consistent rounding behaviour on different platforms
-    v = round(v, prec+2)
+    v = round(v, prec + 2)
 
-    val = ('% 20.10f' % v)[:10+prec]
+    val = ("% 20.10f" % v)[: 10 + prec]
 
     # drop any trailing zeros
-    val = val.rstrip('0').lstrip(' ').rstrip('.')
+    val = val.rstrip("0").lstrip(" ").rstrip(".")
     # get rid of -0s (platform differences here)
-    if val == '-0':
-        val = '0'
+    if val == "-0":
+        val = "0"
     return val
+
 
 def escapeXML(text):
     """Escape special characters in XML."""
     # we have swap & with an unused character, so we can replace it later
-    text = text.replace('&', '\ue001')
-    text = text.replace('<', '&lt;')
-    text = text.replace('>', '&gt;')
-    text = text.replace('"', '&quot;')
-    text = text.replace("'", '&apos;')
-    text = text.replace('\ue001', '&amp;')
+    text = text.replace("&", "\ue001")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
+    text = text.replace('"', "&quot;")
+    text = text.replace("'", "&apos;")
+    text = text.replace("\ue001", "&amp;")
     return text
+
 
 def createPath(path, scale):
     """Convert qt path to svg path.
@@ -75,29 +79,35 @@ def createPath(path, scale):
     ox, oy = 0, 0
     while i < count:
         e = path.elementAt(i)
-        nx, ny = e.x*scale, e.y*scale
+        nx, ny = e.x * scale, e.y * scale
         if e.type == qt.QPainterPath.ElementType.MoveToElement:
-            p.append( 'm%s,%s' % (fltStr(nx-ox), fltStr(ny-oy)) )
+            p.append("m%s,%s" % (fltStr(nx - ox), fltStr(ny - oy)))
             ox, oy = nx, ny
         elif e.type == qt.QPainterPath.ElementType.LineToElement:
-            p.append( 'l%s,%s' % (fltStr(nx-ox), fltStr(ny-oy)) )
+            p.append("l%s,%s" % (fltStr(nx - ox), fltStr(ny - oy)))
             ox, oy = nx, ny
         elif e.type == qt.QPainterPath.ElementType.CurveToElement:
-            e1 = path.elementAt(i+1)
-            e2 = path.elementAt(i+2)
+            e1 = path.elementAt(i + 1)
+            e2 = path.elementAt(i + 2)
             p.append(
-                'c%s,%s,%s,%s,%s,%s' % (
-                    fltStr(nx-ox), fltStr(ny-oy),
-                    fltStr(e1.x*scale-ox), fltStr(e1.y*scale-oy),
-                    fltStr(e2.x*scale-ox), fltStr(e2.y*scale-oy))
+                "c%s,%s,%s,%s,%s,%s"
+                % (
+                    fltStr(nx - ox),
+                    fltStr(ny - oy),
+                    fltStr(e1.x * scale - ox),
+                    fltStr(e1.y * scale - oy),
+                    fltStr(e2.x * scale - ox),
+                    fltStr(e2.y * scale - oy),
+                )
             )
-            ox, oy = e2.x*scale, e2.y*scale
+            ox, oy = e2.x * scale, e2.y * scale
             i += 2
         else:
             assert False
 
         i += 1
-    return ''.join(p)
+    return "".join(p)
+
 
 class SVGElement:
     """SVG element in output.
@@ -122,20 +132,21 @@ class SVGElement:
 
     def write(self, fileobj):
         """Write element and its children to the output file."""
-        fileobj.write('<%s' % self.eltype)
+        fileobj.write("<%s" % self.eltype)
         if self.attrb:
-            fileobj.write(' ' + self.attrb)
+            fileobj.write(" " + self.attrb)
 
         if self.text:
-            fileobj.write('>%s</%s>\n' % (self.text, self.eltype))
+            fileobj.write(">%s</%s>\n" % (self.text, self.eltype))
         elif self.children:
-            fileobj.write('>\n')
+            fileobj.write(">\n")
             for c in self.children:
                 c.write(fileobj)
-            fileobj.write('</%s>\n' % self.eltype)
+            fileobj.write("</%s>\n" % self.eltype)
         else:
             # simple close tag if not children or text
-            fileobj.write('/>\n')
+            fileobj.write("/>\n")
+
 
 class SVGPaintEngine(qt.QPaintEngine):
     """Paint engine class for writing to svg files."""
@@ -143,15 +154,15 @@ class SVGPaintEngine(qt.QPaintEngine):
     def __init__(self, writetextastext=False):
         qt.QPaintEngine.__init__(
             self,
-            qt.QPaintEngine.PaintEngineFeature.Antialiasing |
-            qt.QPaintEngine.PaintEngineFeature.PainterPaths |
-            qt.QPaintEngine.PaintEngineFeature.PrimitiveTransform |
-            qt.QPaintEngine.PaintEngineFeature.PaintOutsidePaintEvent |
-            qt.QPaintEngine.PaintEngineFeature.PixmapTransform |
-            qt.QPaintEngine.PaintEngineFeature.AlphaBlend
+            qt.QPaintEngine.PaintEngineFeature.Antialiasing
+            | qt.QPaintEngine.PaintEngineFeature.PainterPaths
+            | qt.QPaintEngine.PaintEngineFeature.PrimitiveTransform
+            | qt.QPaintEngine.PaintEngineFeature.PaintOutsidePaintEvent
+            | qt.QPaintEngine.PaintEngineFeature.PixmapTransform
+            | qt.QPaintEngine.PaintEngineFeature.AlphaBlend,
         )
 
-        self.imageformat = 'png'
+        self.imageformat = "png"
         self.writetextastext = writetextastext
 
     def begin(self, paintdevice):
@@ -168,25 +179,30 @@ class SVGPaintEngine(qt.QPaintEngine):
 
         # svg root element for qt defaults
         self.rootelement = SVGElement(
-            None, 'svg',
+            None,
+            "svg",
             (
                 'width="%spx" height="%spx" version="1.1"\n'
                 '    xmlns="http://www.w3.org/2000/svg"\n'
-                '    xmlns:xlink="http://www.w3.org/1999/xlink"') % (
-                    fltStr(self.device.width*self.device.sdpi*self.scale),
-                    fltStr(self.device.height*self.device.sdpi*self.scale),
-                )
+                '    xmlns:xlink="http://www.w3.org/1999/xlink"'
+            )
+            % (
+                fltStr(self.device.width * self.device.sdpi * self.scale),
+                fltStr(self.device.height * self.device.sdpi * self.scale),
+            ),
         )
-        SVGElement(self.rootelement, 'desc', '', 'Veusz output document')
+        SVGElement(self.rootelement, "desc", "", "Veusz output document")
 
         # definitions, for clips, etc.
-        self.defs = SVGElement(self.rootelement, 'defs', '')
+        self.defs = SVGElement(self.rootelement, "defs", "")
 
         # this is where all the drawing goes
         self.celement = SVGElement(
-            self.rootelement, 'g',
+            self.rootelement,
+            "g",
             'stroke-linejoin="bevel" stroke-linecap="square" '
-            'stroke="#000000" fill-rule="evenodd"')
+            'stroke="#000000" fill-rule="evenodd"',
+        )
 
         # previous transform, stroke and clip states
         self.oldstate = [None, None, None]
@@ -205,7 +221,7 @@ class SVGPaintEngine(qt.QPaintEngine):
             # remove any empty children first
             for c in children:
                 recursive(c)
-            if root.eltype == 'g' and len(root.children) == 0:
+            if root.eltype == "g" and len(root.children) == 0:
                 # safe to remove
                 index = root.parent.children.index(root)
                 del root.parent.children[index]
@@ -215,9 +231,12 @@ class SVGPaintEngine(qt.QPaintEngine):
             i = 0
             while i < len(root.children):
                 this = root.children[i]
-                if ( last is not None and
-                     last.eltype == this.eltype and last.attrb == this.attrb
-                     and last.text == this.text ):
+                if (
+                    last is not None
+                    and last.eltype == this.eltype
+                    and last.attrb == this.attrb
+                    and last.text == this.text
+                ):
                     last.children += this.children
                     del root.children[i]
                 else:
@@ -283,7 +302,7 @@ class SVGPaintEngine(qt.QPaintEngine):
         pop = 0
         for i in range(2, -1, -1):
             if statevec[i] != self.oldstate[i]:
-                pop = i+1
+                pop = i + 1
                 break
 
         # go back up the tree the required number of times
@@ -292,10 +311,9 @@ class SVGPaintEngine(qt.QPaintEngine):
                 self.celement = self.celement.parent
 
         # create new elements for changed states
-        for i in range(pop-1, -1, -1):
+        for i in range(pop - 1, -1, -1):
             if statevec[i]:
-                self.celement = SVGElement(
-                    self.celement, 'g', ' '.join(statevec[i]))
+                self.celement = SVGElement(self.celement, "g", " ".join(statevec[i]))
 
         self.oldstate = statevec
 
@@ -308,12 +326,11 @@ class SVGPaintEngine(qt.QPaintEngine):
         path = createPath(self.clippath, self.scale)
 
         if path in self.existingclips:
-            url = 'url(#c%i)' % self.existingclips[path]
+            url = "url(#c%i)" % self.existingclips[path]
         else:
-            clippath = SVGElement(
-                self.defs, 'clipPath', 'id="c%i"' % self.clipnum)
-            SVGElement(clippath, 'path', 'd="%s"' % path)
-            url = 'url(#c%i)' % self.clipnum
+            clippath = SVGElement(self.defs, "clipPath", 'id="c%i"' % self.clipnum)
+            SVGElement(clippath, "path", 'd="%s"' % path)
+            url = "url(#c%i)" % self.clipnum
             self.existingclips[path] = self.clipnum
             self.clipnum += 1
 
@@ -326,49 +343,49 @@ class SVGPaintEngine(qt.QPaintEngine):
         p = self.pen
         # - color
         color = p.color().name()
-        if color != '#000000':
-            vals['stroke'] = p.color().name()
+        if color != "#000000":
+            vals["stroke"] = p.color().name()
         # - opacity
-        if p.color().alphaF() != 1.:
-            vals['stroke-opacity'] = '%.3g' % p.color().alphaF()
+        if p.color().alphaF() != 1.0:
+            vals["stroke-opacity"] = "%.3g" % p.color().alphaF()
         # - join style
         if p.joinStyle() != qt.Qt.PenJoinStyle.BevelJoin:
-            vals['stroke-linejoin'] = {
-                qt.Qt.PenJoinStyle.MiterJoin: 'miter',
-                qt.Qt.PenJoinStyle.SvgMiterJoin: 'miter',
-                qt.Qt.PenJoinStyle.RoundJoin: 'round',
-                qt.Qt.PenJoinStyle.BevelJoin: 'bevel'
+            vals["stroke-linejoin"] = {
+                qt.Qt.PenJoinStyle.MiterJoin: "miter",
+                qt.Qt.PenJoinStyle.SvgMiterJoin: "miter",
+                qt.Qt.PenJoinStyle.RoundJoin: "round",
+                qt.Qt.PenJoinStyle.BevelJoin: "bevel",
             }[p.joinStyle()]
         # - cap style
         if p.capStyle() != qt.Qt.PenCapStyle.SquareCap:
-            vals['stroke-linecap'] = {
-                qt.Qt.PenCapStyle.FlatCap: 'butt',
-                qt.Qt.PenCapStyle.SquareCap: 'square',
-                qt.Qt.PenCapStyle.RoundCap: 'round'
+            vals["stroke-linecap"] = {
+                qt.Qt.PenCapStyle.FlatCap: "butt",
+                qt.Qt.PenCapStyle.SquareCap: "square",
+                qt.Qt.PenCapStyle.RoundCap: "round",
             }[p.capStyle()]
         # - width
         w = p.widthF()
         # width 0 is device width for qt
-        if w == 0.:
-            w = 1./self.scale
-        vals['stroke-width'] = fltStr(w*self.scale)
+        if w == 0.0:
+            w = 1.0 / self.scale
+        vals["stroke-width"] = fltStr(w * self.scale)
 
         # - line style
         if p.style() == qt.Qt.PenStyle.NoPen:
-            vals['stroke'] = 'none'
+            vals["stroke"] = "none"
         elif p.style() not in (qt.Qt.PenStyle.SolidLine, qt.Qt.PenStyle.NoPen):
             # convert from pen width fractions to pts
-            nums = [fltStr(self.scale*w*x) for x in p.dashPattern()]
-            vals['stroke-dasharray'] = ','.join(nums)
+            nums = [fltStr(self.scale * w * x) for x in p.dashPattern()]
+            vals["stroke-dasharray"] = ",".join(nums)
 
         # BRUSH STYLES
         b = self.brush
         if b.style() == qt.Qt.BrushStyle.NoBrush:
-            vals['fill'] = 'none'
+            vals["fill"] = "none"
         else:
-            vals['fill'] = b.color().name()
+            vals["fill"] = b.color().name()
         if b.color().alphaF() != 1.0:
-            vals['fill-opacity'] = '%.3g' % b.color().alphaF()
+            vals["fill-opacity"] = "%.3g" % b.color().alphaF()
 
         items = ['%s="%s"' % x for x in sorted(vals.items())]
         return tuple(items)
@@ -377,17 +394,22 @@ class SVGPaintEngine(qt.QPaintEngine):
         if not self.transform.isIdentity():
             m = self.transform
             dx, dy = m.dx(), m.dy()
-            if (m.m11(), m.m12(), m.m21(), m.m22()) == (1., 0., 0., 1):
+            if (m.m11(), m.m12(), m.m21(), m.m22()) == (1.0, 0.0, 0.0, 1):
                 out = (
-                    'transform="translate(%s,%s)"' % (
-                        fltStr(dx*self.scale), fltStr(dy*self.scale)),
+                    'transform="translate(%s,%s)"'
+                    % (fltStr(dx * self.scale), fltStr(dy * self.scale)),
                 )
             else:
                 out = (
-                    'transform="matrix(%s %s %s %s %s %s)"' % (
-                        fltStr(m.m11(), 4), fltStr(m.m12(), 4),
-                        fltStr(m.m21(), 4), fltStr(m.m22(), 4),
-                        fltStr(dx*self.scale), fltStr(dy*self.scale) ),
+                    'transform="matrix(%s %s %s %s %s %s)"'
+                    % (
+                        fltStr(m.m11(), 4),
+                        fltStr(m.m12(), 4),
+                        fltStr(m.m21(), 4),
+                        fltStr(m.m22(), 4),
+                        fltStr(dx * self.scale),
+                        fltStr(dy * self.scale),
+                    ),
                 )
         else:
             out = ()
@@ -414,36 +436,36 @@ class SVGPaintEngine(qt.QPaintEngine):
 
             # if the parent is a translation, swallow this into the use element
             m = re.match(
-                r'transform="translate\(([-0-9.]+),([-0-9.]+)\)"',
-                self.celement.attrb)
+                r'transform="translate\(([-0-9.]+),([-0-9.]+)\)"', self.celement.attrb
+            )
             if m:
                 SVGElement(
-                    self.celement.parent, 'use',
-                    'xlink:href="#p%i" x="%s" y="%s"' % (
-                        num, m.group(1), m.group(2)))
+                    self.celement.parent,
+                    "use",
+                    'xlink:href="#p%i" x="%s" y="%s"' % (num, m.group(1), m.group(2)),
+                )
             else:
-                SVGElement(self.celement, 'use', 'xlink:href="#p%i"' % num)
+                SVGElement(self.celement, "use", 'xlink:href="#p%i"' % num)
         else:
-            pathel = SVGElement(self.celement, 'path', attrb)
+            pathel = SVGElement(self.celement, "path", attrb)
             self.pathcache[attrb] = [pathel, None]
 
     def drawTextItem(self, pt, textitem):
-        """Convert text to a path and draw it.
-        """
+        """Convert text to a path and draw it."""
 
         if self.writetextastext:
             # size
             f = textitem.font()
             if f.pixelSize() > 0:
-                size = f.pixelSize()*self.scale
+                size = f.pixelSize() * self.scale
             else:
-                size = f.pointSizeF()*self.scale*self.device.sdpi/inch_pt
+                size = f.pointSizeF() * self.scale * self.device.sdpi / inch_pt
 
             # get qfont for item
             font = textitem.font()
 
             # get font family, removing any optional bracketed foundry name
-            font_family = re.sub(r'\s+\[.*\]', '', font.family())
+            font_family = re.sub(r"\s+\[.*\]", "", font.family())
 
             # attributes for text item
             grpattrb = [
@@ -458,28 +480,22 @@ class SVGPaintEngine(qt.QPaintEngine):
             if font.bold():
                 grpattrb.append('font-weight="bold"')
 
-            grp = SVGElement(
-                self.celement, 'g',
-                ' '.join(grpattrb) )
+            grp = SVGElement(self.celement, "g", " ".join(grpattrb))
 
-            text = escapeXML( textitem.text() )
+            text = escapeXML(textitem.text())
 
             textattrb = [
-                'x="%s"' % fltStr(pt.x()*self.scale),
-                'y="%s"' % fltStr(pt.y()*self.scale),
-                'textLength="%s"' % fltStr(textitem.width()*self.scale),
+                'x="%s"' % fltStr(pt.x() * self.scale),
+                'y="%s"' % fltStr(pt.y() * self.scale),
+                'textLength="%s"' % fltStr(textitem.width() * self.scale),
             ]
 
             # spaces get lost without this
-            if text.find('  ') >= 0 or text[:1] == ' ' or text[-1:] == ' ':
+            if text.find("  ") >= 0 or text[:1] == " " or text[-1:] == " ":
                 textattrb.append('xml:space="preserve"')
 
             # write as an SVG text element
-            SVGElement(
-                grp, 'text',
-                ' '.join(textattrb),
-                text=text
-            )
+            SVGElement(grp, "text", " ".join(textattrb), text=text)
 
         else:
             # convert to a path
@@ -487,62 +503,67 @@ class SVGPaintEngine(qt.QPaintEngine):
             path.addText(pt, textitem.font(), textitem.text())
             p = createPath(path, self.scale)
             SVGElement(
-                self.celement, 'path',
-                'd="%s" fill="%s" stroke="none" fill-opacity="%.3g"' % (
-                    p, self.pen.color().name(), self.pen.color().alphaF()) )
+                self.celement,
+                "path",
+                'd="%s" fill="%s" stroke="none" fill-opacity="%.3g"'
+                % (p, self.pen.color().name(), self.pen.color().alphaF()),
+            )
 
     def drawLines(self, lines):
         """Draw multiple lines."""
         paths = []
         for line in lines:
-            path = 'M%s,%sl%s,%s' % (
-                fltStr(line.x1()*self.scale),
-                fltStr(line.y1()*self.scale),
-                fltStr((line.x2()-line.x1())*self.scale),
-                fltStr((line.y2()-line.y1())*self.scale))
+            path = "M%s,%sl%s,%s" % (
+                fltStr(line.x1() * self.scale),
+                fltStr(line.y1() * self.scale),
+                fltStr((line.x2() - line.x1()) * self.scale),
+                fltStr((line.y2() - line.y1()) * self.scale),
+            )
             paths.append(path)
-        SVGElement(self.celement, 'path', 'd="%s"' % ''.join(paths))
+        SVGElement(self.celement, "path", 'd="%s"' % "".join(paths))
 
     def drawPolygon(self, points, mode):
         """Draw polygon on output."""
         pts = []
         for p in points:
-            pts.append( '%s,%s' % (fltStr(p.x()*self.scale), fltStr(p.y()*self.scale)) )
+            pts.append(
+                "%s,%s" % (fltStr(p.x() * self.scale), fltStr(p.y() * self.scale))
+            )
 
         if mode == qt.QPaintEngine.PolygonDrawMode.PolylineMode:
             SVGElement(
-                self.celement, 'polyline',
-                'fill="none" points="%s"' % ' '.join(pts))
+                self.celement, "polyline", 'fill="none" points="%s"' % " ".join(pts)
+            )
 
         else:
-            attrb = 'points="%s"' % ' '.join(pts)
+            attrb = 'points="%s"' % " ".join(pts)
             if mode == qt.Qt.FillRule.WindingFill:
                 attrb += ' fill-rule="nonzero"'
-            SVGElement(self.celement, 'polygon', attrb)
+            SVGElement(self.celement, "polygon", attrb)
 
     def drawEllipse(self, rect):
         """Draw an ellipse to the svg file."""
         SVGElement(
-            self.celement, 'ellipse',
-            'cx="%s" cy="%s" rx="%s" ry="%s"' %
-            (
-                fltStr(rect.center().x()*self.scale),
-                fltStr(rect.center().y()*self.scale),
-                fltStr(rect.width()*0.5*self.scale),
-                fltStr(rect.height()*0.5*self.scale)
-            )
+            self.celement,
+            "ellipse",
+            'cx="%s" cy="%s" rx="%s" ry="%s"'
+            % (
+                fltStr(rect.center().x() * self.scale),
+                fltStr(rect.center().y() * self.scale),
+                fltStr(rect.width() * 0.5 * self.scale),
+                fltStr(rect.height() * 0.5 * self.scale),
+            ),
         )
 
     def drawPoints(self, points):
         """Draw points."""
         for pt in points:
-            x, y = fltStr(pt.x()*self.scale), fltStr(pt.y()*self.scale)
+            x, y = fltStr(pt.x() * self.scale), fltStr(pt.y() * self.scale)
             SVGElement(
-                self.celement, 'line',
-                (
-                    'x1="%s" y1="%s" x2="%s" y2="%s" '
-                    'stroke-linecap="round"'
-                ) % (x, y, x, y)
+                self.celement,
+                "line",
+                ('x1="%s" y1="%s" x2="%s" y2="%s" stroke-linecap="round"')
+                % (x, y, x, y),
             )
 
     def drawImage(self, r, img, sr, flags):
@@ -564,17 +585,18 @@ class SVGPaintEngine(qt.QPaintEngine):
         buf.close()
 
         attrb = [
-            'x="%s" y="%s" ' % (fltStr(r.x()*self.scale), fltStr(r.y()*self.scale)),
-            'width="%s" ' % fltStr(r.width()*self.scale),
-            'height="%s" ' % fltStr(r.height()*self.scale),
+            'x="%s" y="%s" ' % (fltStr(r.x() * self.scale), fltStr(r.y() * self.scale)),
+            'width="%s" ' % fltStr(r.width() * self.scale),
+            'height="%s" ' % fltStr(r.height() * self.scale),
             'xlink:href="data:image/%s;base64,' % self.imageformat,
-            bytes(data.toBase64()).decode('ascii'),
-            '" preserveAspectRatio="none"'
+            bytes(data.toBase64()).decode("ascii"),
+            '" preserveAspectRatio="none"',
         ]
-        SVGElement(self.celement, 'image', ''.join(attrb))
+        SVGElement(self.celement, "image", "".join(attrb))
 
     def type(self):
         return qt.QPaintEngine.Type.SVG
+
 
 class SVGPaintDevice(qt.QPaintDevice):
     """Paint device for SVG paint engine.
@@ -583,14 +605,15 @@ class SVGPaintDevice(qt.QPaintDevice):
     scale is a scaling value to apply to outputted values
     """
 
-    def __init__(self, fileobj, width_in, height_in,
-                 writetextastext=False, dpi=90, scale=0.1):
+    def __init__(
+        self, fileobj, width_in, height_in, writetextastext=False, dpi=90, scale=0.1
+    ):
         qt.QPaintDevice.__init__(self)
         self.fileobj = fileobj
         self.width = width_in
         self.height = height_in
         self.scale = scale
-        self.sdpi = dpi/scale
+        self.sdpi = dpi / scale
         self.engine = SVGPaintEngine(writetextastext=writetextastext)
 
     def paintEngine(self):
@@ -600,13 +623,13 @@ class SVGPaintDevice(qt.QPaintDevice):
         """Return the metrics of the painter."""
 
         if m == qt.QPaintDevice.PaintDeviceMetric.PdmWidth:
-            return int(self.width*self.sdpi)
+            return int(self.width * self.sdpi)
         elif m == qt.QPaintDevice.PaintDeviceMetric.PdmHeight:
-            return int(self.height*self.sdpi)
+            return int(self.height * self.sdpi)
         elif m == qt.QPaintDevice.PaintDeviceMetric.PdmWidthMM:
-            return int(self.engine.width*inch_mm)
+            return int(self.engine.width * inch_mm)
         elif m == qt.QPaintDevice.PaintDeviceMetric.PdmHeightMM:
-            return int(self.engine.height*inch_mm)
+            return int(self.engine.height * inch_mm)
         elif m == qt.QPaintDevice.PaintDeviceMetric.PdmNumColors:
             return 2147483647
         elif m == qt.QPaintDevice.PaintDeviceMetric.PdmDepth:
@@ -623,7 +646,7 @@ class SVGPaintDevice(qt.QPaintDevice):
             return 1
 
         # Qt >= 5.6
-        elif m == getattr(qt.QPaintDevice, 'PdmDevicePixelRatioScaled', -1):
+        elif m == getattr(qt.QPaintDevice, "PdmDevicePixelRatioScaled", -1):
             return 1
 
         else:

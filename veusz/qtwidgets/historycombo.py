@@ -26,6 +26,7 @@ The history is stored in the Veusz settings database.
 from .. import qtall as qt
 from .. import setting
 
+
 class HistoryCombo(qt.QComboBox):
     """This combobox records what items have been entered into it so the
     user can choose them again.
@@ -41,13 +42,17 @@ class HistoryCombo(qt.QComboBox):
         self.setMaxCount(50)
         self.setInsertPolicy(qt.QComboBox.InsertPolicy.InsertAtTop)
         self.setDuplicatesEnabled(False)
-        self.setSizePolicy( qt.QSizePolicy(
-            qt.QSizePolicy.Policy.MinimumExpanding, qt.QSizePolicy.Policy.Fixed) )
+        self.setSizePolicy(
+            qt.QSizePolicy(
+                qt.QSizePolicy.Policy.MinimumExpanding, qt.QSizePolicy.Policy.Fixed
+            )
+        )
         self.completer().setCaseSensitivity(qt.Qt.CaseSensitivity.CaseSensitive)
 
         # stops combobox readjusting in size to fit contents
         self.setSizeAdjustPolicy(
-            qt.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            qt.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
 
         self.default = []
         self.hasshown = False
@@ -90,8 +95,7 @@ class HistoryCombo(qt.QComboBox):
             dialog = dialog.parent()
 
         # combine dialog and object names to make setting
-        return '%s_%s_HistoryCombo'  % (
-            dialog.objectName(), self.objectName() )
+        return "%s_%s_HistoryCombo" % (dialog.objectName(), self.objectName())
 
     def loadHistory(self):
         """Load contents of history combo from settings."""
@@ -109,7 +113,7 @@ class HistoryCombo(qt.QComboBox):
             return
 
         # collect current items
-        history = [ self.itemText(i) for i in range(self.count()) ]
+        history = [self.itemText(i) for i in range(self.count())]
         history.insert(0, self.currentText())
 
         # remove dups

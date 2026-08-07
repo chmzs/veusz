@@ -32,12 +32,14 @@ from .. import setting
 
 # TODO - command line completion
 
-def _(text, disambiguation=None, context='ConsoleWindow'):
+
+def _(text, disambiguation=None, context="ConsoleWindow"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class _Writer:
-    """ Class to behave like an output stream. Pipes input back to
+    """Class to behave like an output stream. Pipes input back to
     the specified function."""
 
     def __init__(self, function):
@@ -52,15 +54,19 @@ class _Writer:
         """Does nothing as yet."""
         pass
 
+
 class _Reader:
     """Fake reading input stream object."""
+
     def read(self, *args):
-        raise IOError('Interactive input not supported')
+        raise IOError("Interactive input not supported")
+
     def readline(self, *args):
-        raise IOError('Interactive input not supported')
+        raise IOError("Interactive input not supported")
+
 
 class _CommandEdit(qt.QLineEdit):
-    """ A special class to allow entering of the command line.
+    """A special class to allow entering of the command line.
 
     emits sigEnter if the return key is pressed, and returns command
     The edit control has a history (press up and down keys to access)
@@ -72,14 +78,14 @@ class _CommandEdit(qt.QLineEdit):
         qt.QLineEdit.__init__(self, *args)
         self.history = []
         self.history_posn = 0
-        self.entered_text = ''
+        self.entered_text = ""
 
         self.returnPressed.connect(self.slotReturnPressed)
 
         self.setToolTip(_("Input a python expression here and press enter"))
 
     def slotReturnPressed(self):
-        """ Called if the return key is pressed in the edit control."""
+        """Called if the return key is pressed in the edit control."""
 
         # retrieve the text
         command = self.text()
@@ -88,7 +94,7 @@ class _CommandEdit(qt.QLineEdit):
         # keep the command for history
         self.history.append(command)
         self.history_posn = len(self.history)
-        self.entered_text = ''
+        self.entered_text = ""
 
         # tell the console we have a command
         self.sigEnter.emit(command)
@@ -96,14 +102,13 @@ class _CommandEdit(qt.QLineEdit):
     historykeys = (qt.Qt.Key.Key_Up, qt.Qt.Key.Key_Down)
 
     def keyPressEvent(self, key):
-        """ Overridden to handle history. """
+        """Overridden to handle history."""
 
         qt.QLineEdit.keyPressEvent(self, key)
         code = key.key()
 
         # check whether one of the "history keys" has been pressed
         if code in _CommandEdit.historykeys:
-
             # look for the next or previous history item which our current text
             # is a prefix of
             if self.isModified():
@@ -143,18 +148,23 @@ class _CommandEdit(qt.QLineEdit):
                 self.entered_text = text
 
             # replace the text in the control
-            text = self.history[ self.history_posn ]
+            text = self.history[self.history_posn]
             self.setText(text)
 
-introtext=_('''Welcome to <b><font color="#a000a0">Veusz %s</font></b> --- a scientific plotting application.<br>
+
+introtext = (
+    _("""Welcome to <b><font color="#a000a0">Veusz %s</font></b> --- a scientific plotting application.<br>
 Copyright \u00a9 2003-2026 Jeremy Sanders &lt;jeremy@jeremysanders.net&gt; and contributors.<br>
 Veusz comes with ABSOLUTELY NO WARRANTY. Veusz is Free Software, and you are<br>
 welcome to redistribute it under certain conditions. Enter "GPL()" for details.<br>
 This window is a Python command line console and acts as a calculator.<br>
-''') % utils.version()
+""")
+    % utils.version()
+)
+
 
 class ConsoleWindow(qt.QDockWidget):
-    """ A python-like qt console."""
+    """A python-like qt console."""
 
     def __init__(self, thedocument, *args):
         qt.QDockWidget.__init__(self, *args)
@@ -165,8 +175,8 @@ class ConsoleWindow(qt.QDockWidget):
         self.vbox = qt.QWidget()
         self.setWidget(self.vbox)
         vlayout = qt.QVBoxLayout(self.vbox)
-        s = vlayout.contentsMargins().left()//4
-        vlayout.setContentsMargins(s,s,s,s)
+        s = vlayout.contentsMargins().left() // 4
+        vlayout.setContentsMargins(s, s, s, s)
         vlayout.setSpacing(s)
 
         # start an interpreter instance to the document
@@ -178,8 +188,7 @@ class ConsoleWindow(qt.QDockWidget):
         self.con_stderr = _Writer(self.output_stderr)
         self.con_stdin = _Reader()
 
-        self.interpreter.setFiles(
-            self.con_stdout, self.con_stderr, self.con_stdin)
+        self.interpreter.setFiles(self.con_stdout, self.con_stderr, self.con_stdin)
         self.stdoutbuffer = ""
         self.stderrbuffer = ""
 
@@ -191,12 +200,12 @@ class ConsoleWindow(qt.QDockWidget):
         # the output from the console goes here
         self._outputdisplay = qt.QTextEdit()
         self._outputdisplay.setReadOnly(True)
-        self._outputdisplay.insertHtml( introtext )
+        self._outputdisplay.insertHtml(introtext)
         vlayout.addWidget(self._outputdisplay)
 
         self._hbox = qt.QWidget()
         hlayout = qt.QHBoxLayout(self._hbox)
-        hlayout.setContentsMargins(0,0,0,0)
+        hlayout.setContentsMargins(0, 0, 0, 0)
         vlayout.addWidget(self._hbox)
 
         self._prompt = qt.QLabel(">>>")
@@ -208,7 +217,7 @@ class ConsoleWindow(qt.QDockWidget):
         self._inputedit.setFocus()
 
         # keep track of multiple line commands
-        self.command_build = ''
+        self.command_build = ""
 
         # get called if enter is pressed in the input control
         self._inputedit.sigEnter.connect(self.slotEnter)
@@ -229,10 +238,10 @@ class ConsoleWindow(qt.QDockWidget):
 
     def appendOutput(self, text, style):
         """Add text to the tail of the error log, with a specified style"""
-        if style == 'error':
-            color = setting.settingdb.color('error')
-        elif style == 'command':
-            color = setting.settingdb.color('command')
+        if style == "error":
+            color = setting.settingdb.color("error")
+        elif style == "command":
+            color = setting.settingdb.color("command")
         else:
             color = None
 
@@ -249,7 +258,10 @@ class ConsoleWindow(qt.QDockWidget):
         # preserve output streams
         saved = sys.stdout, sys.stderr, sys.stdin
         sys.stdout, sys.stderr, sys.stdin = (
-            self.con_stdout, self.con_stderr, self.con_stdin)
+            self.con_stdout,
+            self.con_stderr,
+            self.con_stdin,
+        )
 
         # catch any exceptions, printing problems to stderr
         with self.document.suspend():
@@ -269,10 +281,13 @@ class ConsoleWindow(qt.QDockWidget):
         """If this window is hidden, show it, then hide it again in a few
         seconds."""
         if self.isHidden():
-            self._hiddennotify.setText(_(
-                "This window will shortly disappear. "
-                "You can bring it back by selecting "
-                "View, Windows, Console Window on the menu."))
+            self._hiddennotify.setText(
+                _(
+                    "This window will shortly disappear. "
+                    "You can bring it back by selecting "
+                    "View, Windows, Console Window on the menu."
+                )
+            )
             qt.QTimer.singleShot(5000, self.hideConsole)
             self.show()
             self._hiddennotify.show()
@@ -283,23 +298,23 @@ class ConsoleWindow(qt.QDockWidget):
         self.hide()
 
     def output_stdout(self, text):
-        """ Write text in stdout font to the log."""
+        """Write text in stdout font to the log."""
         self.checkVisible()
-        self.appendOutput(text, 'normal')
+        self.appendOutput(text, "normal")
 
     def output_stderr(self, text):
-        """ Write text in stderr font to the log."""
+        """Write text in stderr font to the log."""
         self.checkVisible()
-        self.appendOutput(text, 'error')
+        self.appendOutput(text, "error")
 
     def insertTextInOutput(self, text):
-        """ Inserts the text into the log."""
-        self.appendOutput(text, 'normal')
+        """Inserts the text into the log."""
+        self.appendOutput(text, "normal")
 
     def slotEnter(self, command):
-        """ Called if the return key is pressed in the edit control."""
+        """Called if the return key is pressed in the edit control."""
 
-        newc = self.command_build + '\n' + command
+        newc = self.command_build + "\n" + command
 
         # check whether command can be compiled
         # c set to None if incomplete
@@ -310,29 +325,30 @@ class ConsoleWindow(qt.QDockWidget):
             comp = 1
 
         # which prompt?
-        prompt = '>>>'
-        if self.command_build != '':
-            prompt = '...'
+        prompt = ">>>"
+        if self.command_build != "":
+            prompt = "..."
 
         # output the command in the log pane
-        self.appendOutput('%s %s\n' % (prompt, command), 'command')
+        self.appendOutput("%s %s\n" % (prompt, command), "command")
 
         # are we ready to run this?
         if comp is None or (
-                len(command) != 0 and
-                len(self.command_build) != 0 and
-                (command[0] == ' ' or command[0] == '\t')):
+            len(command) != 0
+            and len(self.command_build) != 0
+            and (command[0] == " " or command[0] == "\t")
+        ):
             # build up the expression
             self.command_build = newc
             # modify the prompt
-            self._prompt.setText('...')
+            self._prompt.setText("...")
         else:
             # actually execute the command
             self.interpreter.run(newc)
-            self.command_build = ''
+            self.command_build = ""
             # modify the prompt
-            self._prompt.setText('>>>')
+            self._prompt.setText(">>>")
 
     def slotDocumentLog(self, text):
         """Output information if the document logs something."""
-        self.output_stderr(text + '\n')
+        self.output_stderr(text + "\n")

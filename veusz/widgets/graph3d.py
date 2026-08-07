@@ -25,39 +25,42 @@ from .. import setting
 from . import widget
 from ..helpers import threed
 
-def _(text, disambiguation=None, context='Graph3D'):
+
+def _(text, disambiguation=None, context="Graph3D"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 # non-reflective back of cube
 class BackSurface(setting.Surface3D):
     def __init__(self, name, **args):
         setting.Surface3D.__init__(self, name, **args)
-        self.get('color').newDefault('white')
-        self.get('reflectivity').newDefault(0)
-        self.get('hide').newDefault(True)
+        self.get("color").newDefault("white")
+        self.get("reflectivity").newDefault(0)
+        self.get("hide").newDefault(True)
+
 
 class Graph3D(widget.Widget):
     """3D graph (orthogonal axes) containing other plotting widgets."""
 
-    typename='graph3d'
+    typename = "graph3d"
     allowusercreation = True
-    description = _('3d graph')
+    description = _("3d graph")
 
     # start and end points of edges of cube
     _borderedges = (
-        ((0,0,0), (0,0,1)),
-        ((0,0,0), (0,1,0)),
-        ((0,0,0), (1,0,0)),
-        ((0,0,1), (0,1,1)),
-        ((0,0,1), (1,0,1)),
-        ((0,1,0), (0,1,1)),
-        ((0,1,0), (1,1,0)),
-        ((0,1,1), (1,1,1)),
-        ((1,0,0), (1,0,1)),
-        ((1,0,0), (1,1,0)),
-        ((1,0,1), (1,1,1)),
-        ((1,1,0), (1,1,1)),
+        ((0, 0, 0), (0, 0, 1)),
+        ((0, 0, 0), (0, 1, 0)),
+        ((0, 0, 0), (1, 0, 0)),
+        ((0, 0, 1), (0, 1, 1)),
+        ((0, 0, 1), (1, 0, 1)),
+        ((0, 1, 0), (0, 1, 1)),
+        ((0, 1, 0), (1, 1, 0)),
+        ((0, 1, 1), (1, 1, 1)),
+        ((1, 0, 0), (1, 0, 1)),
+        ((1, 0, 0), (1, 1, 0)),
+        ((1, 0, 1), (1, 1, 1)),
+        ((1, 1, 0), (1, 1, 1)),
     )
 
     # centres of each face
@@ -75,58 +78,88 @@ class Graph3D(widget.Widget):
         """Construct list of settings."""
         widget.Widget.addSettings(s)
 
-        s.add( setting.Float(
-            'xSize', 1.,
-            minval=0.01, maxval=100,
-            descr=_('X size'),
-            usertext=_('X size') ))
-        s.add( setting.Float(
-            'ySize', 1.,
-            minval=0.01, maxval=100,
-            descr=_('Y size'),
-            usertext=_('Y size') ))
-        s.add( setting.Float(
-            'zSize', 1.,
-            minval=0.01, maxval=100,
-            descr=_('Z size'),
-            usertext=_('Z size') ))
+        s.add(
+            setting.Float(
+                "xSize",
+                1.0,
+                minval=0.01,
+                maxval=100,
+                descr=_("X size"),
+                usertext=_("X size"),
+            )
+        )
+        s.add(
+            setting.Float(
+                "ySize",
+                1.0,
+                minval=0.01,
+                maxval=100,
+                descr=_("Y size"),
+                usertext=_("Y size"),
+            )
+        )
+        s.add(
+            setting.Float(
+                "zSize",
+                1.0,
+                minval=0.01,
+                maxval=100,
+                descr=_("Z size"),
+                usertext=_("Z size"),
+            )
+        )
 
-        s.add( setting.Float(
-            'xPos', 0.,
-            minval=-100, maxval=100,
-            descr=_('X position'),
-            usertext=_('X position') ))
-        s.add( setting.Float(
-            'yPos', 0.,
-            minval=-100, maxval=100,
-            descr=_('Y position'),
-            usertext=_('Y position') ))
-        s.add( setting.Float(
-            'zPos', 0.,
-            minval=-100, maxval=100,
-            descr=_('Z position'),
-            usertext=_('Z position') ))
+        s.add(
+            setting.Float(
+                "xPos",
+                0.0,
+                minval=-100,
+                maxval=100,
+                descr=_("X position"),
+                usertext=_("X position"),
+            )
+        )
+        s.add(
+            setting.Float(
+                "yPos",
+                0.0,
+                minval=-100,
+                maxval=100,
+                descr=_("Y position"),
+                usertext=_("Y position"),
+            )
+        )
+        s.add(
+            setting.Float(
+                "zPos",
+                0.0,
+                minval=-100,
+                maxval=100,
+                descr=_("Z position"),
+                usertext=_("Z position"),
+            )
+        )
 
-        s.add(setting.Line3D(
-            'Border',
-            descr = _('Graph border'),
-            usertext = _('Border')),
-            pixmap = 'settings_border' )
-        s.add(BackSurface(
-            'Back',
-            descr = _('Graph back'),
-            usertext = _('Back')),
-            pixmap = 'settings_bgfill' )
+        s.add(
+            setting.Line3D("Border", descr=_("Graph border"), usertext=_("Border")),
+            pixmap="settings_border",
+        )
+        s.add(
+            BackSurface("Back", descr=_("Graph back"), usertext=_("Back")),
+            pixmap="settings_bgfill",
+        )
 
     @classmethod
     def allowedParentTypes(self):
         from . import scene3d
+
         return (scene3d.Scene3D,)
 
     def addDefaultSubWidgets(self):
         """Add axes automatically."""
         from . import axis3d
-        for n in ('x', 'y', 'z'):
+
+        for n in ("x", "y", "z"):
             if self.parent.getChild(n) is None:
                 ax = axis3d.Axis3D(self, name=n)
                 ax.linkToStylesheet()
@@ -143,8 +176,12 @@ class Graph3D(widget.Widget):
         while w is not None and len(axes) < len(axesnames):
             for c in w.children:
                 name = c.name
-                if ( name in axesnames and name not in axes and
-                     hasattr(c, 'isaxis3d') and c.isaxis3d ):
+                if (
+                    name in axesnames
+                    and name not in axes
+                    and hasattr(c, "isaxis3d")
+                    and c.isaxis3d
+                ):
                     axes[name] = c
             w = w.parent
 
@@ -169,9 +206,10 @@ class Graph3D(widget.Widget):
         lineprop = s.Border.makeLineProp(painter)
         edges = N.array(self._borderedges)
         ls = threed.LineSegments(
-            threed.ValVector(N.ravel(edges[:,0,:])),
-            threed.ValVector(N.ravel(edges[:,1,:])),
-            lineprop)
+            threed.ValVector(N.ravel(edges[:, 0, :])),
+            threed.ValVector(N.ravel(edges[:, 1, :])),
+            lineprop,
+        )
         root.addObject(ls)
 
     def addBackSurface(self, painter, root):
@@ -183,21 +221,24 @@ class Graph3D(widget.Widget):
         # triangles with the correct orientation of the norm vector
         # not to draw the surface if it is pointing towards the viewer
         for p1, p2, p3 in (
-                ((0,0,0), (0,0,1), (1,0,0)),
-                ((0,0,1), (0,0,0), (0,1,0)),
-                ((0,1,0), (0,1,1), (0,0,1)),
-                ((0,1,0), (1,1,0), (0,1,1)),
-                ((0,1,0), (0,0,0), (1,0,0)),
-                ((0,1,1), (1,0,1), (0,0,1)),
-                ((0,1,1), (1,1,1), (1,0,1)),
-                ((1,0,0), (1,1,0), (0,1,0)),
-                ((1,0,1), (1,0,0), (0,0,1)),
-                ((1,0,1), (1,1,0), (1,0,0)),
-                ((1,0,1), (1,1,1), (1,1,0)),
-                ((1,1,0), (1,1,1), (0,1,1)),
+            ((0, 0, 0), (0, 0, 1), (1, 0, 0)),
+            ((0, 0, 1), (0, 0, 0), (0, 1, 0)),
+            ((0, 1, 0), (0, 1, 1), (0, 0, 1)),
+            ((0, 1, 0), (1, 1, 0), (0, 1, 1)),
+            ((0, 1, 0), (0, 0, 0), (1, 0, 0)),
+            ((0, 1, 1), (1, 0, 1), (0, 0, 1)),
+            ((0, 1, 1), (1, 1, 1), (1, 0, 1)),
+            ((1, 0, 0), (1, 1, 0), (0, 1, 0)),
+            ((1, 0, 1), (1, 0, 0), (0, 0, 1)),
+            ((1, 0, 1), (1, 1, 0), (1, 0, 0)),
+            ((1, 0, 1), (1, 1, 1), (1, 1, 0)),
+            ((1, 1, 0), (1, 1, 1), (0, 1, 1)),
         ):
-            root.addObject(threed.TriangleFacing(
-                threed.Vec3(*p1), threed.Vec3(*p2), threed.Vec3(*p3), prop))
+            root.addObject(
+                threed.TriangleFacing(
+                    threed.Vec3(*p1), threed.Vec3(*p2), threed.Vec3(*p3), prop
+                )
+            )
 
     def drawToObject(self, painter, painthelper):
         """Make objects, returning root"""
@@ -226,10 +267,14 @@ class Graph3D(widget.Widget):
         cont = threed.ObjectContainer()
         cont.objM = (
             # graph position
-            threed.translationM4(threed.Vec3(
-                s.xPos - 0.5*s.xSize,
-                s.yPos - 0.5*s.ySize,
-                s.zPos - 0.5*s.zSize)) *
+            threed.translationM4(
+                threed.Vec3(
+                    s.xPos - 0.5 * s.xSize,
+                    s.yPos - 0.5 * s.ySize,
+                    s.zPos - 0.5 * s.zSize,
+                )
+            )
+            *
             # graph size
             threed.scaleM4(threed.Vec3(s.xSize, s.ySize, s.zSize))
         )
@@ -248,10 +293,11 @@ class Graph3D(widget.Widget):
 
         # build 3d scene from children
         for c in self.children:
-           obj = c.drawToObject(painter, painthelper)
-           if obj:
-               cont.addObject(obj)
+            obj = c.drawToObject(painter, painthelper)
+            if obj:
+                cont.addObject(obj)
 
         return cont
+
 
 document.thefactory.register(Graph3D)

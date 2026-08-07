@@ -26,19 +26,22 @@ from .. import setting
 from . import widget
 from ..helpers import threed
 
-def _(text, disambiguation=None, context='Plotters3D'):
+
+def _(text, disambiguation=None, context="Plotters3D"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class GenericPlotter3D(widget.Widget):
     """Generic plotter."""
 
-    typename = 'genericplotter3d'
+    typename = "genericplotter3d"
     isplotter = True
 
     @classmethod
     def allowedParentTypes(klass):
         from . import graph3d
+
         return (graph3d.Graph3D,)
 
     @classmethod
@@ -50,23 +53,37 @@ class GenericPlotter3D(widget.Widget):
         #     'key', '',
         #     descr = _('Description of the plotted data to appear in key'),
         #     usertext=_('Key text')) )
-        s.add( setting.Axis(
-            'xAxis', 'x', 'x',
-            descr=_('Name of X-axis to use'),
-            usertext=_('X axis')) )
-        s.add( setting.Axis(
-            'yAxis', 'y', 'y',
-            descr=_('Name of Y-axis to use'),
-            usertext=_('Y axis')) )
-        s.add( setting.Axis(
-            'zAxis', 'z', 'z',
-            descr=_('Name of Z-axis to use'),
-            usertext=_('Z axis')) )
+        s.add(
+            setting.Axis(
+                "xAxis",
+                "x",
+                "x",
+                descr=_("Name of X-axis to use"),
+                usertext=_("X axis"),
+            )
+        )
+        s.add(
+            setting.Axis(
+                "yAxis",
+                "y",
+                "y",
+                descr=_("Name of Y-axis to use"),
+                usertext=_("Y axis"),
+            )
+        )
+        s.add(
+            setting.Axis(
+                "zAxis",
+                "z",
+                "z",
+                descr=_("Name of Z-axis to use"),
+                usertext=_("Z axis"),
+            )
+        )
 
     def autoColor(self, painter, dataindex=0):
         """Automatic color for plotting."""
-        return painter.docColorAuto(
-            painter.helper.autoColorIndex((self, dataindex)))
+        return painter.docColorAuto(painter.helper.autoColorIndex((self, dataindex)))
 
     def getAxesNames(self):
         """Returns names of axes used."""
@@ -103,23 +120,29 @@ class GenericPlotter3D(widget.Widget):
         """Returns the axes for this widget"""
 
         axes = self.parent.getAxes(
-            (self.settings.xAxis, self.settings.yAxis, self.settings.zAxis))
+            (self.settings.xAxis, self.settings.yAxis, self.settings.zAxis)
+        )
 
         # fail if we don't have good axes
-        if ( axes[0] is None or axes[0].settings.direction != 'x' or
-             axes[1] is None or axes[1].settings.direction != 'y' or
-             axes[2] is None or axes[2].settings.direction != 'z' ):
+        if (
+            axes[0] is None
+            or axes[0].settings.direction != "x"
+            or axes[1] is None
+            or axes[1].settings.direction != "y"
+            or axes[2] is None
+            or axes[2].settings.direction != "z"
+        ):
             return None
 
         return axes
 
     def fetchAxis(self, var):
         """Return a particular axis given x, y or z"""
-        if var == 'x':
+        if var == "x":
             setn = self.settings.xAxis
-        elif var == 'y':
+        elif var == "y":
             setn = self.settings.yAxis
-        elif var == 'z':
+        elif var == "z":
             setn = self.settings.zAxis
         return self.parent.getAxes((setn,))[0]
 
@@ -169,11 +192,14 @@ class GenericPlotter3D(widget.Widget):
             threed.Vec3(
                 axes[0].settings.lowerPosition,
                 axes[1].settings.lowerPosition,
-                axes[2].settings.lowerPosition),
+                axes[2].settings.lowerPosition,
+            ),
             threed.Vec3(
                 axes[0].settings.upperPosition,
                 axes[1].settings.upperPosition,
-                axes[2].settings.upperPosition))
+                axes[2].settings.upperPosition,
+            ),
+        )
 
     def drawToObject(self, painter, painthelper):
         # exit if hidden or function blank

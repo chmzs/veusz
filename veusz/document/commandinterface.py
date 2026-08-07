@@ -36,9 +36,11 @@ from . import operations
 from . import mime
 from . import export
 
-def _(text, disambiguation=None, context='CommandInterface'):
+
+def _(text, disambiguation=None, context="CommandInterface"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def registerImportCommand(name, method, filenamearg=0):
     """Add command to command interface."""
@@ -46,53 +48,54 @@ def registerImportCommand(name, method, filenamearg=0):
     CommandInterface.import_commands.append(name)
     CommandInterface.import_filenamearg[name] = filenamearg
 
+
 class CommandInterface(qt.QObject):
     """Class provides command interface."""
 
     # commands which are safe in any script (excluding import commands)
     safe_commands = [
-        'Action',
-        'Add',
-        'AddCustom',
-        'AddImportPath',
-        'CurrentPath',
-        'CloneWidget',
-        'SetCompatLevel',
-        'CreateHistogram',
-        'DatasetPlugin',
-        'FilterDatasets',
-        'Get',
-        'GetChildren',
-        'GetColormap',
-        'GetData',
-        'GetDataType',
-        'GetDatasets',
-        'ImportFITSFile',
-        'List',
-        'NodeChildren',
-        'NodeType',
-        'ReloadData',
-        'Remove',
-        'RemoveCustom',
-        'Rename',
-        'ResolveReference',
-        'Set',
-        'SetData',
-        'SetData2D',
-        'SetData2DExpression',
-        'SetData2DExpressionXYZ',
-        'SetData2DXYFunc',
-        'SetDataDateTime',
-        'SetDataExpression',
-        'SetDataND',
-        'SetDataRange',
-        'SetDataText',
-        'SetToReference',
-        'SetVerbose',
-        'SettingType',
-        'TagDatasets',
-        'To',
-        'WidgetType',
+        "Action",
+        "Add",
+        "AddCustom",
+        "AddImportPath",
+        "CurrentPath",
+        "CloneWidget",
+        "SetCompatLevel",
+        "CreateHistogram",
+        "DatasetPlugin",
+        "FilterDatasets",
+        "Get",
+        "GetChildren",
+        "GetColormap",
+        "GetData",
+        "GetDataType",
+        "GetDatasets",
+        "ImportFITSFile",
+        "List",
+        "NodeChildren",
+        "NodeType",
+        "ReloadData",
+        "Remove",
+        "RemoveCustom",
+        "Rename",
+        "ResolveReference",
+        "Set",
+        "SetData",
+        "SetData2D",
+        "SetData2DExpression",
+        "SetData2DExpressionXYZ",
+        "SetData2DXYFunc",
+        "SetDataDateTime",
+        "SetDataExpression",
+        "SetDataND",
+        "SetDataRange",
+        "SetDataText",
+        "SetToReference",
+        "SetVerbose",
+        "SettingType",
+        "TagDatasets",
+        "To",
+        "WidgetType",
     ]
 
     # commands for importing data
@@ -102,9 +105,9 @@ class CommandInterface(qt.QObject):
 
     # commands which can modify disk, etc
     unsafe_commands = [
-        'Export',
-        'Print',
-        'Save',
+        "Export",
+        "Print",
+        "Save",
     ]
 
     def __init__(self, document):
@@ -118,12 +121,12 @@ class CommandInterface(qt.QObject):
 
         self.document.sigWiped.connect(self.slotWipedDoc)
 
-        self.Root = embed.WidgetNode(self, 'widget', '/')
+        self.Root = embed.WidgetNode(self, "widget", "/")
 
     @qt.pyqtSlot()
     def slotWipedDoc(self):
         """When the document is wiped, we change to the root widget."""
-        self.To('/')
+        self.To("/")
 
     def findFileOnImportPath(self, filename):
         """Find file on path, returning filename, or original if not found."""
@@ -154,10 +157,9 @@ class CommandInterface(qt.QObject):
         """
 
         at = self.currentwidget
-        if 'widget' in args_opt:
-            at = self.document.resolveWidgetPath(
-                self.currentwidget, args_opt['widget'])
-            del args_opt['widget']
+        if "widget" in args_opt:
+            at = self.document.resolveWidgetPath(self.currentwidget, args_opt["widget"])
+            del args_opt["widget"]
 
         op = operations.OperationWidgetAdd(at, widgettype, **args_opt)
         w = self.document.applyOperation(op)
@@ -167,7 +169,7 @@ class CommandInterface(qt.QObject):
 
         return w.name
 
-    def AddCustom(self, ctype, name, val, mode='appendalways'):
+    def AddCustom(self, ctype, name, val, mode="appendalways"):
         """Add a custom definition for evaluation of expressions.
         This can define a constant (can be in terms of other
         constants), a function of 1 or more variables, or a function
@@ -195,30 +197,30 @@ class CommandInterface(qt.QObject):
 
         """
 
-        if ctype == 'colormap':
+        if ctype == "colormap":
             self.document.evaluate.validateProcessColormap(val)
         else:
             if not isinstance(val, str):
-                raise RuntimeError('Value should be string')
+                raise RuntimeError("Value should be string")
 
-        if mode not in ('appendalways', 'append', 'replace'):
-            raise RuntimeError('Invalid mode')
+        if mode not in ("appendalways", "append", "replace"):
+            raise RuntimeError("Invalid mode")
 
         try:
             attr = operations.OperationSetCustom.type_to_attr[ctype]
         except KeyError:
-            raise RuntimeError('Invalid type')
+            raise RuntimeError("Invalid type")
 
         vals = list(getattr(self.document.evaluate, attr))
 
         item = [name.strip(), val]
-        if mode == 'appendalways':
+        if mode == "appendalways":
             vals.append(item)
         else:
             # find any existing item
             for i, (n, v) in enumerate(vals):
                 if n == name:
-                    if mode == 'append':
+                    if mode == "append":
                         del vals[i]
                         vals.append(item)
                     else:  # replace
@@ -251,9 +253,17 @@ class CommandInterface(qt.QObject):
         w = self.document.applyOperation(op)
         return w.path
 
-    def CreateHistogram(self, inexpr, outbinsds, outvalsds, binparams=None,
-                        binmanual=None, method='counts',
-                        cumulative = 'none', errors=False):
+    def CreateHistogram(
+        self,
+        inexpr,
+        outbinsds,
+        outvalsds,
+        binparams=None,
+        binmanual=None,
+        method="counts",
+        cumulative="none",
+        errors=False,
+    ):
         """Histogram an input expression.
 
         inexpr is input expression
@@ -267,15 +277,21 @@ class CommandInterface(qt.QObject):
         errors is to calculate Poisson error bars
         """
         op = operations.OperationDatasetHistogram(
-            inexpr, outbinsds, outvalsds, binparams=binparams,
-            binmanual=binmanual, method=method,
-            cumulative=cumulative, errors=errors)
+            inexpr,
+            outbinsds,
+            outvalsds,
+            binparams=binparams,
+            binmanual=binmanual,
+            method=method,
+            cumulative=cumulative,
+            errors=errors,
+        )
         self.document.applyOperation(op)
 
         if self.verbose:
-            print(_(
-                'Constructed histogram of "%s", creating datasets'
-                ' "%s" and "%s"') % (inexpr, outbinsds, outvalsds)
+            print(
+                _('Constructed histogram of "%s", creating datasets "%s" and "%s"')
+                % (inexpr, outbinsds, outvalsds)
             )
 
     def CurrentPath(self):
@@ -301,13 +317,14 @@ class CommandInterface(qt.QObject):
 
         # do the work
         op = operations.OperationDatasetPlugin(
-            plugin, fields, datasetnames=datasetnames)
+            plugin, fields, datasetnames=datasetnames
+        )
         outdatasets = self.document.applyOperation(op)
 
         if self.verbose:
-            print(_(
-                "Used dataset plugin %s to make datasets %s") % (
-                    pluginname, ', '.join(outdatasets))
+            print(
+                _("Used dataset plugin %s to make datasets %s")
+                % (pluginname, ", ".join(outdatasets))
             )
 
     def Remove(self, name):
@@ -323,10 +340,11 @@ class CommandInterface(qt.QObject):
 
         # look for definiton and delete if found
         for ctype, attr in (
-                ('import', 'def_imports'),
-                ('definition', 'def_definitions'),
-                ('color', 'def_colors'),
-                ('colormap', 'def_colormaps')):
+            ("import", "def_imports"),
+            ("definition", "def_definitions"),
+            ("color", "def_colors"),
+            ("colormap", "def_colormaps"),
+        ):
             vals = list(getattr(self.document.evaluate, attr))
             for i, (cname, cval) in enumerate(vals):
                 if name == cname:
@@ -335,7 +353,7 @@ class CommandInterface(qt.QObject):
                     self.document.applyOperation(op)
                     return
         else:
-            raise ValueError('Custom variable not defined')
+            raise ValueError("Custom variable not defined")
 
     def To(self, where):
         """Change to a widget within the current widget.
@@ -343,36 +361,35 @@ class CommandInterface(qt.QObject):
         where is a path to the widget relative to the current widget
         """
 
-        self.currentwidget = self.document.resolveWidgetPath(
-            self.currentwidget,
-            where)
+        self.currentwidget = self.document.resolveWidgetPath(self.currentwidget, where)
 
         if self.verbose:
             print(_("Changed to widget '%s'") % self.currentwidget.path)
 
-    def List(self, where='.'):
+    def List(self, where="."):
         """List the contents of a widget, by default the current widget."""
 
         widget = self.document.resolveWidgetPath(self.currentwidget, where)
         children = widget.childnames
 
         if len(children) == 0:
-            print('%30s' % _('No children found'))
+            print("%30s" % _("No children found"))
         else:
             # output format name, type
             for name in children:
                 w = widget.getChild(name)
-                print('%10s %10s %30s' % (name, w.typename, w.userdescription))
+                print("%10s %10s %30s" % (name, w.typename, w.userdescription))
 
     def Get(self, var):
         """Get the value of a setting."""
         return self.document.resolveSettingPath(self.currentwidget, var).val
 
-    def GetChildren(self, where='.'):
+    def GetChildren(self, where="."):
         """Return a list of widgets which are children of the widget of the
         path given."""
         return list(
-            self.document.resolveWidgetPath(self.currentwidget, where).childnames )
+            self.document.resolveWidgetPath(self.currentwidget, where).childnames
+        )
 
     def GetColormap(self, name, invert=False, nvals=256):
         """Return an array of [red,green,blue,alpha] values
@@ -403,7 +420,7 @@ class CommandInterface(qt.QObject):
         else:
             return None
 
-    def Save(self, filename, mode='vsz'):
+    def Save(self, filename, mode="vsz"):
         """Save the state to a file.
 
         mode can be:
@@ -419,7 +436,7 @@ class CommandInterface(qt.QObject):
         self.document.applyOperation(op)
 
         if self.verbose:
-            print( _("Set setting '%s' to %s") % (setting_path, repr(setn.get())) )
+            print(_("Set setting '%s' to %s") % (setting_path, repr(setn.get())))
 
     def SetToReference(self, setting_path, val):
         """Set setting to a reference value."""
@@ -428,7 +445,7 @@ class CommandInterface(qt.QObject):
         self.document.applyOperation(op)
 
         if self.verbose:
-            print( _( "Set setting '%s' to %s") % (setting_path, repr(setn.get())) )
+            print(_("Set setting '%s' to %s") % (setting_path, repr(setn.get())))
 
     def SetCompatLevel(self, level):
         """Set the compatibility level.
@@ -455,10 +472,8 @@ class CommandInterface(qt.QObject):
                     " Symmetric errors = %s\n"
                     " Negative errors = %s\n"
                     " Positive errors = %s"
-                ) % (
-                    name, str(data.data), str(data.serr),
-                    str(data.nerr), str(data.perr)
                 )
+                % (name, str(data.data), str(data.serr), str(data.nerr), str(data.perr))
             )
 
     def SetDataDateTime(self, name, vals):
@@ -471,14 +486,18 @@ class CommandInterface(qt.QObject):
         self.document.applyOperation(op)
 
         if self.verbose:
-            print(
-                _("Set dataset '%s':\n"
-                  " Values = %s") % (
-                      name, str(ds.data))
-            )
+            print(_("Set dataset '%s':\n Values = %s") % (name, str(ds.data)))
 
-    def SetDataExpression(self, name, val, symerr=None, negerr=None, poserr=None,
-                          linked=False, parametric=None):
+    def SetDataExpression(
+        self,
+        name,
+        val,
+        symerr=None,
+        negerr=None,
+        poserr=None,
+        linked=False,
+        parametric=None,
+    ):
         """Create a dataset based on text expressions.
 
         Expressions are functions of existing datasets.
@@ -495,9 +514,10 @@ class CommandInterface(qt.QObject):
 
         """
 
-        expr = {'data': val, 'serr': symerr, 'nerr': negerr, 'perr': poserr}
-        op = operations.OperationDatasetCreateExpression(name, expr, linked,
-                                                         parametric=parametric)
+        expr = {"data": val, "serr": symerr, "nerr": negerr, "perr": poserr}
+        op = operations.OperationDatasetCreateExpression(
+            name, expr, linked, parametric=parametric
+        )
 
         data = self.document.applyOperation(op)
 
@@ -509,9 +529,8 @@ class CommandInterface(qt.QObject):
                     " Symmetric errors = %s\n"
                     " Negative errors = %s\n"
                     " Positive errors = %s"
-                ) % (
-                    name, str(data.data), str(data.serr),
-                    str(data.nerr), str(data.perr))
+                )
+                % (name, str(data.data), str(data.serr), str(data.nerr), str(data.perr))
             )
             if parametric:
                 print(_(" Where t goes form %g:%g in %i steps") % parametric)
@@ -525,14 +544,11 @@ class CommandInterface(qt.QObject):
         self.document.applyOperation(op)
 
         if self.verbose:
-            print(
-                _("Set dataset (nD) '%s':\n"
-                  " Values = %s\n") % (
-                      name, str(data.data))
-            )
+            print(_("Set dataset (nD) '%s':\n Values = %s\n") % (name, str(data.data)))
 
-    def SetDataRange(self, name, numsteps, val, symerr=None, negerr=None,
-                     poserr=None, linked=False):
+    def SetDataRange(
+        self, name, numsteps, val, symerr=None, negerr=None, poserr=None, linked=False
+    ):
         """Create dataset based on ranges of values, e.g. 1 to 10 in 10 steps
 
         name: name of dataset
@@ -541,9 +557,8 @@ class CommandInterface(qt.QObject):
         symerr, negerr & poserr: ranges for errors (optional)
         """
 
-        parts = {'data': val, 'serr': symerr, 'nerr': negerr, 'perr': poserr}
-        op = operations.OperationDatasetCreateRange(
-            name, numsteps, parts, linked)
+        parts = {"data": val, "serr": symerr, "nerr": negerr, "perr": poserr}
+        op = operations.OperationDatasetCreateRange(name, numsteps, parts, linked)
         self.document.applyOperation(op)
 
         if self.verbose:
@@ -555,9 +570,8 @@ class CommandInterface(qt.QObject):
                     " Range of symmetric error = %s\n"
                     " Range of positive error = %s\n"
                     " Range of negative error = %s"
-                ) % (
-                    name, numsteps, repr(val),
-                    repr(symerr), repr(poserr), repr(negerr))
+                )
+                % (name, numsteps, repr(val), repr(symerr), repr(poserr), repr(negerr))
             )
 
     def SetData2DExpression(self, name, expr, linked=False):
@@ -578,9 +592,14 @@ class CommandInterface(qt.QObject):
                     " expression = %s\n"
                     " linked to expression = %s\n"
                     " Made a dataset (%i x %i)"
-                ) % (
-                    name, repr(expr), repr(linked),
-                    data.data.shape[0], data.data.shape[1])
+                )
+                % (
+                    name,
+                    repr(expr),
+                    repr(linked),
+                    data.data.shape[0],
+                    data.data.shape[1],
+                )
             )
 
     def SetData2DExpressionXYZ(self, name, xexpr, yexpr, zexpr, linked=False):
@@ -592,8 +611,9 @@ class CommandInterface(qt.QObject):
         linked specifies whether to permanently link the dataset to the expressions
         """
 
-        op = operations.OperationDataset2DCreateExpressionXYZ(name, xexpr, yexpr, zexpr,
-                                                              linked)
+        op = operations.OperationDataset2DCreateExpressionXYZ(
+            name, xexpr, yexpr, zexpr, linked
+        )
         data = self.document.applyOperation(op)
 
         if self.verbose:
@@ -605,11 +625,16 @@ class CommandInterface(qt.QObject):
                     " Z expression = %s\n"
                     " is linked to expression = %s\n"
                     " Shape (%i x %i)"
-                ) % (
+                )
+                % (
                     name,
-                    repr(xexpr), repr(yexpr), repr(zexpr),
+                    repr(xexpr),
+                    repr(yexpr),
+                    repr(zexpr),
                     repr(linked),
-                    data.data.shape[0], data.data.shape[1])
+                    data.data.shape[0],
+                    data.data.shape[1],
+                )
             )
 
     def SetData2DXYFunc(self, name, xstep, ystep, expr, linked=False):
@@ -621,8 +646,7 @@ class CommandInterface(qt.QObject):
         linked specifies whether to permanently link the dataset to the expressions
         """
 
-        op = operations.OperationDataset2DXYFunc(name, xstep, ystep,
-                                                 expr, linked)
+        op = operations.OperationDataset2DXYFunc(name, xstep, ystep, expr, linked)
         data = self.document.applyOperation(op)
 
         if self.verbose:
@@ -634,15 +658,29 @@ class CommandInterface(qt.QObject):
                     " Expression = %s\n"
                     " linked to expression = %s\n"
                     " Made a dataset (%i x %i)"
-                ) % (
-                    name, repr(xstep), repr(ystep),
-                    repr(expr), repr(linked),
-                    data.data.shape[0], data.data.shape[1])
+                )
+                % (
+                    name,
+                    repr(xstep),
+                    repr(ystep),
+                    repr(expr),
+                    repr(linked),
+                    data.data.shape[0],
+                    data.data.shape[1],
+                )
             )
 
-    def SetData2D(self, name, data, xrange=None, yrange=None,
-                  xedge=None, yedge=None,
-                  xcent=None, ycent=None):
+    def SetData2D(
+        self,
+        name,
+        data,
+        xrange=None,
+        yrange=None,
+        xedge=None,
+        yedge=None,
+        xcent=None,
+        ycent=None,
+    ):
         """Create a 2D dataset.
 
         name: name of dataset
@@ -657,24 +695,33 @@ class CommandInterface(qt.QObject):
 
         data = N.array(data)
 
-        if ( (xedge is not None and not utils.checkAscending(xedge)) or
-             (yedge is not None and not utils.checkAscending(yedge)) ):
+        if (xedge is not None and not utils.checkAscending(xedge)) or (
+            yedge is not None and not utils.checkAscending(yedge)
+        ):
             raise ValueError("xedge and yedge must be ascending, if given")
-        if ( (xcent is not None and not utils.checkAscending(xcent)) or
-             (ycent is not None and not utils.checkAscending(ycent)) ):
+        if (xcent is not None and not utils.checkAscending(xcent)) or (
+            ycent is not None and not utils.checkAscending(ycent)
+        ):
             raise ValueError("xcent and ycent must be ascending, if given")
 
-        if ( (xedge is not None and len(xedge) != data.shape[1]+1) or
-             (yedge is not None and len(yedge) != data.shape[0]+1) ):
+        if (xedge is not None and len(xedge) != data.shape[1] + 1) or (
+            yedge is not None and len(yedge) != data.shape[0] + 1
+        ):
             raise ValueError("xedge and yedge lengths must be data shape+1")
-        if ( (xcent is not None and len(xcent) != data.shape[1]) or
-             (ycent is not None and len(ycent) != data.shape[0]) ):
+        if (xcent is not None and len(xcent) != data.shape[1]) or (
+            ycent is not None and len(ycent) != data.shape[0]
+        ):
             raise ValueError("xcent and ycent lengths must be data shape")
 
         data = datasets.Dataset2D(
-            data, xrange=xrange, yrange=yrange,
-            xedge=xedge, yedge=yedge,
-            xcent=xcent, ycent=ycent)
+            data,
+            xrange=xrange,
+            yrange=yrange,
+            xedge=xedge,
+            yedge=yedge,
+            xcent=xcent,
+            ycent=ycent,
+        )
         op = operations.OperationDatasetSet(name, data)
         self.document.applyOperation(op)
 
@@ -689,10 +736,7 @@ class CommandInterface(qt.QObject):
         self.document.applyOperation(op)
 
         if self.verbose:
-            print(
-                _("Set text dataset '%s'\nValues = %s") % (
-                    name, repr(data.data))
-            )
+            print(_("Set text dataset '%s'\nValues = %s") % (name, repr(data.data)))
 
     def GetData(self, name):
         """Return the data with the name.
@@ -709,9 +753,9 @@ class CommandInterface(qt.QObject):
         """
 
         d = self.document.getData(name)
-        if d.displaytype == 'text':
+        if d.displaytype == "text":
             return d.data[:]
-        elif d.displaytype == 'date':
+        elif d.displaytype == "date":
             return [utils.floatToDateTime(x) for x in d.data]
         elif d.dimensions == 2:
             return (d.data.copy(), d.xrange, d.yrange)
@@ -743,14 +787,14 @@ class CommandInterface(qt.QObject):
             d = self.document.getData(name)
         except KeyError:
             return None
-        if d.displaytype == 'text':
-            return 'text'
-        elif d.displaytype == 'date':
-            return 'datetime'
+        if d.displaytype == "text":
+            return "text"
+        elif d.displaytype == "date":
+            return "datetime"
         elif d.dimensions == 2:
-            return '2d'
+            return "2d"
         else:
-            return '1d'
+            return "1d"
 
     def ReloadData(self):
         """Reload any linked datasets.
@@ -763,7 +807,7 @@ class CommandInterface(qt.QObject):
 
         return self.document.reloadLinkedDatasets()
 
-    def Action(self, action, widget='.'):
+    def Action(self, action, widget="."):
         """Performs action on current widget."""
 
         w = self.document.resolveWidgetPath(self.currentwidget, widget)
@@ -775,9 +819,19 @@ class CommandInterface(qt.QObject):
         """Print document."""
         export.printDialog(None, self.document)
 
-    def Export(self, filename, color=True, page=[0], dpi=100,
-               antialias=True, quality=85, backcolor='#ffffff00',
-               pdfdpi=150, svgdpi=96, svgtextastext=False):
+    def Export(
+        self,
+        filename,
+        color=True,
+        page=[0],
+        dpi=100,
+        antialias=True,
+        quality=85,
+        backcolor="#ffffff00",
+        pdfdpi=150,
+        svgdpi=96,
+        svgtextastext=False,
+    ):
         """Export plot to filename.
 
         color is True or False if color is requested in output file
@@ -807,7 +861,7 @@ class CommandInterface(qt.QObject):
             backcolor=backcolor,
             pdfdpi=pdfdpi,
             svgdpi=svgdpi,
-            svgtextastext=svgtextastext
+            svgtextastext=svgtextastext,
         )
         e.add(filename, pages)
         e.finish()
@@ -832,13 +886,13 @@ class CommandInterface(qt.QObject):
         item = self.document.resolvePath(self.currentwidget, path)
 
         if item.iswidget:
-            return 'widget'
+            return "widget"
         elif item.issettings:
-            return 'settinggroup'
+            return "settinggroup"
         else:
-            return 'setting'
+            return "setting"
 
-    def NodeChildren(self, path, types='all'):
+    def NodeChildren(self, path, types="all"):
         """This function treats the set of objects in the widget and
         setting tree as a set of nodes.
 
@@ -848,16 +902,16 @@ class CommandInterface(qt.QObject):
 
         out = []
         if item.iswidget:
-            if types == 'all' or types == 'widget':
+            if types == "all" or types == "widget":
                 out += item.childnames
-            if types == 'all' or types == 'settinggroup':
+            if types == "all" or types == "settinggroup":
                 out += [s.name for s in item.settings.getSettingsList()]
-            if types == 'all' or types == 'setting':
+            if types == "all" or types == "setting":
                 out += [s.name for s in item.settings.getSettingList()]
         elif item.issettings:
-            if types == 'all' or types == 'settinggroup':
+            if types == "all" or types == "settinggroup":
                 out += [s.name for s in item.getSettingsList()]
-            if types == 'all' or types == 'setting':
+            if types == "all" or types == "setting":
                 out += [s.name for s in item.getSettingList()]
         return out
 
@@ -887,12 +941,17 @@ class CommandInterface(qt.QObject):
         self.document.applyOperation(op)
 
         if self.verbose:
-            print(_("Applied tag %s to datasets %s") % (
-                tag, ' '.join(datasets)))
+            print(_("Applied tag %s to datasets %s") % (tag, " ".join(datasets)))
 
-    def FilterDatasets(self, filterexpr, dataset_list,
-                       prefix="", suffix="",
-                       invert=False, replaceblanks=False):
+    def FilterDatasets(
+        self,
+        filterexpr,
+        dataset_list,
+        prefix="",
+        suffix="",
+        invert=False,
+        replaceblanks=False,
+    ):
         """Apply filter expression to list of datasets.
 
         filterexpr: input filter expression
@@ -902,16 +961,20 @@ class CommandInterface(qt.QObject):
         replaceblanks: replace filtered values with nan/blank in output.
         """
         op = operations.OperationDatasetsFilter(
-            filterexpr, dataset_list,
-            prefix=prefix, suffix=suffix,
-            invert=invert, replaceblanks=replaceblanks)
+            filterexpr,
+            dataset_list,
+            prefix=prefix,
+            suffix=suffix,
+            invert=invert,
+            replaceblanks=replaceblanks,
+        )
         self.document.applyOperation(op)
 
         if self.verbose:
             print(
                 _(
-                    'Filtered datasets %s using expression %s. '
-                    'Output prefix=%s, suffix=%s'
-                ) % (
-                    dataset_list, filterexpr, prefix, suffix)
+                    "Filtered datasets %s using expression %s. "
+                    "Output prefix=%s, suffix=%s"
+                )
+                % (dataset_list, filterexpr, prefix, suffix)
             )

@@ -21,8 +21,10 @@
 from .. import qtall as qt
 from . import fits_hdf5_helpers
 
+
 def _(text, disambiguation=None, context="ImportTree"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class GenericTreeModel(qt.QAbstractItemModel):
     """A generic tree model, operating on Node objects."""
@@ -81,14 +83,18 @@ class GenericTreeModel(qt.QAbstractItemModel):
         return len(self.columnheads)
 
     def headerData(self, section, orientation, role):
-        if ( orientation == qt.Qt.Orientation.Horizontal and
-             role == qt.Qt.ItemDataRole.DisplayRole and
-             section < len(self.columnheads) ):
+        if (
+            orientation == qt.Qt.Orientation.Horizontal
+            and role == qt.Qt.ItemDataRole.DisplayRole
+            and section < len(self.columnheads)
+        ):
             return self.columnheads[section]
         return None
 
+
 class Node:
     """Generic Node used by tree model."""
+
     def __init__(self, parent):
         self.parent = parent
         self.children = []
@@ -107,20 +113,23 @@ class Node:
         par = model.parent(index)
         row = index.row()
         idx1 = model.index(row, 0, par)
-        idx2 = model.index(row, model.columnCount(index)-1, par)
+        idx2 = model.index(row, model.columnCount(index) - 1, par)
         model.dataChanged.emit(idx1, idx2)
 
     def _recursiveUpdate(self, model, rootindex):
         """Recursively tell model to update view starting from index."""
+
         def recurse(idx):
             nc = model.rowCount(idx)
             if nc > 0:
                 idx1 = model.index(0, 0, idx)
-                idx2 = model.index(nc-1, model.columnCount(idx)-1, idx)
+                idx2 = model.index(nc - 1, model.columnCount(idx) - 1, idx)
                 model.dataChanged.emit(idx1, idx2)
                 for i in range(nc):
                     recurse(model.index(i, 0, idx))
+
         recurse(rootindex)
+
 
 class ErrorNode(Node):
     """Node for showing error messages."""
@@ -133,6 +142,7 @@ class ErrorNode(Node):
         if column == 0 and role == qt.Qt.ItemDataRole.DisplayRole:
             return self.name
         return None
+
 
 class ImportNameDeligate(qt.QItemDelegate):
     """This class is for choosing the import name."""
@@ -150,22 +160,30 @@ class ImportNameDeligate(qt.QItemDelegate):
         out = []
         for dn in (n for n in self.datanodes if n.toimport):
             name = dn.name
-            out.append( (name, '') )
-            if ( len(dn.shape) == 1 and node is not dn and
-                 dn.shape == node.shape and
-                 node.numeric and dn.numeric and
-                 name[-4:] != ' (+)' and name[-4:] != ' (-)' and
-                 name[-5:] != ' (+-)' ):
+            out.append((name, ""))
+            if (
+                len(dn.shape) == 1
+                and node is not dn
+                and dn.shape == node.shape
+                and node.numeric
+                and dn.numeric
+                and name[-4:] != " (+)"
+                and name[-4:] != " (-)"
+                and name[-5:] != " (+-)"
+            ):
                 # add error bars for other datasets
                 out.append(
-                    ('%s (+-)' % name,
-                     _("Import as symmetric error bar for '%s'") % name) )
+                    (
+                        "%s (+-)" % name,
+                        _("Import as symmetric error bar for '%s'") % name,
+                    )
+                )
                 out.append(
-                    ('%s (+)' % name,
-                     _("Import as positive error bar for '%s'") % name) )
+                    ("%s (+)" % name, _("Import as positive error bar for '%s'") % name)
+                )
                 out.append(
-                    ('%s (-)' % name,
-                     _("Import as negative error bar for '%s'") % name) )
+                    ("%s (-)" % name, _("Import as negative error bar for '%s'") % name)
+                )
         out.sort()
 
         # remove duplicates
@@ -195,12 +213,12 @@ class ImportNameDeligate(qt.QItemDelegate):
 
     def setModelData(self, editor, model, index):
         """Update data in model."""
-        model.setData(
-            index, editor.currentText(), qt.Qt.ItemDataRole.EditRole)
+        model.setData(index, editor.currentText(), qt.Qt.ItemDataRole.EditRole)
 
     def updateEditorGeometry(self, editor, option, index):
         """Update editor geometry."""
         editor.setGeometry(option.rect)
+
 
 # name for the columns
 _ColName = 0
@@ -209,6 +227,7 @@ _ColShape = 2
 _ColToImport = 3
 _ColImportName = 4
 _ColSlice = 5
+
 
 class FileNode(Node):
     def grpImport(self):
@@ -263,6 +282,7 @@ class FileGroupNode(FileNode):
                         node.grpimport = False
                     for c in node.children:
                         recursivedisable(c)
+
             if self.grpimport:
                 recursivedisable(self)
 
@@ -280,8 +300,10 @@ class FileGroupNode(FileNode):
             defflags |= qt.Qt.ItemFlag.ItemIsUserCheckable
         return defflags
 
+
 class EmptyDataNode(FileNode):
     """Empty dataset."""
+
     def __init__(self, parent, dsname, dispname):
         Node.__init__(self, parent)
         self.name = dispname
@@ -294,16 +316,16 @@ class EmptyDataNode(FileNode):
             if column == _ColName:
                 return self.name
             elif column == _ColShape:
-                return _('Empty')
+                return _("Empty")
         elif role == qt.Qt.ItemDataRole.ToolTipRole:
             if column == _ColName:
                 return self.fullname
+
 
 class FileDataNode(FileNode):
     """Represent an File dataset."""
 
     def __init__(self, parent, dsname, dsattrs, dtype, rawdtype, shape, dispname):
-
         """Node arguments:
         parent: parent node
         dsname: dataset name (used as tooltip for node)
@@ -326,16 +348,16 @@ class FileDataNode(FileNode):
         self.attrs = dsattrs
 
         self.text = self.numeric = False
-        if dtype == 'numeric':
-            self.datatype = _('Numeric')
+        if dtype == "numeric":
+            self.datatype = _("Numeric")
             self.numeric = True
             self.datatypevalid = True
-        elif dtype == 'text':
-            self.datatype = _('Text')
+        elif dtype == "text":
+            self.datatype = _("Text")
             self.text = True
             self.datatypevalid = True
         else:
-            self.datatype = _('Unsupported')
+            self.datatype = _("Unsupported")
             self.datatypevalid = False
 
     def getDims(self):
@@ -346,7 +368,8 @@ class FileDataNode(FileNode):
         if "vsz_slice" in self.attrs:
             slice = fits_hdf5_helpers.convertTextToSlice(
                 fits_hdf5_helpers.convertFromBytes(self.attrs["vsz_slice"]),
-                len(self.shape))
+                len(self.shape),
+            )
         if self.slice:
             slice = self.slice
 
@@ -373,7 +396,7 @@ class FileDataNode(FileNode):
             elif column == _ColDataType:
                 return self.datatype
             elif column == _ColShape:
-                return '\u00d7'.join([str(x) for x in self.shape])
+                return "\u00d7".join([str(x) for x in self.shape])
 
             elif column == _ColImportName:
                 if role == qt.Qt.ItemDataRole.EditRole and not self.importname:
@@ -384,15 +407,15 @@ class FileDataNode(FileNode):
                     elif "vsz_name" in self.attrs:
                         # needs to be converted to unicode to work!
                         return fits_hdf5_helpers.convertFromBytes(
-                            self.attrs["vsz_name"])
+                            self.attrs["vsz_name"]
+                        )
                     return None
 
             elif column == _ColSlice:
                 if self.slice:
                     return fits_hdf5_helpers.convertSliceToText(self.slice)
                 elif "vsz_slice" in self.attrs:
-                    return fits_hdf5_helpers.convertFromBytes(
-                        self.attrs["vsz_slice"])
+                    return fits_hdf5_helpers.convertFromBytes(self.attrs["vsz_slice"])
                 return None
 
         elif role == qt.Qt.ItemDataRole.ToolTipRole:
@@ -401,28 +424,28 @@ class FileDataNode(FileNode):
             elif column == _ColDataType:
                 return self.rawdatatype
             elif column == _ColToImport and not self.grpImport():
-                return _(
-                    'Check to import this dataset')
+                return _("Check to import this dataset")
             elif column == _ColImportName and not self.grpImport():
                 return _(
-                    'Name to assign after import.\n'
-                    'Special suffixes (+), (-) and (+-) can be used to\n'
-                    'assign error bars to datasets with the same name.')
+                    "Name to assign after import.\n"
+                    "Special suffixes (+), (-) and (+-) can be used to\n"
+                    "assign error bars to datasets with the same name."
+                )
             elif column == _ColSlice:
                 return _(
-                    'Slice data to create a subset to import.\n'
-                    'This should be ranges for each dimension\n'
-                    'separated by commas.\n'
-                    'Ranges can be empty (:), half (:10),\n'
-                    ' full (4:10), with steps (1:10:2)\n'
-                    ' or negative steps (::-1).\n'
-                    'Example syntax: 2:20\n'
-                    '   :10,:,2:20\n'
-                    '   1:10:5,::5')
+                    "Slice data to create a subset to import.\n"
+                    "This should be ranges for each dimension\n"
+                    "separated by commas.\n"
+                    "Ranges can be empty (:), half (:10),\n"
+                    " full (4:10), with steps (1:10:2)\n"
+                    " or negative steps (::-1).\n"
+                    "Example syntax: 2:20\n"
+                    "   :10,:,2:20\n"
+                    "   1:10:5,::5"
+                )
 
         elif role == qt.Qt.ItemDataRole.CheckStateRole and column == _ColToImport:
-            if ( (self.toimport or self.grpImport()) and
-                 self.dimsOkForImport() ):
+            if (self.toimport or self.grpImport()) and self.dimsOkForImport():
                 return qt.Qt.CheckState.Checked
             return qt.Qt.CheckState.Unchecked
         return None
@@ -434,7 +457,7 @@ class FileDataNode(FileNode):
             # import check has changed
             self.toimport = value != 0
             if not self.toimport:
-                self.importname = ''
+                self.importname = ""
 
             self._updateRow(model, index)
             return True
@@ -454,18 +477,26 @@ class FileDataNode(FileNode):
         return False
 
     def flags(self, column, defflags):
-        if ( column == _ColToImport and self.datatypevalid and
-             not self.grpImport() and self.dimsOkForImport() ):
+        if (
+            column == _ColToImport
+            and self.datatypevalid
+            and not self.grpImport()
+            and self.dimsOkForImport()
+        ):
             # allow import column to be clicked
             defflags |= qt.Qt.ItemFlag.ItemIsUserCheckable
-        elif ( column == _ColImportName and (self.toimport or self.grpImport())
-               and self.dimsOkForImport() ):
+        elif (
+            column == _ColImportName
+            and (self.toimport or self.grpImport())
+            and self.dimsOkForImport()
+        ):
             defflags |= qt.Qt.ItemFlag.ItemIsEditable
         elif column == _ColSlice and self.datatypevalid:
             # allow name to be edited
             defflags |= qt.Qt.ItemFlag.ItemIsEditable
 
         return defflags
+
 
 class FileCompoundNode(FileGroupNode):
     """Node representing a table (Compound data type)."""
@@ -480,24 +511,24 @@ class FileCompoundNode(FileGroupNode):
             if column == _ColDataType:
                 return _("Table")
             elif column == _ColShape:
-                return '\u00d7'.join([str(x) for x in self.shape])
+                return "\u00d7".join([str(x) for x in self.shape])
         return FileGroupNode.data(self, column, role)
 
+
 ##############################################################################
+
 
 def setupTreeView(view, rootnode, datanodes):
     """Setup view for nodes."""
 
-    view._importnamedeligate = ImportNameDeligate(
-        view, datanodes)
+    view._importnamedeligate = ImportNameDeligate(view, datanodes)
     view.setItemDelegateForColumn(_ColImportName, view._importnamedeligate)
 
     mod = GenericTreeModel(
-        view, rootnode,
-        [
-            _('Name'), _('Type'), _('Size'), _('Import'),
-            _('Import as'), _('Slice')
-        ])
+        view,
+        rootnode,
+        [_("Name"), _("Type"), _("Size"), _("Import"), _("Import as"), _("Slice")],
+    )
 
     view.setModel(mod)
     view.expandAll()

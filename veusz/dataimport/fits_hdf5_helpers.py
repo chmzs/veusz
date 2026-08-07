@@ -25,8 +25,10 @@ import numpy as N
 
 from .. import qtall as qt
 
+
 def _(text, disambiguation=None, context="Import_FITS_HDF5"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def filterAttrsByName(attrs, name):
     """For compound datasets, attributes can be given on a per-column basis.
@@ -36,9 +38,10 @@ def filterAttrsByName(attrs, name):
     attrsout = {}
     for a in attrs:
         # attributes with _dsname suffixes are copied
-        if a[:4] == "vsz_" and a[-len(name)-1:] == "_"+name:
-            attrsout[a[:-len(name)-1]] = attrs[a]
+        if a[:4] == "vsz_" and a[-len(name) - 1 :] == "_" + name:
+            attrsout[a[: -len(name) - 1]] = attrs[a]
     return attrsout
+
 
 def convertTextToSlice(slicetxt, numdims):
     """Convert a value like 0:1:3,:,::-1 to a tuple slice
@@ -50,17 +53,17 @@ def convertTextToSlice(slicetxt, numdims):
     Return -1 on error
     """
 
-    if slicetxt.strip() == '':
+    if slicetxt.strip() == "":
         return None
 
-    slicearray = slicetxt.split(',')
+    slicearray = slicetxt.split(",")
     if len(slicearray) != numdims:
         # slice needs same dimensions as data
         return -1
 
     allsliceout = []
     for sliceap_idx, sliceap in enumerate(slicearray):
-        sliceparts = sliceap.strip().split(':')
+        sliceparts = sliceap.strip().split(":")
 
         if len(sliceparts) == 1:
             # reduce dimensions with single index
@@ -95,10 +98,11 @@ def convertTextToSlice(slicetxt, numdims):
 
     return tuple(allsliceout)
 
+
 def convertSliceToText(slice):
     """Convert tuple slice into text."""
     if slice is None:
-        return ''
+        return ""
     out = []
     for spart in slice:
         if isinstance(spart, int):
@@ -111,11 +115,12 @@ def convertSliceToText(slice):
             if p is not None:
                 sparttxt.append(str(p))
             else:
-                sparttxt.append('')
-        if sparttxt[-1] == '':
+                sparttxt.append("")
+        if sparttxt[-1] == "":
             del sparttxt[-1]
-        out.append(':'.join(sparttxt))
-    return ', '.join(out)
+        out.append(":".join(sparttxt))
+    return ", ".join(out)
+
 
 def applySlices(data, slices):
     """Given hdf/numpy dataset, apply slicing tuple to it and return data."""
@@ -135,8 +140,10 @@ def applySlices(data, slices):
         data = N.array([], dtype=N.float64)
     return data
 
+
 class ConvertError(RuntimeError):
     pass
+
 
 def convertFromBytes(s):
     """h5py often returns bytes instead of unicode.
@@ -144,8 +151,9 @@ def convertFromBytes(s):
     """
     if sys.version_info[0] == 3:
         if isinstance(s, bytes):
-            return s.decode('utf-8')
+            return s.decode("utf-8")
     return s
+
 
 def convertDatasetToObject(data, slices, fill_value=None):
     """Convert numpy/hdf dataset to suitable data for veusz.
@@ -167,7 +175,7 @@ def convertDatasetToObject(data, slices, fill_value=None):
     except TypeError:
         raise ConvertError(_("Could not get data type of dataset"))
 
-    if kind in ('b', 'i', 'u', 'f'):
+    if kind in ("b", "i", "u", "f"):
         data = N.array(data, dtype=N.float64)
         if data.ndim == 0:
             raise ConvertError(_("Dataset has no dimensions"))
@@ -176,15 +184,17 @@ def convertDatasetToObject(data, slices, fill_value=None):
             data[data == fill_value] = N.nan
         return data
 
-    elif kind in ('S', 'a', 'U') or (
-        kind == 'O' and check_dtype(vlen=data.dtype) is str):
-        if hasattr(data, 'ndim') and data.ndim != 1:
+    elif kind in ("S", "a", "U") or (
+        kind == "O" and check_dtype(vlen=data.dtype) is str
+    ):
+        if hasattr(data, "ndim") and data.ndim != 1:
             raise ConvertError(_("Text datasets must have 1 dimension"))
 
         strcnv = list(data)
         return strcnv
 
     raise ConvertError(_("Dataset has an invalid type"))
+
 
 def getFITSHduNames(fitsfile):
     """Return list of names to give HDUs given a FITS file."""
@@ -196,21 +206,21 @@ def getFITSHduNames(fitsfile):
         name = hdu.name
 
         if not name:
-            name = 'hdu%i' % i
+            name = "hdu%i" % i
             # just in case people start naming HDUs hduX...
             while name in nameset:
-                name += '~'
+                name += "~"
         else:
             name = name.lower()
 
             # EXTVER distinguishes identical names
-            if 'EXTVER' in hdu.header:
-                name = '%s%i' % (name, hdu.header['EXTVER'])
+            if "EXTVER" in hdu.header:
+                name = "%s%i" % (name, hdu.header["EXTVER"])
 
             # prevent duplicates
             if name in nameset:
                 i = 2
-                while name+str(i) in nameset:
+                while name + str(i) in nameset:
                     i += 1
                 name += str(i)
 
@@ -218,6 +228,7 @@ def getFITSHduNames(fitsfile):
         names.append(name)
 
     return names
+
 
 def convertFITSDataFormat(fmt):
     """Convert FITS TFORM codes into:
@@ -229,9 +240,9 @@ def convertFITSDataFormat(fmt):
     """
 
     # match the fits format text code [r]F[w[.d]]
-    m = re.match(r'^([0-9]*)([A-Za-z])([0-9]*)(\.[0-9]+)?$', fmt)
+    m = re.match(r"^([0-9]*)([A-Za-z])([0-9]*)(\.[0-9]+)?$", fmt)
     if not m:
-        return (None, 'invalid', ())
+        return (None, "invalid", ())
     grps = m.groups()
 
     # length of array
@@ -242,19 +253,20 @@ def convertFITSDataFormat(fmt):
     fcode = grps[1].upper()
     width = grps[2]
 
-    if fcode == 'A' and not width:
+    if fcode == "A" and not width:
         # note: we can't handle 2d text arrays, so we handle as invalid
-        code = 'text'
+        code = "text"
         # even though strings are N characters, they are handled as singles
         nlen = 1
 
-    elif fcode in 'LXBIJKED':
-        code = 'numeric'
+    elif fcode in "LXBIJKED":
+        code = "numeric"
 
     else:
-        code = 'invalid'
+        code = "invalid"
 
     return code, nlen
+
 
 def hduVeuszAttrs(hdu):
     """Get veusz-specific attributes from a HDU header.
@@ -275,12 +287,11 @@ def hduVeuszAttrs(hdu):
     colattrs = {}
 
     for k, v in hdu.header.items():
-        if k.lower() == 'veusz':
-
+        if k.lower() == "veusz":
             # match syntax [OPTIONAL COLUMN:] KEY=VALUE
             match = re.match(
-                r'^(?:([a-zA-Z0-9_]+)[ ]*:)?[ ]*([a-zA-Z0-9_]+)[ ]*=[ ]*(.*)$',
-                v)
+                r"^(?:([a-zA-Z0-9_]+)[ ]*:)?[ ]*([a-zA-Z0-9_]+)[ ]*=[ ]*(.*)$", v
+            )
             if not match:
                 continue
 

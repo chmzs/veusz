@@ -32,58 +32,74 @@ from .plotters import GenericPlotter
 
 def _barCiModeShowfn(val):
     """Show/hide CI settings based on ciMode value."""
-    if val == 'custom':
-        return (('ciYMin', 'ciYMax'), ('ciYError', 'ciMultiplier'))
-    elif val == 'std':
-        return (('ciYError', 'ciMultiplier'), ('ciYMin', 'ciYMax'))
+    if val == "custom":
+        return (("ciYMin", "ciYMax"), ("ciYError", "ciMultiplier"))
+    elif val == "std":
+        return (("ciYError", "ciMultiplier"), ("ciYMin", "ciYMax"))
     else:
-        return ((), ('ciYMin', 'ciYMax', 'ciYError', 'ciMultiplier'))
+        return ((), ("ciYMin", "ciYMax", "ciYError", "ciMultiplier"))
 
-def _(text, disambiguation=None, context='BarPlotter'):
+
+def _(text, disambiguation=None, context="BarPlotter"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class BarFill(setting.Settings):
-    '''Filling of bars.'''
+    """Filling of bars."""
+
     def __init__(self, name, **args):
         setting.Settings.__init__(self, name, **args)
-        self.add( setting.FillSet(
-            'fills', [('solid', 'auto', False)],
-            descr = _('Fill styles for dataset bars'),
-            usertext=_('Fill styles')) )
+        self.add(
+            setting.FillSet(
+                "fills",
+                [("solid", "auto", False)],
+                descr=_("Fill styles for dataset bars"),
+                usertext=_("Fill styles"),
+            )
+        )
+
 
 class BarCIFill(setting.BrushExtended):
-    '''Filled band showing the confidence interval around bars.'''
+    """Filled band showing the confidence interval around bars."""
+
     def __init__(self, name, **args):
         setting.BrushExtended.__init__(self, name, **args)
-        self.get('hide').newDefault(True)
+        self.get("hide").newDefault(True)
+
 
 class BarLine(setting.Settings):
-    '''Edges of bars.'''
+    """Edges of bars."""
+
     def __init__(self, name, **args):
         setting.Settings.__init__(self, name, **args)
-        self.add( setting.LineSet(
-            'lines',
-            [('solid', '0.5pt', 'black', False)],
-            descr = _('Line styles for dataset bars'),
-            usertext=_('Line styles')) )
+        self.add(
+            setting.LineSet(
+                "lines",
+                [("solid", "0.5pt", "black", False)],
+                descr=_("Line styles for dataset bars"),
+                usertext=_("Line styles"),
+            )
+        )
 
-def extend1DArray(array, length, missing=0.):
+
+def extend1DArray(array, length, missing=0.0):
     """Return array with length given (original if appropriate.
     Values are extended with value given."""
 
     if len(array) == length:
         return array
     retn = N.resize(array, length)
-    retn[len(array):] = missing
+    retn[len(array) :] = missing
     return retn
+
 
 class BarPlotter(GenericPlotter):
     """Plot bar charts."""
 
-    typename='bar'
-    allowusercreation=True
-    description=_('Plot bar charts')
+    typename = "bar"
+    allowusercreation = True
+    description = _("Plot bar charts")
 
     @classmethod
     def addSettings(klass, s):
@@ -91,120 +107,192 @@ class BarPlotter(GenericPlotter):
         GenericPlotter.addSettings(s)
 
         # get rid of default key setting
-        s.remove('key')
+        s.remove("key")
 
-        s.add( setting.Strings(
-            'keys', ('',),
-            descr=_('Key text for each dataset'),
-            usertext=_('Key text')), 0)
+        s.add(
+            setting.Strings(
+                "keys",
+                ("",),
+                descr=_("Key text for each dataset"),
+                usertext=_("Key text"),
+            ),
+            0,
+        )
 
-        s.add( setting.DatasetOrStr(
-            'labels', '',
-            descr=_('Dataset or string to label bars'),
-            usertext=_('Labels')), 5 )
+        s.add(
+            setting.DatasetOrStr(
+                "labels",
+                "",
+                descr=_("Dataset or string to label bars"),
+                usertext=_("Labels"),
+            ),
+            5,
+        )
 
-        s.add( setting.Choice(
-            'mode', ('grouped', 'stacked', 'stacked-area'),
-            'grouped',
-            descr=_('Show datasets grouped together or as a single bar'),
-            usertext=_('Mode')), 0)
-        s.add( setting.Choice(
-            'direction',
-            ('horizontal', 'vertical'), 'vertical',
-            descr=_('Horizontal or vertical bar chart'),
-            usertext=_('Direction')), 0 )
-        s.add( setting.DatasetExtended(
-            'posn', '',
-            descr=_('Position of bars, dataset or expression (optional)'),
-            usertext=_('Positions')), 0 )
-        s.add( setting.Datasets(
-            'lengths', ('y',),
-            descr=_('Datasets containing lengths of bars'),
-            usertext=_('Lengths')), 0 )
+        s.add(
+            setting.Choice(
+                "mode",
+                ("grouped", "stacked", "stacked-area"),
+                "grouped",
+                descr=_("Show datasets grouped together or as a single bar"),
+                usertext=_("Mode"),
+            ),
+            0,
+        )
+        s.add(
+            setting.Choice(
+                "direction",
+                ("horizontal", "vertical"),
+                "vertical",
+                descr=_("Horizontal or vertical bar chart"),
+                usertext=_("Direction"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "posn",
+                "",
+                descr=_("Position of bars, dataset or expression (optional)"),
+                usertext=_("Positions"),
+            ),
+            0,
+        )
+        s.add(
+            setting.Datasets(
+                "lengths",
+                ("y",),
+                descr=_("Datasets containing lengths of bars"),
+                usertext=_("Lengths"),
+            ),
+            0,
+        )
 
-        s.add( setting.Float(
-            'barfill', 0.75,
-            minval=0., maxval=1.,
-            descr=_('Filling fraction of bars (between 0 and 1)'),
-            usertext=_('Bar fill'),
-            formatting=True) )
-        s.add( setting.Float(
-            'groupfill', 0.9,
-            minval=0., maxval=1.,
-            descr=_('Filling fraction of groups of bars (between 0 and 1)'),
-            usertext=_('Group fill'),
-            formatting=True) )
+        s.add(
+            setting.Float(
+                "barfill",
+                0.75,
+                minval=0.0,
+                maxval=1.0,
+                descr=_("Filling fraction of bars (between 0 and 1)"),
+                usertext=_("Bar fill"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Float(
+                "groupfill",
+                0.9,
+                minval=0.0,
+                maxval=1.0,
+                descr=_("Filling fraction of groups of bars (between 0 and 1)"),
+                usertext=_("Group fill"),
+                formatting=True,
+            )
+        )
 
-        s.add( setting.Choice(
-            'errorstyle', ('none', 'bar', 'barends'),
-            'bar',
-            descr=_('Error bar style to show'),
-            usertext=_('Error style'),
-            formatting=True) )
+        s.add(
+            setting.Choice(
+                "errorstyle",
+                ("none", "bar", "barends"),
+                "bar",
+                descr=_("Error bar style to show"),
+                usertext=_("Error style"),
+                formatting=True,
+            )
+        )
 
         # CI mode for bar plots
-        s.add( setting.ChoiceSwitch(
-            'ciMode',
-            ['', 'custom', 'std'],
-            '',
-            showfn=_barCiModeShowfn,
-            descr=_('Confidence interval mode for bar height'),
-            usertext=_('CI mode'),
-            formatting=True) )
+        s.add(
+            setting.ChoiceSwitch(
+                "ciMode",
+                ["", "custom", "std"],
+                "",
+                showfn=_barCiModeShowfn,
+                descr=_("Confidence interval mode for bar height"),
+                usertext=_("CI mode"),
+                formatting=True,
+            )
+        )
 
         # Custom dataset mode settings
-        s.add( setting.Str(
-            'ciYMin', '',
-            descr=_('Dataset for minimum y confidence interval'),
-            usertext=_('CI Y min'),
-            formatting=True) )
-        s.add( setting.Str(
-            'ciYMax', '',
-            descr=_('Dataset for maximum y confidence interval'),
-            usertext=_('CI Y max'),
-            formatting=True) )
+        s.add(
+            setting.Str(
+                "ciYMin",
+                "",
+                descr=_("Dataset for minimum y confidence interval"),
+                usertext=_("CI Y min"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Str(
+                "ciYMax",
+                "",
+                descr=_("Dataset for maximum y confidence interval"),
+                usertext=_("CI Y max"),
+                formatting=True,
+            )
+        )
 
         # Standard deviation mode settings
-        s.add( setting.Str(
-            'ciYError', '',
-            descr=_('Dataset for Y error (y +/- error * multiplier)'),
-            usertext=_('CI Y error'),
-            formatting=True) )
-        s.add( setting.Float(
-            'ciMultiplier', 1.0,
-            descr=_('Multiplier for error values (e.g. 2 for 2*std)'),
-            usertext=_('CI multiplier'),
-            formatting=True) )
+        s.add(
+            setting.Str(
+                "ciYError",
+                "",
+                descr=_("Dataset for Y error (y +/- error * multiplier)"),
+                usertext=_("CI Y error"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Float(
+                "ciMultiplier",
+                1.0,
+                descr=_("Multiplier for error values (e.g. 2 for 2*std)"),
+                usertext=_("CI multiplier"),
+                formatting=True,
+            )
+        )
 
-        s.add(BarFill(
-            'BarFill', descr=_('Bar fill'), usertext=_('Fill')),
-            pixmap='settings_bgfill')
-        s.add(BarLine('BarLine', descr=_('Bar line'), usertext=_('Line')),
-            pixmap='settings_border')
+        s.add(
+            BarFill("BarFill", descr=_("Bar fill"), usertext=_("Fill")),
+            pixmap="settings_bgfill",
+        )
+        s.add(
+            BarLine("BarLine", descr=_("Bar line"), usertext=_("Line")),
+            pixmap="settings_border",
+        )
 
-        s.add(BarCIFill(
-            'FillCI', descr=_('Confidence interval fill band'),
-            usertext=_('CI fill')),
-            pixmap='settings_plotfillbelow')
+        s.add(
+            BarCIFill(
+                "FillCI",
+                descr=_("Confidence interval fill band"),
+                usertext=_("CI fill"),
+            ),
+            pixmap="settings_plotfillbelow",
+        )
 
-        s.add( setting.ErrorBarLine(
-            'ErrorBarLine',
-            descr=_('Error bar line settings'),
-            usertext=_('Error bar line')),
-            pixmap='settings_ploterrorline' )
+        s.add(
+            setting.ErrorBarLine(
+                "ErrorBarLine",
+                descr=_("Error bar line settings"),
+                usertext=_("Error bar line"),
+            ),
+            pixmap="settings_ploterrorline",
+        )
 
     @property
     def userdescription(self):
         """User-friendly description."""
 
         s = self.settings
-        return _("lengths='%s', position='%s'") % (
-            ', '.join(s.lengths), s.posn)
+        return _("lengths='%s', position='%s'") % (", ".join(s.lengths), s.posn)
 
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
         s = self.settings
-        return ( (s.xAxis, 'sx'), (s.yAxis, 'sy') )
+        return ((s.xAxis, "sx"), (s.yAxis, "sy"))
 
     def getAxisLabels(self, direction):
         """Get labels for bar for appropriate axis."""
@@ -213,13 +301,13 @@ class BarPlotter(GenericPlotter):
             # if horizontal bars, want labels on vertical axis and vice versa
             doc = self.document
 
-            labels = s.get('labels').getData(doc, checknull=True)
-            positions = s.get('posn').getData(doc)
+            labels = s.get("labels").getData(doc, checknull=True)
+            positions = s.get("posn").getData(doc)
             if positions is None or len(positions.data) == 0:
-                lengths = s.get('lengths').getData(doc)
+                lengths = s.get("lengths").getData(doc)
                 if not lengths:
                     return (None, None)
-                p = N.arange( max([len(d.data) for d in lengths]) )+1.
+                p = N.arange(max([len(d.data) for d in lengths])) + 1.0
             else:
                 p = positions.data
 
@@ -231,23 +319,24 @@ class BarPlotter(GenericPlotter):
     def singleBarDataRange(self, datasets):
         """For single bars where multiple datasets are added,
         compute maximum range."""
-        minv, maxv = 0., 0.
+        minv, maxv = 0.0, 0.0
         for data in zip(*[ds.data for ds in datasets]):
-            totpos = sum( [d for d in data if d > 0] )
-            totneg = sum( [d for d in data if d < 0] )
+            totpos = sum([d for d in data if d > 0])
+            totneg = sum([d for d in data if d < 0])
 
             minv = min(minv, totneg)
             maxv = max(maxv, totpos)
-        return minv,  maxv
+        return minv, maxv
 
     def getRange(self, axis, depname, axrange):
         """Update axis range from data."""
         s = self.settings
-        if ((s.direction == 'horizontal' and depname == 'sx') or
-            (s.direction == 'vertical' and depname == 'sy')):
+        if (s.direction == "horizontal" and depname == "sx") or (
+            s.direction == "vertical" and depname == "sy"
+        ):
             # update from lengths
-            data = s.get('lengths').getData(self.document)
-            if s.mode == 'grouped':
+            data = s.get("lengths").getData(self.document)
+            if s.mode == "grouped":
                 # update range from individual datasets
                 for d in data:
                     drange = d.getRange()
@@ -262,7 +351,7 @@ class BarPlotter(GenericPlotter):
         else:
             if s.posn:
                 # use given positions
-                data = s.get('posn').getData(self.document)
+                data = s.get("posn").getData(self.document)
                 if data:
                     drange = data.getRange()
                     if drange is not None:
@@ -270,19 +359,19 @@ class BarPlotter(GenericPlotter):
                         axrange[1] = max(axrange[1], drange[1])
             else:
                 # count bars
-                data = s.get('lengths').getData(self.document)
+                data = s.get("lengths").getData(self.document)
                 if data:
                     maxlen = max([len(d) for d in data])
-                    axrange[0] = min(1-0.5, axrange[0])
-                    axrange[1] = max(maxlen+0.5,  axrange[1])
+                    axrange[0] = min(1 - 0.5, axrange[0])
+                    axrange[1] = max(maxlen + 0.5, axrange[1])
 
     def findBarPositions(self, lengths, positions, axes, posn):
         """Work out centres of bar / bar groups and maximum width."""
 
-        ishorz = self.settings.direction == 'horizontal'
+        ishorz = self.settings.direction == "horizontal"
 
         if positions is None:
-            p = N.arange( max([len(d.data) for d in lengths]) )+1.
+            p = N.arange(max([len(d.data) for d in lengths])) + 1.0
         else:
             p = positions.data
 
@@ -292,21 +381,29 @@ class BarPlotter(GenericPlotter):
         posns = axis.dataToPlotterCoords(posn, p)
         if len(posns) <= 1:
             if ishorz:
-                maxwidth = posn[2]-posn[0]
+                maxwidth = posn[2] - posn[0]
             else:
-                maxwidth = posn[3]-posn[1]
+                maxwidth = posn[3] - posn[1]
         else:
-            maxwidth = N.nanmin(N.abs(posns[1:]-posns[:-1]))
+            maxwidth = N.nanmin(N.abs(posns[1:] - posns[:-1]))
 
-        return posns,  maxwidth
+        return posns, maxwidth
 
-    def calculateErrorBars(self, dataset, vals, ciMode='', ciYMin='', ciYMax='',
-                           ciYError='', ciMultiplier=1.0):
+    def calculateErrorBars(
+        self,
+        dataset,
+        vals,
+        ciMode="",
+        ciYMin="",
+        ciYMax="",
+        ciYError="",
+        ciMultiplier=1.0,
+    ):
         """Get values for error bars."""
         minval = None
         maxval = None
 
-        if ciMode == 'std' and ciYError:
+        if ciMode == "std" and ciYError:
             # Use std mode: y +/- error * multiplier
             err_ds = self.document.getData(ciYError)
             if err_ds is not None:
@@ -315,7 +412,7 @@ class BarPlotter(GenericPlotter):
                 maxval = vals + s
                 return minval, maxval
 
-        elif ciMode == 'custom':
+        elif ciMode == "custom":
             # Use custom datasets for CI bounds
             if ciYMin:
                 min_ds = self.document.getData(ciYMin)
@@ -328,31 +425,31 @@ class BarPlotter(GenericPlotter):
             return minval, maxval
 
         # Default: use dataset's built-in error columns
-        if 'serr' in dataset:
-            s = N.nan_to_num(dataset['serr'])
+        if "serr" in dataset:
+            s = N.nan_to_num(dataset["serr"])
             minval = vals - s
             maxval = vals + s
         else:
-            if 'nerr' in dataset:
-                minval = vals + N.nan_to_num(dataset['nerr'])
-            if 'perr' in dataset:
-                maxval = vals + N.nan_to_num(dataset['perr'])
+            if "nerr" in dataset:
+                minval = vals + N.nan_to_num(dataset["nerr"])
+            if "perr" in dataset:
+                maxval = vals + N.nan_to_num(dataset["perr"])
         return minval, maxval
 
-    def drawErrorBars(self, painter, posns, barwidth,
-                      yvals, dataset, axes, widgetposn):
+    def drawErrorBars(self, painter, posns, barwidth, yvals, dataset, axes, widgetposn):
         """Draw (optional) error bars on bars."""
         s = self.settings
-        if s.errorstyle == 'none':
+        if s.errorstyle == "none":
             return
 
         minval, maxval = self.calculateErrorBars(
-            dataset, yvals,
+            dataset,
+            yvals,
             ciMode=s.ciMode,
             ciYMin=s.ciYMin,
             ciYMax=s.ciYMax,
             ciYError=s.ciYError,
-            ciMultiplier=s.ciMultiplier
+            ciMultiplier=s.ciMultiplier,
         )
         if minval is None and maxval is None:
             return
@@ -364,7 +461,7 @@ class BarPlotter(GenericPlotter):
             maxval = yvals
 
         # convert errors to coordinates
-        ishorz = s.direction == 'horizontal'
+        ishorz = s.direction == "horizontal"
         mincoord = axes[not ishorz].dataToPlotterCoords(widgetposn, minval)
         mincoord = N.clip(mincoord, -32767, 32767)
         maxcoord = axes[not ishorz].dataToPlotterCoords(widgetposn, maxval)
@@ -372,30 +469,31 @@ class BarPlotter(GenericPlotter):
 
         # draw error bars
         ebl = self.settings.ErrorBarLine
-        painter.setPen( ebl.makeQPenWHide(painter) )
-        w = barwidth*0.25*ebl.endsize
+        painter.setPen(ebl.makeQPenWHide(painter))
+        w = barwidth * 0.25 * ebl.endsize
         if ishorz and not ebl.hideHorz:
-            utils.plotLinesToPainter(
-                painter, mincoord, posns, maxcoord, posns)
-            if s.errorstyle == 'barends':
+            utils.plotLinesToPainter(painter, mincoord, posns, maxcoord, posns)
+            if s.errorstyle == "barends":
                 utils.plotLinesToPainter(
-                    painter, mincoord, posns-w, mincoord, posns+w)
+                    painter, mincoord, posns - w, mincoord, posns + w
+                )
                 utils.plotLinesToPainter(
-                    painter, maxcoord, posns-w, maxcoord, posns+w)
+                    painter, maxcoord, posns - w, maxcoord, posns + w
+                )
         elif not ishorz and not ebl.hideVert:
-            utils.plotLinesToPainter(
-                painter, posns, mincoord, posns, maxcoord)
-            if s.errorstyle == 'barends':
+            utils.plotLinesToPainter(painter, posns, mincoord, posns, maxcoord)
+            if s.errorstyle == "barends":
                 utils.plotLinesToPainter(
-                    painter, posns-w, mincoord, posns+w, mincoord)
+                    painter, posns - w, mincoord, posns + w, mincoord
+                )
                 utils.plotLinesToPainter(
-                    painter, posns-w, maxcoord, posns+w, maxcoord)
+                    painter, posns - w, maxcoord, posns + w, maxcoord
+                )
 
-    def drawCIBand(self, painter, posns1, posns2, minvals, maxvals,
-                   axes, widgetposn):
+    def drawCIBand(self, painter, posns1, posns2, minvals, maxvals, axes, widgetposn):
         """Draw a filled band showing the confidence interval per bar."""
         s = self.settings
-        ishorz = s.direction == 'horizontal'
+        ishorz = s.direction == "horizontal"
         valax = axes[not ishorz]
         mincoord = valax.dataToPlotterCoords(widgetposn, minvals)
         maxcoord = valax.dataToPlotterCoords(widgetposn, maxvals)
@@ -419,9 +517,14 @@ class BarPlotter(GenericPlotter):
         """Return (minval, maxval) confidence bounds for a dataset row."""
         s = self.settings
         mn, mx = self.calculateErrorBars(
-            dataset, vals, ciMode=s.ciMode, ciYMin=s.ciYMin,
-            ciYMax=s.ciYMax, ciYError=s.ciYError,
-            ciMultiplier=s.ciMultiplier)
+            dataset,
+            vals,
+            ciMode=s.ciMode,
+            ciYMin=s.ciYMin,
+            ciYMax=s.ciYMax,
+            ciYError=s.ciYError,
+            ciMultiplier=s.ciMultiplier,
+        )
         if mn is None:
             mn = vals
         if mx is None:
@@ -431,25 +534,33 @@ class BarPlotter(GenericPlotter):
     def plotBars(self, painter, s, dsnum, clip, corners):
         """Plot a set of boxes."""
         # get style
-        brush = s.BarFill.get('fills').returnBrushExtended(dsnum)
-        pen = s.BarLine.get('lines').makePen(painter, dsnum)
+        brush = s.BarFill.get("fills").returnBrushExtended(dsnum)
+        pen = s.BarLine.get("lines").makePen(painter, dsnum)
         lw = pen.widthF() * 2
 
         # make clip box bigger to avoid lines showing
         extclip = qt.QRectF(
-            qt.QPointF(clip.left()-lw, clip.top()-lw),
-            qt.QPointF(clip.right()+lw, clip.bottom()+lw) )
+            qt.QPointF(clip.left() - lw, clip.top() - lw),
+            qt.QPointF(clip.right() + lw, clip.bottom() + lw),
+        )
 
         # plot bars
         path = qt.QPainterPath()
         utils.addNumpyPolygonToPath(
-            path, extclip, corners[0], corners[1], corners[2], corners[1],
-            corners[2], corners[3], corners[0], corners[3])
-        utils.brushExtFillPath(
-            painter, brush, path, stroke=pen, dataindex=dsnum)
+            path,
+            extclip,
+            corners[0],
+            corners[1],
+            corners[2],
+            corners[1],
+            corners[2],
+            corners[3],
+            corners[0],
+            corners[3],
+        )
+        utils.brushExtFillPath(painter, brush, path, stroke=pen, dataindex=dsnum)
 
-    def barDrawGroup(self, painter, posns, maxwidth, dsvals,
-                     axes, widgetposn, clip):
+    def barDrawGroup(self, painter, posns, maxwidth, dsvals, axes, widgetposn, clip):
         """Draw groups of bars."""
 
         s = self.settings
@@ -461,54 +572,51 @@ class BarPlotter(GenericPlotter):
         bardelta = usablewidth / numgroups
         barwidth = bardelta * s.barfill
 
-        ishorz = s.direction == 'horizontal'
+        ishorz = s.direction == "horizontal"
 
         # bar extends from these coordinates
-        zeropt = axes[not ishorz].dataToPlotterCoords(
-            widgetposn, N.array([0.]))
+        zeropt = axes[not ishorz].dataToPlotterCoords(widgetposn, N.array([0.0]))
 
         for dsnum, dataset in enumerate(dsvals):
-
             # convert bar length to plotter coords
             lengthcoord = axes[not ishorz].dataToPlotterCoords(
-                widgetposn, dataset['data'])
+                widgetposn, dataset["data"]
+            )
 
             # these are the coordinates perpendicular to the bar
             posns1 = posns + (
-                -usablewidth*0.5 + bardelta*dsnum + (bardelta-barwidth)*0.5)
+                -usablewidth * 0.5 + bardelta * dsnum + (bardelta - barwidth) * 0.5
+            )
             posns2 = posns1 + barwidth
 
             if ishorz:
-                p = (
-                    zeropt + N.zeros(posns1.shape), posns1,
-                    lengthcoord, posns2
-                )
+                p = (zeropt + N.zeros(posns1.shape), posns1, lengthcoord, posns2)
             else:
-                p = (
-                    posns1, zeropt + N.zeros(posns2.shape),
-                    posns2, lengthcoord
-                )
+                p = (posns1, zeropt + N.zeros(posns2.shape), posns2, lengthcoord)
 
             self.plotBars(painter, s, dsnum, clip, p)
 
             # draw confidence interval fill band
             if not s.FillCI.hide:
-                mn, mx = self._calcCI(dataset, dataset['data'])
-                self.drawCIBand(
-                    painter, posns1, posns2, mn, mx, axes, widgetposn)
+                mn, mx = self._calcCI(dataset, dataset["data"])
+                self.drawCIBand(painter, posns1, posns2, mn, mx, axes, widgetposn)
 
             # draw error bars
             self.drawErrorBars(
-                painter, posns2-barwidth*0.5, barwidth,
-                dataset['data'], dataset,
-                axes, widgetposn
+                painter,
+                posns2 - barwidth * 0.5,
+                barwidth,
+                dataset["data"],
+                dataset,
+                axes,
+                widgetposn,
             )
 
     def calcStackedPoints(self, dsvals, axis, widgetposn):
         """Calculate stacked dataset coordinates for plotting."""
 
         # keep track of last most negative or most positive values in bars
-        poslen = len(dsvals[0]['data'])
+        poslen = len(dsvals[0]["data"])
         lastneg = N.zeros(poslen)
         lastpos = N.zeros(poslen)
 
@@ -518,12 +626,12 @@ class BarPlotter(GenericPlotter):
 
         for dsnum, data in enumerate(dsvals):
             # add on value to last value in correct direction
-            data = data['data']
-            new = N.where(data < 0., lastneg+data, lastpos+data)
+            data = data["data"]
+            new = N.where(data < 0.0, lastneg + data, lastpos + data)
 
             # work out maximum extents for next time
-            lastneg = N.min( N.vstack((lastneg, new)), axis=0 )
-            lastpos = N.max( N.vstack((lastpos, new)), axis=0 )
+            lastneg = N.min(N.vstack((lastneg, new)), axis=0)
+            lastpos = N.max(N.vstack((lastpos, new)), axis=0)
 
             # convert values to plotter coordinates
             newplt = axis.dataToPlotterCoords(widgetposn, new)
@@ -533,8 +641,7 @@ class BarPlotter(GenericPlotter):
 
         return stackedvals, stackedcoords
 
-    def barDrawStacked(self, painter, posns, maxwidth, dsvals,
-                       axes, widgetposn, clip):
+    def barDrawStacked(self, painter, posns, maxwidth, dsvals, axes, widgetposn, clip):
         """Draw each dataset in a single bar."""
 
         s = self.settings
@@ -543,23 +650,22 @@ class BarPlotter(GenericPlotter):
         barwidth = maxwidth * s.barfill
 
         # get axis which values are plotted along
-        ishorz = s.direction == 'horizontal'
+        ishorz = s.direction == "horizontal"
         vaxis = axes[not ishorz]
 
         # compute stacked coordinates
-        stackedvals, stackedcoords = self.calcStackedPoints(
-            dsvals, vaxis, widgetposn)
+        stackedvals, stackedcoords = self.calcStackedPoints(dsvals, vaxis, widgetposn)
         # coordinates of origin
         zerocoords = vaxis.dataToPlotterCoords(widgetposn, N.zeros(posns.shape))
 
         # positions of bar perpendicular to bar direction
-        posns1 = posns - barwidth*0.5
+        posns1 = posns - barwidth * 0.5
         posns2 = posns1 + barwidth
 
         # draw bars (reverse order, so edges are plotted correctly)
         for dsnum, coords in zip(
-                range(len(stackedcoords)-1, -1, -1),
-                stackedcoords[::-1]):
+            range(len(stackedcoords) - 1, -1, -1), stackedcoords[::-1]
+        ):
             # we iterate over each of these coordinates
             if ishorz:
                 p = (zerocoords, posns1, coords, posns2)
@@ -571,33 +677,29 @@ class BarPlotter(GenericPlotter):
         if not s.FillCI.hide:
             for dsnum, dataset in enumerate(dsvals):
                 # anchor this dataset's band at its own cumulative base
-                base = stackedvals[dsnum] - dataset['data']
-                mn, mx = self._calcCI(dataset, dataset['data'])
+                base = stackedvals[dsnum] - dataset["data"]
+                mn, mx = self._calcCI(dataset, dataset["data"])
                 self.drawCIBand(
-                    painter, posns1, posns2, base + mn, base + mx,
-                    axes, widgetposn)
+                    painter, posns1, posns2, base + mn, base + mx, axes, widgetposn
+                )
 
         # draw error bars
         for barval, dsval in zip(stackedvals, dsvals):
             self.drawErrorBars(
-                painter, posns, barwidth,
-                barval, dsval,
-                axes, widgetposn
+                painter, posns, barwidth, barval, dsval, axes, widgetposn
             )
 
-    def areaDrawStacked(self, painter, posns, maxwidth, dsvals,
-                        axes, widgetposn, clip):
+    def areaDrawStacked(self, painter, posns, maxwidth, dsvals, axes, widgetposn, clip):
         """Draw a stacked area plot"""
 
         s = self.settings
 
         # get axis which values are plotted along
-        ishorz = s.direction == 'horizontal'
+        ishorz = s.direction == "horizontal"
         vaxis = axes[not ishorz]
 
         # compute stacked coordinates
-        stackedvals, stackedcoords = self.calcStackedPoints(
-            dsvals, vaxis, widgetposn)
+        stackedvals, stackedcoords = self.calcStackedPoints(dsvals, vaxis, widgetposn)
         # coordinates of origin
         zerocoords = vaxis.dataToPlotterCoords(widgetposn, N.zeros(posns.shape))
 
@@ -607,12 +709,11 @@ class BarPlotter(GenericPlotter):
 
         # draw areas (reverse order, so edges are plotted correctly)
         for dsnum, coords in zip(
-                range(len(stackedcoords)-1, -1, -1),
-                stackedcoords[::-1]):
-
+            range(len(stackedcoords) - 1, -1, -1), stackedcoords[::-1]
+        ):
             # add points at end to make polygon
-            p1 = N.hstack( [ [zerocoords[0]], coords, [zerocoords[-1]] ] )
-            p2 = N.hstack( [ [posns[0]], posns, [posns[-1]] ] )
+            p1 = N.hstack([[zerocoords[0]], coords, [zerocoords[-1]]])
+            p2 = N.hstack([[posns[0]], posns, [posns[-1]]])
 
             # construct polygon on path, clipped
             poly = qt.QPolygonF()
@@ -627,7 +728,7 @@ class BarPlotter(GenericPlotter):
             path.closeSubpath()
 
             # actually draw polygon
-            brush = s.BarFill.get('fills').returnBrushExtended(dsnum)
+            brush = s.BarFill.get("fills").returnBrushExtended(dsnum)
             utils.brushExtFillPath(painter, brush, path, dataindex=dsnum)
 
             # now draw lines
@@ -637,41 +738,39 @@ class BarPlotter(GenericPlotter):
             else:
                 utils.addNumpyToPolygonF(poly, posns, coords)
 
-            pen = s.BarLine.get('lines').makePen(painter, dsnum)
+            pen = s.BarLine.get("lines").makePen(painter, dsnum)
             painter.setPen(pen)
             utils.plotClippedPolyline(painter, clip, poly)
 
         # draw confidence interval fill band around each stacked segment
         if not s.FillCI.hide:
             barwidth = maxwidth * s.barfill
-            posns1 = posns - barwidth*0.5
+            posns1 = posns - barwidth * 0.5
             posns2 = posns1 + barwidth
             for dsnum, dataset in enumerate(dsvals):
-                base = stackedvals[dsnum] - dataset['data']
-                mn, mx = self._calcCI(dataset, dataset['data'])
+                base = stackedvals[dsnum] - dataset["data"]
+                mn, mx = self._calcCI(dataset, dataset["data"])
                 self.drawCIBand(
-                    painter, posns1, posns2, base + mn, base + mx,
-                    axes, widgetposn)
+                    painter, posns1, posns2, base + mn, base + mx, axes, widgetposn
+                )
 
         # draw error bars
         barwidth = maxwidth * s.barfill
         for barval, dsval in zip(stackedvals, dsvals):
             self.drawErrorBars(
-                painter, posns, barwidth,
-                barval, dsval,
-                axes, widgetposn
+                painter, posns, barwidth, barval, dsval, axes, widgetposn
             )
 
     def getNumberKeys(self):
         """Return maximum number of keys."""
-        lengths = self.settings.get('lengths').getData(self.document)
+        lengths = self.settings.get("lengths").getData(self.document)
         if not lengths:
             return 0
-        return min( len([k for k in self.settings.keys if k]), len(lengths) )
+        return min(len([k for k in self.settings.keys if k]), len(lengths))
 
     def setupAutoColor(self, painter):
         """Initialise correct number of colors."""
-        lengths = self.settings.get('lengths').getData(self.document)
+        lengths = self.settings.get("lengths").getData(self.document)
         for i in range(len(lengths)):
             self.autoColor(painter, dataindex=i)
 
@@ -683,9 +782,11 @@ class BarPlotter(GenericPlotter):
         """Draw a fill rectangle for key entry."""
 
         self.plotBars(
-            painter, self.settings, number,
-            qt.QRectF(0,0,32767,32767),
-            ([x], [y+height*0.1], [x+width], [y+height*0.8])
+            painter,
+            self.settings,
+            number,
+            qt.QRectF(0, 0, 32767, 32767),
+            ([x], [y + height * 0.1], [x + width], [y + height * 0.8]),
         )
 
     def dataDraw(self, painter, axes, widgetposn, clip):
@@ -694,15 +795,14 @@ class BarPlotter(GenericPlotter):
 
         # get data
         doc = self.document
-        positions = s.get('posn')
+        positions = s.get("posn")
         positions = None if positions.isEmpty() else positions.getData(doc)
-        lengths = s.get('lengths').getData(doc)
+        lengths = s.get("lengths").getData(doc)
         if not lengths:
             return
 
         # where the bars are to be placed horizontally
-        barposns, maxwidth = self.findBarPositions(
-            lengths, positions, axes, widgetposn)
+        barposns, maxwidth = self.findBarPositions(lengths, positions, axes, widgetposn)
 
         # only use finite positions
         origposnlen = len(barposns)
@@ -715,20 +815,20 @@ class BarPlotter(GenericPlotter):
         dsvals = []
         for dataset in lengths:
             vals = {}
-            for key in ('data', 'serr', 'nerr', 'perr'):
+            for key in ("data", "serr", "nerr", "perr"):
                 v = getattr(dataset, key)
                 if v is not None:
-                    vals[key] = extend1DArray(
-                        N.nan_to_num(v), origposnlen)[validposn]
+                    vals[key] = extend1DArray(N.nan_to_num(v), origposnlen)[validposn]
             dsvals.append(vals)
 
         # actually do the drawing
         fn = {
-            'stacked': self.barDrawStacked,
-            'stacked-area': self.areaDrawStacked,
-            'grouped': self.barDrawGroup
+            "stacked": self.barDrawStacked,
+            "stacked-area": self.areaDrawStacked,
+            "grouped": self.barDrawGroup,
         }[s.mode]
         fn(painter, barposns, maxwidth, dsvals, axes, widgetposn, clip)
 
+
 # allow the factory to instantiate a bar plotter
-document.thefactory.register( BarPlotter )
+document.thefactory.register(BarPlotter)

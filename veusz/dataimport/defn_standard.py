@@ -24,8 +24,10 @@ from .. import document
 from . import simpleread
 from . import base
 
+
 def _(text, disambiguation=None, context="Import_Standard"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportParamsSimple(base.ImportParamsBase):
     """simpleread import parameters.
@@ -38,12 +40,13 @@ class ImportParamsSimple(base.ImportParamsBase):
     """
 
     defaults = {
-        'descriptor': '',
-        'useblocks': False,
-        'datastr': None,
-        'ignoretext': False,
+        "descriptor": "",
+        "useblocks": False,
+        "datastr": None,
+        "ignoretext": False,
     }
     defaults.update(base.ImportParamsBase.defaults)
+
 
 class LinkedFile(base.LinkedFileBase):
     """Instead of reading data from a string, data can be read from
@@ -62,19 +65,17 @@ class LinkedFile(base.LinkedFileBase):
         If relpath is set, save links relative to path given
         """
         self._saveHelper(
-            fileobj,
-            'ImportFile',
-            ('filename', 'descriptor'),
-            relpath=relpath)
+            fileobj, "ImportFile", ("filename", "descriptor"), relpath=relpath
+        )
+
 
 class OperationDataImport(base.OperationDataImportBase):
     """Import 1D data from text files."""
 
-    descr = _('import data')
+    descr = _("import data")
 
     def __init__(self, params):
-        """Setup operation.
-        """
+        """Setup operation."""
 
         base.OperationDataImportBase.__init__(self, params)
         self.simpleread = simpleread.SimpleRead(params.descriptor)
@@ -88,8 +89,7 @@ class OperationDataImport(base.OperationDataImportBase):
         p = self.params
         # open stream to import data from
         if p.filename is not None:
-            stream = simpleread.FileStream(
-                utils.openEncoding(p.filename, p.encoding))
+            stream = simpleread.FileStream(utils.openEncoding(p.filename, p.encoding))
         elif p.datastr is not None:
             stream = simpleread.StringStream(p.datastr)
         else:
@@ -97,8 +97,7 @@ class OperationDataImport(base.OperationDataImportBase):
 
         # do the import
         self.simpleread.clearState()
-        self.simpleread.readData(
-            stream, useblocks=p.useblocks, ignoretext=p.ignoretext)
+        self.simpleread.readData(stream, useblocks=p.useblocks, ignoretext=p.ignoretext)
 
         # associate linked file
         LF = None
@@ -108,13 +107,23 @@ class OperationDataImport(base.OperationDataImportBase):
 
         # actually set the data in the document
         self.simpleread.setOutput(
-            self.outdatasets,
-            linkedfile=LF, prefix=p.prefix, suffix=p.suffix)
+            self.outdatasets, linkedfile=LF, prefix=p.prefix, suffix=p.suffix
+        )
         self.outinvalids = self.simpleread.getInvalidConversions()
 
-def ImportFile(comm, filename, descriptor, useblocks=False, linked=False,
-               prefix='', suffix='', ignoretext=False, encoding='utf_8',
-               renames=None):
+
+def ImportFile(
+    comm,
+    filename,
+    descriptor,
+    useblocks=False,
+    linked=False,
+    prefix="",
+    suffix="",
+    ignoretext=False,
+    encoding="utf_8",
+    renames=None,
+):
     """Read data from file with filename using descriptor.
     If linked is True, the data won't be saved in a saved document,
     the data will be reread from the file.
@@ -139,21 +148,26 @@ def ImportFile(comm, filename, descriptor, useblocks=False, linked=False,
     realfilename = comm.findFileOnImportPath(filename)
 
     params = ImportParamsSimple(
-        descriptor=descriptor, filename=realfilename,
-        useblocks=useblocks, linked=linked,
-        prefix=prefix, suffix=suffix,
+        descriptor=descriptor,
+        filename=realfilename,
+        useblocks=useblocks,
+        linked=linked,
+        prefix=prefix,
+        suffix=suffix,
         ignoretext=ignoretext,
         encoding=encoding,
-        renames=renames)
+        renames=renames,
+    )
     op = OperationDataImport(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ' '.join(op.outnames))
+        print("Imported datasets %s" % " ".join(op.outnames))
         for name, num in op.outinvalids.items():
             print("%i errors encountered reading dataset %s" % (num, name))
 
     return (op.outnames, op.outinvalids)
+
 
 def ImportString(comm, descriptor, dstring, useblocks=False):
     """Read data from the string using a descriptor.
@@ -169,18 +183,18 @@ def ImportString(comm, descriptor, dstring, useblocks=False):
     """
 
     params = ImportParamsSimple(
-        descriptor=descriptor,
-        datastr=dstring,
-        useblocks=useblocks)
+        descriptor=descriptor, datastr=dstring, useblocks=useblocks
+    )
     op = OperationDataImport(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ' '.join(op.outnames))
+        print("Imported datasets %s" % " ".join(op.outnames))
         for name, num in op.outinvalids.items():
             print("%i errors encountered reading dataset %s" % (num, name))
 
     return (op.outnames, op.outinvalids)
 
-document.registerImportCommand('ImportFile', ImportFile)
-document.registerImportCommand('ImportString', ImportString, filenamearg=-1)
+
+document.registerImportCommand("ImportFile", ImportFile)
+document.registerImportCommand("ImportString", ImportString, filenamearg=-1)

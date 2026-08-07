@@ -24,15 +24,17 @@ from ..dialogs import importdialog, veuszdialog
 from . import defn_standard
 from . import simpleread
 
+
 def _(text, disambiguation=None, context="Import_Standard"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportTabStandard(importdialog.ImportTab):
     """Standard import format tab."""
 
-    resource = 'import_standard.ui'
-    filetypes = ('.dat', '.txt')
-    filefilter = _('Text data')
+    resource = "import_standard.ui"
+    filetypes = (".dat", ".txt")
+    filefilter = _("Text data")
 
     def loadUi(self):
         """Load widget and setup controls."""
@@ -49,7 +51,7 @@ class ImportTabStandard(importdialog.ImportTab):
 
     def slotHelp(self):
         """Asked for help."""
-        d = veuszdialog.VeuszDialog(self.dialog.mainwindow, 'importhelp.ui')
+        d = veuszdialog.VeuszDialog(self.dialog.mainwindow, "importhelp.ui")
         self.dialog.mainwindow.showDialog(d)
 
     def doPreview(self, filename, encoding):
@@ -57,15 +59,15 @@ class ImportTabStandard(importdialog.ImportTab):
 
         try:
             ifile = utils.openEncoding(filename, encoding)
-            text = ifile.read(4096)+'\n'
+            text = ifile.read(4096) + "\n"
             if len(ifile.read(1)) != 0:
                 # if there is remaining data add ...
-                text += '…\n'
+                text += "…\n"
 
             self.previewedit.setPlainText(text)
             return True
         except (UnicodeError, EnvironmentError):
-            self.previewedit.setPlainText('')
+            self.previewedit.setPlainText("")
             return False
 
     def doImport(self, doc, filename, linked, encoding, prefix, suffix, tags):
@@ -81,7 +83,8 @@ class ImportTabStandard(importdialog.ImportTab):
             filename=filename,
             useblocks=useblocks,
             linked=linked,
-            prefix=prefix, suffix=suffix,
+            prefix=prefix,
+            suffix=suffix,
             tags=tags,
             ignoretext=ignoretext,
             encoding=encoding,
@@ -92,8 +95,7 @@ class ImportTabStandard(importdialog.ImportTab):
             op = defn_standard.OperationDataImport(params)
 
         except simpleread.DescriptorError:
-            qt.QMessageBox.warning(
-                self, _("Veusz"), _("Cannot interpret descriptor"))
+            qt.QMessageBox.warning(self, _("Veusz"), _("Cannot interpret descriptor"))
             return
 
         # actually import the data
@@ -104,17 +106,16 @@ class ImportTabStandard(importdialog.ImportTab):
         lines = []
         for var, count in op.outinvalids.items():
             if count != 0:
-                lines.append(
-                    _('%i conversions failed for dataset "%s"') %
-                    (count, var))
+                lines.append(_('%i conversions failed for dataset "%s"') % (count, var))
         if len(lines) != 0:
-            lines.append('')
+            lines.append("")
 
         lines += self.dialog.retnDatasetInfo(op.outnames, linked, filename)
 
-        self.previewedit.setPlainText( '\n'.join(lines) )
+        self.previewedit.setPlainText("\n".join(lines))
 
         # feature feedback
-        utils.feedback.importcts['std'] += 1
+        utils.feedback.importcts["std"] += 1
 
-importdialog.registerImportTab(_('&Standard'), ImportTabStandard)
+
+importdialog.registerImportTab(_("&Standard"), ImportTabStandard)

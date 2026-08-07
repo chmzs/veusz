@@ -25,14 +25,15 @@ from .base import DatasetConcreteBase
 
 from .. import utils
 
+
 class DatasetText(DatasetConcreteBase):
     """Represents a text dataset: holding an array of strings."""
 
     dimensions = 1
-    datatype = displaytype = 'text'
-    columns = ('data',)
-    column_descriptions = (_('Data'),)
-    dstype = _('Text')
+    datatype = displaytype = "text"
+    columns = ("data",)
+    column_descriptions = (_("Data"),)
+    dstype = _("Text")
     editable = True
 
     def __init__(self, data=None, linked=None):
@@ -42,17 +43,17 @@ class DatasetText(DatasetConcreteBase):
         self.data = list(data)
 
     def description(self):
-        return _('Text (length %i)') % len(self.data)
+        return _("Text (length %i)") % len(self.data)
 
     def userSize(self):
         """Size of dataset."""
-        return str( len(self.data) )
+        return str(len(self.data))
 
     def changeValues(self, type, vals):
-        if type == 'data':
+        if type == "data":
             self.data = list(vals)
         else:
-            raise ValueError('type does not contain an allowed value')
+            raise ValueError("type does not contain an allowed value")
 
         self.document.modifiedData(self)
 
@@ -65,8 +66,7 @@ class DatasetText(DatasetConcreteBase):
         return val
 
     def saveDataDumpToText(self, fileobj, name):
-        '''Save data to file.
-        '''
+        """Save data to file."""
         fileobj.write("SetDataText(%s, [\n" % repr(name))
         for line in self.data:
             fileobj.write("    %s,\n" % repr(line))
@@ -75,24 +75,24 @@ class DatasetText(DatasetConcreteBase):
     def saveDataDumpToHDF5(self, group, name):
         """Save text data to hdf5 file."""
         tgrp = group.create_group(utils.escapeHDFDataName(name))
-        tgrp.attrs['vsz_datatype'] = 'text'
+        tgrp.attrs["vsz_datatype"] = "text"
         # make sure data are encoded
-        encdata = [x.encode('utf-8') for x in self.data]
-        tgrp['data'] = encdata
-        tgrp['data'].attrs['vsz_name'] = name.encode('utf-8')
+        encdata = [x.encode("utf-8") for x in self.data]
+        tgrp["data"] = encdata
+        tgrp["data"].attrs["vsz_name"] = name.encode("utf-8")
 
     def datasetAsText(self, fmt=None, join=None):
         """Return data as text."""
         lines = list(self.data)
-        lines.append('')
-        return '\n'.join(lines)
+        lines.append("")
+        return "\n".join(lines)
 
     def deleteRows(self, row, numrows):
         """Delete numrows rows starting from row.
         Returns deleted rows as a dict of {column:data, ...}
         """
-        retn = {'data': self.data[row:row+numrows]}
-        del self.data[row:row+numrows]
+        retn = {"data": self.data[row : row + numrows]}
+        del self.data[row : row + numrows]
 
         self.document.modifiedData(self)
         return retn
@@ -101,9 +101,9 @@ class DatasetText(DatasetConcreteBase):
         """Insert numrows rows starting from row.
         rowdata is a dict of {column: data}.
         """
-        data = rowdata.get('data', [])
+        data = rowdata.get("data", [])
 
-        insdata = data + (['']*(numrows-len(data)))
+        insdata = data + ([""] * (numrows - len(data)))
         for d in insdata[::-1]:
             self.data.insert(row, d)
 

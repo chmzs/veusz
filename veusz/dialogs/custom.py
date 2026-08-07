@@ -25,35 +25,43 @@ from .. import qtall as qt
 from .. import document
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="CustomDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class CustomItemModel(qt.QAbstractTableModel):
     """A model for editing custom items."""
 
     # headers for type of widget
     headers = {
-        'definition': (_('Name'), _('Definition')),
-        'import': (_('Module'), _('Symbol list')),
-        'color': (_('Name'), _('Definition')),
-        'colormap': (_('Name'), _('Definition')),
+        "definition": (_("Name"), _("Definition")),
+        "import": (_("Module"), _("Symbol list")),
+        "color": (_("Name"), _("Definition")),
+        "colormap": (_("Name"), _("Definition")),
     }
 
     # tooltips for columns
     tooltips = {
-        'definition': (
+        "definition": (
             _('Name for constant, or function name and arguments, e.g. "f(x,y)"'),
-            _('Python expression defining constant or function, e.g. "x+y"')),
-        'import': (
+            _('Python expression defining constant or function, e.g. "x+y"'),
+        ),
+        "import": (
             _('Module to import symbols from, e.g. "scipy.special"'),
-            _('Comma-separated list of symbols to import or "*" to import everything')),
-        'color': (
-            _('Name of color'),
-            _('Definition of color ("#RRGGBB", "#RRGGBBAA" or "red")')),
-        'colormap': (
-            _('Name of colormap'),
-            _('Definition of colormap, defined as lists of RGB tuples, e.g. "((0,0,0),(255,255,255))"')),
+            _('Comma-separated list of symbols to import or "*" to import everything'),
+        ),
+        "color": (
+            _("Name of color"),
+            _('Definition of color ("#RRGGBB", "#RRGGBBAA" or "red")'),
+        ),
+        "colormap": (
+            _("Name of colormap"),
+            _(
+                'Definition of colormap, defined as lists of RGB tuples, e.g. "((0,0,0),(255,255,255))"'
+            ),
+        ),
     }
 
     def __init__(self, parent, doc, ctype):
@@ -79,7 +87,7 @@ class CustomItemModel(qt.QAbstractTableModel):
         return copy.deepcopy(self._getCustoms())
 
     def rowCount(self, parent):
-        return 0 if parent.isValid() else len(self._getCustoms())+1
+        return 0 if parent.isValid() else len(self._getCustoms()) + 1
 
     def columnCount(self, parent):
         return 0 if parent.isValid() else 2
@@ -91,9 +99,9 @@ class CustomItemModel(qt.QAbstractTableModel):
                 defn = self._getCustoms()[index.row()]
             except IndexError:
                 # empty row beyond end
-                return ''
+                return ""
             col = index.column()
-            if self.ctype=='colormap' and col==1:
+            if self.ctype == "colormap" and col == 1:
                 return repr(defn[col])
             else:
                 return defn[col]
@@ -107,8 +115,10 @@ class CustomItemModel(qt.QAbstractTableModel):
     def flags(self, index):
         """Items are editable"""
         return (
-            qt.Qt.ItemFlag.ItemIsSelectable | qt.Qt.ItemFlag.ItemIsEditable |
-            qt.Qt.ItemFlag.ItemIsEnabled )
+            qt.Qt.ItemFlag.ItemIsSelectable
+            | qt.Qt.ItemFlag.ItemIsEditable
+            | qt.Qt.ItemFlag.ItemIsEnabled
+        )
 
     def headerData(self, section, orientation, role):
         """Return the headers at the top of the view."""
@@ -118,7 +128,7 @@ class CustomItemModel(qt.QAbstractTableModel):
                 return self.headers[self.ctype][section]
             else:
                 # number rows
-                return str(section+1)
+                return str(section + 1)
         return None
 
     def doUpdate(self):
@@ -127,23 +137,21 @@ class CustomItemModel(qt.QAbstractTableModel):
             self.layoutChanged.emit()
 
     def validateName(self, val):
-        if self.ctype == 'import':
+        if self.ctype == "import":
             return document.module_re.match(val)
-        elif self.ctype == 'definition':
-            return (
-                document.identifier_re.match(val) or
-                document.function_re.match(val))
+        elif self.ctype == "definition":
+            return document.identifier_re.match(val) or document.function_re.match(val)
         else:
             # color or colormap
-            return val.strip() != ''
+            return val.strip() != ""
 
     def validateDefn(self, value):
-        if self.ctype == 'colormap':
+        if self.ctype == "colormap":
             try:
                 tmp = ast.literal_eval(value)
             except (ValueError, SyntaxError):
                 return False
-        return value.strip() != ''
+        return value.strip() != ""
 
     def setData(self, index, value, role):
         """Edit an item."""
@@ -160,19 +168,18 @@ class CustomItemModel(qt.QAbstractTableModel):
 
             # extend if necessary
             newcustom = self._getCustomsCopy()
-            while len(newcustom) < row+1:
-                if self.ctype == 'colormap':
-                    newcustom.append(['', ((0,0,0),(255,255,255))])
+            while len(newcustom) < row + 1:
+                if self.ctype == "colormap":
+                    newcustom.append(["", ((0, 0, 0), (255, 255, 255))])
                 else:
-                    newcustom.append(['', ''])
+                    newcustom.append(["", ""])
 
-            if self.ctype=='colormap' and col==1:
+            if self.ctype == "colormap" and col == 1:
                 newcustom[row][col] = eval(value)
             else:
                 newcustom[row][col] = value
 
-            self.doc.applyOperation(
-                document.OperationSetCustom(self.ctype, newcustom) )
+            self.doc.applyOperation(document.OperationSetCustom(self.ctype, newcustom))
 
             self.dataChanged.emit(index, index)
             return True
@@ -186,8 +193,7 @@ class CustomItemModel(qt.QAbstractTableModel):
         self.beginRemoveRows(qt.QModelIndex(), num, num)
         del newcustoms[num]
         self.moddocupignore = True
-        self.doc.applyOperation(
-            document.OperationSetCustom(self.ctype, newcustoms))
+        self.doc.applyOperation(document.OperationSetCustom(self.ctype, newcustoms))
         self.moddocupignore = False
         self.endRemoveRows()
         return True
@@ -199,39 +205,38 @@ class CustomItemModel(qt.QAbstractTableModel):
             return False
         row = newcustoms[num]
         del newcustoms[num]
-        newcustoms.insert(num-1, row)
-        self.doc.applyOperation(
-            document.OperationSetCustom(self.ctype, newcustoms))
+        newcustoms.insert(num - 1, row)
+        self.doc.applyOperation(document.OperationSetCustom(self.ctype, newcustoms))
         return True
 
     def moveDownEntry(self, num):
         """Move down entry."""
         newcustoms = self._getCustomsCopy()
-        if num >= len(newcustoms)-1:
+        if num >= len(newcustoms) - 1:
             return False
         row = newcustoms[num]
         del newcustoms[num]
-        newcustoms.insert(num+1, row)
-        self.doc.applyOperation(
-            document.OperationSetCustom(self.ctype, newcustoms))
+        newcustoms.insert(num + 1, row)
+        self.doc.applyOperation(document.OperationSetCustom(self.ctype, newcustoms))
         return True
+
 
 class CustomDialog(VeuszDialog):
     """A dialog to create or edit custom constant and function
     definitions."""
 
     def __init__(self, parent, document):
-        VeuszDialog.__init__(self, parent, 'custom.ui')
+        VeuszDialog.__init__(self, parent, "custom.ui")
         self.document = document
 
         # model/view
-        self.defnModel = CustomItemModel(self, document, 'definition')
+        self.defnModel = CustomItemModel(self, document, "definition")
         self.defnView.setModel(self.defnModel)
-        self.importModel = CustomItemModel(self, document, 'import')
+        self.importModel = CustomItemModel(self, document, "import")
         self.importView.setModel(self.importModel)
-        self.colorModel = CustomItemModel(self, document, 'color')
+        self.colorModel = CustomItemModel(self, document, "color")
         self.colorView.setModel(self.colorModel)
-        self.colormapModel = CustomItemModel(self, document, 'colormap')
+        self.colormapModel = CustomItemModel(self, document, "colormap")
         self.colormapView.setModel(self.colormapModel)
 
         # buttons
@@ -243,12 +248,11 @@ class CustomDialog(VeuszDialog):
 
         # recent button shows list of recently used files for loading
         self.recentButton.filechosen.connect(self.loadFile)
-        self.recentButton.setSetting('customdialog_recent')
+        self.recentButton.setSetting("customdialog_recent")
 
     def loadFile(self, filename):
         """Load the given file."""
-        self.document.applyOperation(
-            document.OperationLoadCustom(filename) )
+        self.document.applyOperation(document.OperationLoadCustom(filename))
 
     def getTabViewAndModel(self):
         """Get view and model for currently selected tab."""
@@ -256,7 +260,7 @@ class CustomDialog(VeuszDialog):
             0: (self.defnView, self.defnModel),
             1: (self.importView, self.importModel),
             2: (self.colorView, self.colorModel),
-            3: (self.colormapView, self.colormapModel)
+            3: (self.colormapView, self.colormapModel),
         }[self.viewsTab.currentIndex()]
 
     def slotRemove(self):
@@ -273,7 +277,7 @@ class CustomDialog(VeuszDialog):
         if selected:
             row = selected[0].row()
             if model.moveUpEntry(row):
-                idx = model.index(row-1, selected[0].column())
+                idx = model.index(row - 1, selected[0].column())
                 view.setCurrentIndex(idx)
 
     def slotDown(self):
@@ -283,37 +287,41 @@ class CustomDialog(VeuszDialog):
         if selected:
             row = selected[0].row()
             if model.moveDownEntry(row):
-                idx = model.index(row+1, selected[0].column())
+                idx = model.index(row + 1, selected[0].column())
                 view.setCurrentIndex(idx)
 
     def slotSave(self):
         """Save entries."""
         filename = self.parent().fileSaveDialog(
-            [_('Veusz document (*.vsz)')], _('Save custom definitions'))
+            [_("Veusz document (*.vsz)")], _("Save custom definitions")
+        )
         if filename:
             try:
-                with open(filename, 'w') as f:
+                with open(filename, "w") as f:
                     self.document.evaluate.saveCustomFile(f)
                 self.recentButton.addFile(filename)
             except EnvironmentError as e:
                 qt.QMessageBox.critical(
-                    self, _("Error - Veusz"),
-                    _("Unable to save '%s'\n\n%s") % (
-                        filename, e.strerror))
+                    self,
+                    _("Error - Veusz"),
+                    _("Unable to save '%s'\n\n%s") % (filename, e.strerror),
+                )
 
     def slotLoad(self):
         """Load entries."""
 
         filename = self.parent().fileOpenDialog(
-            [_('Veusz document (*.vsz)')], _('Load custom definitions'))
+            [_("Veusz document (*.vsz)")], _("Load custom definitions")
+        )
         if filename:
             try:
                 self.loadFile(filename)
             except EnvironmentError as e:
                 qt.QMessageBox.critical(
-                    self, _("Error - Veusz"),
-                    _("Unable to load '%s'\n\n%s") % (
-                            filename, e.strerror))
+                    self,
+                    _("Error - Veusz"),
+                    _("Unable to load '%s'\n\n%s") % (filename, e.strerror),
+                )
             else:
                 # add to recent file list
                 self.recentButton.addFile(filename)

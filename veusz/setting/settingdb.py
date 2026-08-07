@@ -26,99 +26,83 @@ import datetime
 import numpy as N
 from .. import qtall as qt
 
+
 def _(text, disambiguation=None, context="Preferences"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 # default values to some settings in case the user does not have these
 defaultValues = {
     # export options
-    'export_DPI': 100,
-    'export_DPI_PDF2': 72,
-    'export_DPI_SVG': 96,
-    'export_color': True,
-    'export_antialias': True,
-    'export_quality': 85,
-    'export_background': '#ffffff00',
-    'export_SVG_text_as_text': False,
-
+    "export_DPI": 100,
+    "export_DPI_PDF2": 72,
+    "export_DPI_SVG": 96,
+    "export_color": True,
+    "export_antialias": True,
+    "export_quality": 85,
+    "export_background": "#ffffff00",
+    "export_SVG_text_as_text": False,
     # plot options
-    'plot_updatepolicy': -1, # update on document changed
-    'plot_antialias': True,
-    'plot_numthreads': 2,
-
+    "plot_updatepolicy": -1,  # update on document changed
+    "plot_antialias": True,
+    "plot_numthreads": 2,
     # recent files list
-    'main_recentfiles': [],
-
+    "main_recentfiles": [],
     # default stylesheet
-    'stylesheet_default': '',
+    "stylesheet_default": "",
     # default custom definitons
-    'custom_default': '',
-
+    "custom_default": "",
     # colors (isdefault, 'notdefaultcolor')
-    'color_scheme': 'default',
-    'color_page': (True, 'white'),
-    'color_error': (True, 'red'),
-    'color_command': (True, 'blue'),
-    'color_cntrlline': (True, 'blue'),
-    'color_cntrlcorner': (True, 'black'),
-
+    "color_scheme": "default",
+    "color_page": (True, "white"),
+    "color_error": (True, "red"),
+    "color_command": (True, "blue"),
+    "color_cntrlline": (True, "blue"),
+    "color_cntrlcorner": (True, "black"),
     # document theme
-    'colortheme_default': 'default-latest',
-
+    "colortheme_default": "default-latest",
     # further ui options
-    'toolbar_size': 24,
-
+    "toolbar_size": 24,
     # if set to true, do UI formatting in US/English
-    'ui_english': False,
-
+    "ui_english": False,
     # use cwd as starting directory
-    'dirname_usecwd': False,
-
+    "dirname_usecwd": False,
     # use document directory for export
-    'dirname_export_location': 'doc',
-
+    "dirname_export_location": "doc",
     # export templates
-    'export_template_single': '%DOCNAME%',
-    'export_template_multi': '%DOCNAME%_%PAGE00%',
-
+    "export_template_single": "%DOCNAME%",
+    "export_template_multi": "%DOCNAME%_%PAGE00%",
     # add import paths
-    'docfile_addimportpaths': True,
-
+    "docfile_addimportpaths": True,
     # ask tutorial before?
-    'ask_tutorial': False,
-
+    "ask_tutorial": False,
     # log picked points to clipboard or to console
-    'picker_to_clipboard': False,
-    'picker_to_console': True,
-    'picker_sig_figs': 5,
-
+    "picker_to_clipboard": False,
+    "picker_to_console": True,
+    "picker_sig_figs": 5,
     # add these directories to the python path (colon-separated)
-    'external_pythonpath': '',
-
+    "external_pythonpath": "",
     # location of ghostscript (or empty to search)
-    'external_ghostscript': '',
-
+    "external_ghostscript": "",
     # translation file to load
-    'translation_file': '',
-
+    "translation_file": "",
     # user has disabled version update checks
     # (packagers: please don't disable here, see disableVersionChecks in
     #  veusz/utils/version.py)
-    'vercheck_disabled': False,
-    'vercheck_asked_user': False,
-    'vercheck_last_done': (2000,1,1),
-    'vercheck_latest': '',
-
+    "vercheck_disabled": False,
+    "vercheck_asked_user": False,
+    "vercheck_last_done": (2000, 1, 1),
+    "vercheck_latest": "",
     # whether to send feedback about usage
     # (packagers, please don't disable here but in veusz/setting/feedback.py)
-    'feedback_disabled': False,
-    'feedback_asked_user': False,
-
+    "feedback_disabled": False,
+    "feedback_asked_user": False,
     # locations considered secure to load
-    'secure_dirs': [],
-    'secure_unsaved': True,
+    "secure_dirs": [],
+    "secure_unsaved": True,
 }
+
 
 class _SettingDB:
     """A class which provides access to a persistant settings database.
@@ -127,22 +111,22 @@ class _SettingDB:
     """
 
     # list of colors
-    colors = ('page', 'error', 'command', 'cntrlline', 'cntrlcorner')
+    colors = ("page", "error", "command", "cntrlline", "cntrlcorner")
     # default colors if isdefault is set in the setting
     color_defaults = {
-        'page': 'LightBase',
-        'error': 'red',
-        'command': 'blue',
-        'cntrlline': 'blue',
-        'cntrlcorner': 'black',
+        "page": "LightBase",
+        "error": "red",
+        "command": "blue",
+        "cntrlline": "blue",
+        "cntrlcorner": "black",
     }
 
     def __init__(self):
         """Initialise the object, reading the settings."""
 
         # This domain name is fictional!
-        self.domain = 'veusz.org'
-        self.product = 'veusz'
+        self.domain = "veusz.org"
+        self.product = "veusz"
         self.database = {}
         self.sepchars = "%%%"
 
@@ -152,12 +136,11 @@ class _SettingDB:
     def color(self, name):
         """Get a color setting as a QColor."""
 
-        val = self.database['color_' + name]
+        val = self.database["color_" + name]
         if val[0]:
             default = self.color_defaults[name]
-            if default == 'LightBase':
-                base = qt.QGuiApplication.palette().color(
-                    qt.QPalette.ColorRole.Base)
+            if default == "LightBase":
+                base = qt.QGuiApplication.palette().color(qt.QPalette.ColorRole.Base)
                 if base.value() < 127:
                     base = qt.QColor(qt.Qt.GlobalColor.white)
                 return base
@@ -181,14 +164,15 @@ class _SettingDB:
 
         for key in s.childKeys():
             val = s.value(key)
-            realkey = key.replace(self.sepchars, '/')
+            realkey = key.replace(self.sepchars, "/")
 
             try:
                 self.database[realkey] = eval(val)
             except:
                 print(
-                    'Error interpreting item "%s" in '
-                    'settings file' % realkey, file=sys.stderr)
+                    'Error interpreting item "%s" in settings file' % realkey,
+                    file=sys.stderr,
+                )
 
         # set any defaults which haven't been set
         for key in defaultValues:
@@ -196,9 +180,9 @@ class _SettingDB:
                 self.database[key] = defaultValues[key]
 
         # keep install date for reminders, etc
-        if 'install_date' not in self.database:
+        if "install_date" not in self.database:
             today = datetime.date.today()
-            self.database['install_date'] = (today.year, today.month, today.day)
+            self.database["install_date"] = (today.year, today.month, today.day)
 
     def writeSettings(self):
         """Write the settings using QSettings.
@@ -211,7 +195,7 @@ class _SettingDB:
         # write each entry, keeping track of which ones haven't been written
         cleankeys = []
         for key in self.database:
-            cleankey = key.replace('/', self.sepchars)
+            cleankey = key.replace("/", self.sepchars)
             cleankeys.append(cleankey)
 
             s.setValue(cleankey, repr(self.database[key]))
@@ -241,20 +225,22 @@ class _SettingDB:
         """Is the key in the database."""
         return key in self.database
 
+
 # create the SettingDB singleton
 settingdb = _SettingDB()
 
 # a normal dict for non-persistent settings
 transient_settings = {
     # disable safety checks on evaluated code
-    'unsafe_mode': False,
+    "unsafe_mode": False,
 }
+
 
 def updateUILocale():
     """Update locale to one given in preferences."""
     global uilocale
 
-    if settingdb['ui_english']:
+    if settingdb["ui_english"]:
         uilocale = qt.QLocale.c()
     else:
         uilocale = qt.QLocale.system()
@@ -262,34 +248,37 @@ def updateUILocale():
 
     qt.QLocale.setDefault(uilocale)
 
+
 def ui_floattostring(f, maxdp=14):
     """Convert float to string with more precision."""
     if not N.isfinite(f):
         if N.isnan(f):
-            return 'nan'
+            return "nan"
         if f < 0:
-            return '-inf'
-        return 'inf'
+            return "-inf"
+        return "inf"
     elif 1e-4 <= abs(f) <= 1e5 or f == 0:
-        s = ('%.'+str(maxdp)+'g') % f
+        s = ("%." + str(maxdp) + "g") % f
         # strip excess zeros to right
-        if s.find('.') >= 0:
-            s = s.rstrip('0').rstrip('.')
+        if s.find(".") >= 0:
+            s = s.rstrip("0").rstrip(".")
     else:
-        s = ('%.'+str(maxdp)+'e') % f
+        s = ("%." + str(maxdp) + "e") % f
         # split into mantissa/exponent and strip extra zeros, etc
-        mant, expon = s.split('e')
-        mant = mant.rstrip('0').rstrip('.')
+        mant, expon = s.split("e")
+        mant = mant.rstrip("0").rstrip(".")
         expon = int(expon)
-        s = '%se%i' % (mant, expon)
+        s = "%se%i" % (mant, expon)
     # make decimal point correct for local
-    s = s.replace('.', uilocale.decimalPoint())
+    s = s.replace(".", uilocale.decimalPoint())
     return s
+
 
 def ui_stringtofloat(s):
     """Convert string to float, allowing for decimal point in different
     locale."""
-    s = s.replace(uilocale.decimalPoint(), '.')
+    s = s.replace(uilocale.decimalPoint(), ".")
     return float(s)
+
 
 updateUILocale()

@@ -32,11 +32,14 @@ from .. import utils
 from . import widget
 from . import controlgraph
 
-def _(text, disambiguation=None, context='Page'):
+
+def _(text, disambiguation=None, context="Page"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 defaultrange = [1e99, -1e99]
+
 
 def _resolveLinkedAxis(axis):
     """Follow a chain of axis function dependencies."""
@@ -48,6 +51,7 @@ def _resolveLinkedAxis(axis):
             # fail if loop
             return None
     return axis
+
 
 class AxisDependHelper:
     """A class to work out the dependency of widgets on axes and vice
@@ -130,9 +134,7 @@ class AxisDependHelper:
                 if resolvedaxis is not None and resolvedaxis.usesAutoRange():
                     # only add dependency if axis has an automatic range
                     self.deps[(origaxis, None)].append((widget, depname))
-                    self.pairs.append( (
-                        (widget, depname),
-                        (resolvedaxis, None)) )
+                    self.pairs.append(((widget, depname), (resolvedaxis, None)))
 
             # find which axes the plotter needs information from
             for depname, axname in widget.requiresAxisRange():
@@ -140,9 +142,7 @@ class AxisDependHelper:
                 resolvedaxis = _resolveLinkedAxis(origaxis)
                 if resolvedaxis is not None and resolvedaxis.usesAutoRange():
                     self.deps[(widget, depname)].append((origaxis, None))
-                    self.pairs.append( (
-                        (resolvedaxis, None),
-                        (widget, depname)) )
+                    self.pairs.append(((resolvedaxis, None), (widget, depname)))
 
         elif widget.isaxis:
             if widget.isaxis and widget.isLinked():
@@ -167,7 +167,7 @@ class AxisDependHelper:
 
         for i in range(len(self.pairs)):
             if not self.pairs[i][0][0].isaxis:
-                p = self.pairs[:i] + self.pairs[i+1:]
+                p = self.pairs[:i] + self.pairs[i + 1 :]
                 ordered, cyclic = utils.topological_sort(p)
                 if len(cyclic) <= numcyclic:
                     numcyclic = len(cyclic)
@@ -213,7 +213,7 @@ class AxisDependHelper:
                 if axis is not None and therange is not None:
                     self.ranges[axis] = [
                         N.nanmin((self.ranges[axis][0], therange[0])),
-                        N.nanmax((self.ranges[axis][1], therange[1]))
+                        N.nanmax((self.ranges[axis][1], therange[1])),
                     ]
         else:
             plotter.getRange(axis, plotterdep, self.ranges[axis])
@@ -224,10 +224,9 @@ class AxisDependHelper:
 
         # iterate over dependent widgets
         for widgetd, widgetd_dep in self.deps[dep]:
-
-            if ( widgetd.isplotter and
-                 (not widgetd.settings.isSetting('hide') or
-                  not widgetd.settings.hide) ):
+            if widgetd.isplotter and (
+                not widgetd.settings.isSetting("hide") or not widgetd.settings.hide
+            ):
                 self._updateRangeFromPlotter(widget, widgetd, widgetd_dep)
 
             elif widgetd.isaxis:
@@ -276,47 +275,55 @@ class AxisDependHelper:
         for axis in list(self.ranges.keys()):
             self._updateAxisAutoRange(axis)
 
+
 class Page(widget.Widget):
     """A class for representing a page of plotting."""
 
-    typename='page'
+    typename = "page"
     allowusercreation = True
-    description=_('Blank page')
+    description = _("Blank page")
 
     @classmethod
     def addSettings(klass, s):
         widget.Widget.addSettings(s)
 
         # page sizes are initially linked to the document page size
-        s.add( setting.DistancePhysical(
-            'width',
-            setting.Reference('/width'),
-            descr=_('Width of page'),
-            usertext=_('Page width'),
-            formatting=True) )
-        s.add( setting.DistancePhysical(
-            'height',
-            setting.Reference('/height'),
-            descr=_('Height of page'),
-            usertext=_('Page height'),
-            formatting=True) )
+        s.add(
+            setting.DistancePhysical(
+                "width",
+                setting.Reference("/width"),
+                descr=_("Width of page"),
+                usertext=_("Page width"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.DistancePhysical(
+                "height",
+                setting.Reference("/height"),
+                descr=_("Height of page"),
+                usertext=_("Page height"),
+                formatting=True,
+            )
+        )
 
-        s.add( setting.Notes(
-            'notes', '',
-            descr=_('User-defined notes'),
-            usertext=_('Notes')) )
+        s.add(
+            setting.Notes(
+                "notes", "", descr=_("User-defined notes"), usertext=_("Notes")
+            )
+        )
 
         s.add(
             setting.PageBrush(
-                'Background',
-                descr = _('Background page fill'),
-                usertext=_('Background')),
-            pixmap='settings_bgfill',
+                "Background", descr=_("Background page fill"), usertext=_("Background")
+            ),
+            pixmap="settings_bgfill",
         )
 
     @classmethod
     def allowedParentTypes(klass):
         from . import root
+
         return (root.Root,)
 
     @property
@@ -354,29 +361,33 @@ class Page(widget.Widget):
         painter = painthelper.painter(self, parentposn)
         with painter:
             # w and h are non integer
-            w = self.settings.get('width').convert(painter)
-            h = self.settings.get('height').convert(painter)
+            w = self.settings.get("width").convert(painter)
+            h = self.settings.get("height").convert(painter)
             if not s.Background.hide:
                 path = qt.QPainterPath()
                 path.addRect(qt.QRectF(0, 0, w, h))
                 utils.brushExtFillPath(painter, s.Background, path)
 
-        painthelper.setControlGraph(self, [
+        painthelper.setControlGraph(
+            self,
+            [
                 controlgraph.ControlMarginBox(
                     self,
                     [0, 0, w, h],
-                    [-10000, -10000, 10000,  10000],
+                    [-10000, -10000, 10000, 10000],
                     painthelper,
-                    ismovable=False)
-        ] )
+                    ismovable=False,
+                )
+            ],
+        )
 
-        bounds = widget.Widget.draw(
-            self, parentposn, painthelper, parentposn)
+        bounds = widget.Widget.draw(self, parentposn, painthelper, parentposn)
         return bounds
 
     def updateControlItem(self, cgi):
         """Call helper to set page size."""
         cgi.setPageSize()
+
 
 # allow the factory to instantiate this
 document.thefactory.register(Page)

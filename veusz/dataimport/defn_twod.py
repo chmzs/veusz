@@ -24,8 +24,10 @@ from .. import document
 from . import simpleread
 from . import base
 
+
 def _(text, disambiguation=None, context="Import_2D"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportParams2D(base.ImportParamsBase):
     """2D import parameters.
@@ -44,20 +46,21 @@ class ImportParams2D(base.ImportParamsBase):
     """
 
     defaults = {
-        'datasetnames': None,
-        'datastr': None,
-        'xrange': None,
-        'yrange': None,
-        'invertrows': False,
-        'invertcols': False,
-        'transpose': False,
-        'gridatedge': False,
-        'mode': 'text',
-        'csvdelimiter': ',',
-        'csvtextdelimiter': '"',
-        'csvlocale': 'en_US',
+        "datasetnames": None,
+        "datastr": None,
+        "xrange": None,
+        "yrange": None,
+        "invertrows": False,
+        "invertcols": False,
+        "transpose": False,
+        "gridatedge": False,
+        "mode": "text",
+        "csvdelimiter": ",",
+        "csvtextdelimiter": '"',
+        "csvlocale": "en_US",
     }
     defaults.update(base.ImportParamsBase.defaults)
+
 
 class LinkedFile2D(base.LinkedFileBase):
     """Class representing a file linked to a 2d dataset."""
@@ -69,15 +72,14 @@ class LinkedFile2D(base.LinkedFileBase):
     def saveToFile(self, fileobj, relpath=None):
         """Save the link to the document file."""
         self._saveHelper(
-            fileobj,
-            'ImportFile2D',
-            ('filename', 'datasetnames'),
-            relpath=relpath)
+            fileobj, "ImportFile2D", ("filename", "datasetnames"), relpath=relpath
+        )
+
 
 class OperationDataImport2D(base.OperationDataImportBase):
     """Import a 2D matrix from a file."""
 
-    descr = _('import 2D data')
+    descr = _("import 2D data")
 
     def doImport(self):
         """Import data."""
@@ -85,13 +87,12 @@ class OperationDataImport2D(base.OperationDataImportBase):
         p = self.params
 
         # get stream
-        if p.mode == 'csv':
+        if p.mode == "csv":
             stream = simpleread.CSVStream(
-                p.filename, p.csvdelimiter, p.csvtextdelimiter,
-                p.csvlocale, p.encoding)
+                p.filename, p.csvdelimiter, p.csvtextdelimiter, p.csvlocale, p.encoding
+            )
         elif p.filename is not None:
-            stream = simpleread.FileStream(
-                utils.openEncoding(p.filename, p.encoding) )
+            stream = simpleread.FileStream(utils.openEncoding(p.filename, p.encoding))
         elif p.datastr is not None:
             stream = simpleread.StringStream(p.datastr)
         else:
@@ -108,14 +109,27 @@ class OperationDataImport2D(base.OperationDataImportBase):
             sr.readData(stream)
             sr.setOutput(self.outdatasets, linkedfile=LF)
 
-def ImportFile2D(comm, filename, datasetnames, xrange=None, yrange=None,
-                 invertrows=None, invertcols=None, transpose=None,
-                 gridatedge=None,
-                 mode='text', csvdelimiter=',', csvtextdelimiter='"',
-                 csvlocale='en_US',
-                 prefix="", suffix="", encoding='utf_8',
-                 renames=None,
-                 linked=False):
+
+def ImportFile2D(
+    comm,
+    filename,
+    datasetnames,
+    xrange=None,
+    yrange=None,
+    invertrows=None,
+    invertcols=None,
+    transpose=None,
+    gridatedge=None,
+    mode="text",
+    csvdelimiter=",",
+    csvtextdelimiter='"',
+    csvlocale="en_US",
+    prefix="",
+    suffix="",
+    encoding="utf_8",
+    renames=None,
+    linked=False,
+):
     """Import two-dimensional data from a file.
     filename is the name of the file to read
     datasetnames is a list of datasets to read from the file, or a single
@@ -153,26 +167,40 @@ def ImportFile2D(comm, filename, datasetnames, xrange=None, yrange=None,
 
     params = ImportParams2D(
         datasetnames=datasetnames,
-        filename=realfilename, xrange=xrange,
-        yrange=yrange, invertrows=invertrows,
-        invertcols=invertcols, transpose=transpose,
+        filename=realfilename,
+        xrange=xrange,
+        yrange=yrange,
+        invertrows=invertrows,
+        invertcols=invertcols,
+        transpose=transpose,
         gridatedge=gridatedge,
         mode=mode,
         csvdelimiter=csvdelimiter,
         csvtextdelimiter=csvtextdelimiter,
         csvlocale=csvlocale,
-        prefix=prefix, suffix=suffix,
+        prefix=prefix,
+        suffix=suffix,
         renames=renames,
-        linked=linked)
+        linked=linked,
+    )
     op = OperationDataImport2D(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ', '.join(op.outnames))
+        print("Imported datasets %s" % ", ".join(op.outnames))
     return op.outnames
 
-def ImportString2D(comm, datasetnames, dstring, xrange=None, yrange=None,
-                   invertrows=None, invertcols=None, transpose=None):
+
+def ImportString2D(
+    comm,
+    datasetnames,
+    dstring,
+    xrange=None,
+    yrange=None,
+    invertrows=None,
+    invertcols=None,
+    transpose=None,
+):
     """Read two dimensional data from the string specified.
     datasetnames is a list of datasets to read from the string or a single
     dataset name
@@ -191,16 +219,20 @@ def ImportString2D(comm, datasetnames, dstring, xrange=None, yrange=None,
 
     params = ImportParams2D(
         datasetnames=datasetnames,
-        datastr=dstring, xrange=xrange,
-        yrange=yrange, invertrows=invertrows,
-        invertcols=invertcols, transpose=transpose)
+        datastr=dstring,
+        xrange=xrange,
+        yrange=yrange,
+        invertrows=invertrows,
+        invertcols=invertcols,
+        transpose=transpose,
+    )
     op = OperationDataImport2D(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ', '.join(op.outnames))
+        print("Imported datasets %s" % ", ".join(op.outnames))
     return op.outnames
 
-document.registerImportCommand('ImportFile2D', ImportFile2D)
-document.registerImportCommand(
-    'ImportString2D', ImportString2D, filenamearg=-1)
+
+document.registerImportCommand("ImportFile2D", ImportFile2D)
+document.registerImportCommand("ImportString2D", ImportString2D, filenamearg=-1)

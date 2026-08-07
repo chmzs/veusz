@@ -32,16 +32,18 @@ from .. import plugins
 from . import exceptiondialog
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="ImportDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class ImportTab(qt.QWidget):
     """Tab for a particular import type."""
 
-    resource = ''
-    filetypes = ()       # list of file types handled
-    filefilter = None    # name of filter for types for open dialog
+    resource = ""
+    filetypes = ()  # list of file types handled
+    filefilter = None  # name of filter for types for open dialog
 
     def __init__(self, importdialog, *args):
         """Initialise dialog. importdialog is the import dialog itself."""
@@ -51,8 +53,7 @@ class ImportTab(qt.QWidget):
 
     def loadUi(self):
         """Load up UI file."""
-        qt.loadUi(os.path.join(
-            utils.resourceDirectory, 'ui', self.resource), self)
+        qt.loadUi(os.path.join(utils.resourceDirectory, "ui", self.resource), self)
         self.uiloaded = True
 
     def reset(self):
@@ -81,21 +82,25 @@ class ImportTab(qt.QWidget):
         update itself."""
         pass
 
+
 importtabs = []
+
+
 def registerImportTab(name, klass):
     """Register an import tab for the dialog."""
     importtabs.append((name, klass))
+
 
 class ImportDialog(VeuszDialog):
     """Dialog box for importing data.
     See ImportTab classes above which actually do the work of importing
     """
 
-    dirname = '.'
+    dirname = "."
 
     def __init__(self, parent, document):
 
-        VeuszDialog.__init__(self, parent, 'import.ui')
+        VeuszDialog.__init__(self, parent, "import.ui")
         self.document = document
 
         # whether file import looks likely to work
@@ -111,6 +116,7 @@ class ImportDialog(VeuszDialog):
         for p in plugins.importpluginregistry:
             if p.promote_tab is not None:
                 from ..dataimport.dialog_plugin import ImportTabPlugins
+
                 w = ImportTabPlugins(self, promote=p.name)
                 self.methodtab.addTab(w, p.name)
 
@@ -119,20 +125,20 @@ class ImportDialog(VeuszDialog):
         self.filenameedit.editTextChanged.connect(self.slotUpdatePreview)
 
         self.importbutton = self.buttonBox.addButton(
-            _("&Import"), qt.QDialogButtonBox.ButtonRole.ApplyRole)
+            _("&Import"), qt.QDialogButtonBox.ButtonRole.ApplyRole
+        )
         self.importbutton.clicked.connect(self.slotImport)
 
-        self.buttonBox.button(
-            qt.QDialogButtonBox.StandardButton.Reset).clicked.connect(
-                self.slotReset)
+        self.buttonBox.button(qt.QDialogButtonBox.StandardButton.Reset).clicked.connect(
+            self.slotReset
+        )
         self.encodingcombo.currentIndexChanged.connect(self.slotUpdatePreview)
 
         # change to tab last used
-        self.methodtab.setCurrentIndex(
-            setting.settingdb.get('import_lasttab', 0))
+        self.methodtab.setCurrentIndex(setting.settingdb.get("import_lasttab", 0))
 
         # defaults for prefix and suffix
-        self.prefixcombo.default = self.suffixcombo.default = ['', '$FILENAME']
+        self.prefixcombo.default = self.suffixcombo.default = ["", "$FILENAME"]
 
         # default state for check boxes
         # add completion for filename
@@ -143,32 +149,31 @@ class ImportDialog(VeuszDialog):
 
         # further defaults
         self.encodingcombo.defaultlist = utils.encodings
-        self.encodingcombo.defaultval = 'utf_8'
+        self.encodingcombo.defaultval = "utf_8"
 
         # load icon for clipboard
-        self.clipbutton.setIcon( utils.getIcon('kde-clipboard') )
-        qt.QApplication.clipboard().dataChanged.connect(
-            self.updateClipPreview)
+        self.clipbutton.setIcon(utils.getIcon("kde-clipboard"))
+        qt.QApplication.clipboard().dataChanged.connect(self.updateClipPreview)
         self.clipbutton.clicked.connect(self.slotClipButtonClicked)
         self.updateClipPreview()
 
     def slotBrowseClicked(self):
         """Browse for a data file."""
 
-        fd = qt.QFileDialog(self, _('Browse data file'))
-        fd.setFileMode( qt.QFileDialog.FileMode.ExistingFile )
+        fd = qt.QFileDialog(self, _("Browse data file"))
+        fd.setFileMode(qt.QFileDialog.FileMode.ExistingFile)
 
         # collect filters from tabs
-        filters = [_('All files (*)')]
+        filters = [_("All files (*)")]
         for i in range(self.methodtab.count()):
             w = self.methodtab.widget(i)
             if w.filefilter:
-                ftypes = ' '.join(['*'+t for t in w.filetypes])
-                f = '%s (%s)' % (w.filefilter, ftypes)
+                ftypes = " ".join(["*" + t for t in w.filetypes])
+                f = "%s (%s)" % (w.filefilter, ftypes)
                 filters.append(f)
         fd.setNameFilters(filters)
 
-        lastfilt = setting.settingdb.get('import_filterbrowse')
+        lastfilt = setting.settingdb.get("import_filterbrowse")
         if lastfilt in filters:
             fd.selectNameFilter(lastfilt)
 
@@ -176,7 +181,7 @@ class ImportDialog(VeuszDialog):
         filename = self.filenameedit.text()
         if os.path.isdir(filename):
             ImportDialog.dirname = filename
-        elif os.path.isdir( os.path.dirname(filename) ):
+        elif os.path.isdir(os.path.dirname(filename)):
             ImportDialog.dirname = os.path.dirname(filename)
 
         fd.setDirectory(ImportDialog.dirname)
@@ -184,8 +189,8 @@ class ImportDialog(VeuszDialog):
         # update filename if changed
         if fd.exec() == qt.QDialog.DialogCode.Accepted:
             ImportDialog.dirname = fd.directory().absolutePath()
-            self.filenameedit.replaceAndAddHistory( fd.selectedFiles()[0] )
-            setting.settingdb['import_filterbrowse'] = fd.selectedNameFilter()
+            self.filenameedit.replaceAndAddHistory(fd.selectedFiles()[0])
+            setting.settingdb["import_filterbrowse"] = fd.selectedNameFilter()
             self.guessImportTab()
 
     def guessImportTab(self):
@@ -194,7 +199,7 @@ class ImportDialog(VeuszDialog):
 
         ftype = os.path.splitext(filename)[1]
         # strip off any gz, bz2 extensions to get real extension
-        while ftype.lower() in ('.gz', '.bz2'):
+        while ftype.lower() in (".gz", ".bz2"):
             ftype = os.path.splitext(filename)[1]
         ftype = ftype.lower()
 
@@ -215,19 +220,18 @@ class ImportDialog(VeuszDialog):
 
         # save so we can restore later
         tab = self.methodtab.currentIndex()
-        setting.settingdb['import_lasttab'] = tab
+        setting.settingdb["import_lasttab"] = tab
         filename = self.filenameedit.text()
         encoding = str(self.encodingcombo.currentText())
         importtab = self.methodtab.currentWidget()
 
-        if encoding == '':
+        if encoding == "":
             return
 
         if isinstance(importtab, ImportTab):
             if not importtab.uiloaded:
                 importtab.loadUi()
-            self.filepreviewokay = importtab.doPreview(
-                filename, encoding)
+            self.filepreviewokay = importtab.doPreview(filename, encoding)
 
         # enable or disable import button
         self.enableDisableImport()
@@ -238,9 +242,9 @@ class ImportDialog(VeuszDialog):
         w = self.methodtab.widget(tabindex)
 
         if w.filetypes is None:
-            filters = ['*.*']
+            filters = ["*.*"]
         else:
-            filters = ['*'+t for t in w.filetypes]
+            filters = ["*" + t for t in w.filetypes]
 
         # FIXME: doesn't seem to work
         model = qt.QFileSystemModel()
@@ -257,7 +261,7 @@ class ImportDialog(VeuszDialog):
         enabled = self.filepreviewokay and importtab.okToImport()
 
         # actually enable or disable import button
-        self.importbutton.setEnabled( enabled )
+        self.importbutton.setEnabled(enabled)
 
     def slotImport(self):
         """Do the importing"""
@@ -266,7 +270,7 @@ class ImportDialog(VeuszDialog):
         linked = self.linkcheckbox.isChecked()
         encoding = str(self.encodingcombo.currentText())
 
-        if filename == '{clipboard}':
+        if filename == "{clipboard}":
             linked = False
         else:
             # normalise filename
@@ -281,11 +285,10 @@ class ImportDialog(VeuszDialog):
             with utils.OverrideCursor():
                 with self.document.suspend():
                     importtab.doImport(
-                        self.document, filename, linked, encoding,
-                        prefix, suffix, tags)
+                        self.document, filename, linked, encoding, prefix, suffix, tags
+                    )
         except IOError:
-            qt.QMessageBox.warning(
-                self, _("Veusz"), _("Could not read file"))
+            qt.QMessageBox.warning(self, _("Veusz"), _("Could not read file"))
         except Exception:
             # show exception dialog
             d = exceptiondialog.ExceptionDialog(sys.exc_info(), self)
@@ -294,35 +297,34 @@ class ImportDialog(VeuszDialog):
     def retnDatasetInfo(self, dsnames, linked, filename):
         """Return a list of information for the dataset names given."""
 
-        lines = [_('Imported data for datasets:')]
+        lines = [_("Imported data for datasets:")]
         dsnames.sort()
         for name in dsnames:
             ds = self.document.getData(name)
             # build up description
-            lines.append(_('%s: %s') % (name, ds.description()))
+            lines.append(_("%s: %s") % (name, ds.description()))
 
         # whether the data were linked
         if linked:
-            lines.append('')
+            lines.append("")
             lines.append(_('Datasets were linked to file "%s"') % filename)
 
         return lines
 
     def getPrefixSuffix(self, filename):
         """Get prefix and suffix values."""
-        f = utils.cleanDatasetName( os.path.basename(filename) )
+        f = utils.cleanDatasetName(os.path.basename(filename))
         prefix = self.prefixcombo.lineEdit().text()
-        prefix = prefix.replace('$FILENAME', f)
+        prefix = prefix.replace("$FILENAME", f)
         suffix = self.suffixcombo.lineEdit().text()
-        suffix = suffix.replace('$FILENAME', f)
+        suffix = suffix.replace("$FILENAME", f)
         return prefix, suffix
 
     def slotReset(self):
         """Reset input fields."""
 
         self.filenameedit.setText("")
-        self.encodingcombo.setCurrentIndex(
-            self.encodingcombo.findText("utf_8"))
+        self.encodingcombo.setCurrentIndex(self.encodingcombo.findText("utf_8"))
         self.linkcheckbox.setChecked(True)
         self.prefixcombo.setEditText("")
         self.suffixcombo.setEditText("")
@@ -338,5 +340,5 @@ class ImportDialog(VeuszDialog):
         """Clipboard contents changed, so update preview if showing clipboard."""
 
         filename = self.filenameedit.text()
-        if filename == '{clipboard}':
+        if filename == "{clipboard}":
             self.slotUpdatePreview()

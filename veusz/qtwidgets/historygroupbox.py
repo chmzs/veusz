@@ -21,6 +21,7 @@
 from .. import qtall as qt
 from .. import setting
 
+
 class HistoryGroupBox(qt.QGroupBox):
     """Group box remembers settings of radio buttons inside it.
 
@@ -37,23 +38,25 @@ class HistoryGroupBox(qt.QGroupBox):
             dialog = dialog.parent()
 
         # combine dialog and object names to make setting
-        return '%s_%s_HistoryGroup'  % (
-            dialog.objectName(), self.objectName() )
+        return "%s_%s_HistoryGroup" % (dialog.objectName(), self.objectName())
 
     def loadHistory(self):
         """Load from settings."""
         # connect up radio buttons to emit clicked signal
         for w in self.children():
             if isinstance(w, qt.QRadioButton):
+
                 def doemit(widget):
                     return lambda: self.radioClicked.emit(widget)
+
                 w.clicked.connect(doemit(w))
 
         # set item to be checked
         checked = setting.settingdb.get(self.getSettingName(), "")
         for w in self.children():
             if isinstance(w, qt.QRadioButton) and (
-                w.objectName() == checked or checked == ""):
+                w.objectName() == checked or checked == ""
+            ):
                 w.click()
                 return
 

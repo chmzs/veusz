@@ -25,13 +25,15 @@ from .. import utils
 from ..dialogs import importdialog
 from . import defn_plugin
 
+
 def _(text, disambiguation=None, context="Import_Plugin"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportTabPlugins(importdialog.ImportTab):
     """Tab for importing using a plugin."""
 
-    resource = 'import_plugins.ui'
+    resource = "import_plugins.ui"
 
     def __init__(self, dialog, promote=None):
         """Initialise dialog. importdialog is the import dialog itself.
@@ -57,9 +59,9 @@ class ImportTabPlugins(importdialog.ImportTab):
         # load previous plugin
         idx = -1
         if self.promote is None:
-            if 'import_plugin' in setting.settingdb:
+            if "import_plugin" in setting.settingdb:
                 try:
-                    idx = names.index(setting.settingdb['import_plugin'])
+                    idx = names.index(setting.settingdb["import_plugin"])
                 except ValueError:
                     pass
         else:
@@ -105,7 +107,7 @@ class ImportTabPlugins(importdialog.ImportTab):
         """Update controls based on index."""
         plugin = self.getSelectedPlugin()
         if self.promote is None:
-            setting.settingdb['import_plugin'] = plugin.name
+            setting.settingdb["import_plugin"] = plugin.name
 
         # delete old controls
         layout = self.pluginParams.layout()
@@ -117,6 +119,7 @@ class ImportTabPlugins(importdialog.ImportTab):
 
         # requires a document to make controls below
         import veusz.document
+
         tempdoc = veusz.document.Document()
 
         # make new controls
@@ -128,8 +131,8 @@ class ImportTabPlugins(importdialog.ImportTab):
 
         # update label
         self.pluginDescr.setText(
-            "%s (%s)\n%s" %
-            (plugin.name, plugin.author, plugin.description))
+            "%s (%s)\n%s" % (plugin.name, plugin.author, plugin.description)
+        )
 
         self.dialog.slotUpdatePreview()
 
@@ -137,23 +140,22 @@ class ImportTabPlugins(importdialog.ImportTab):
         """Preview using plugin."""
 
         # check file exists
-        if filename != '{clipboard}':
+        if filename != "{clipboard}":
             try:
-                f = open(filename, 'r')
+                f = open(filename, "r")
                 f.close()
             except EnvironmentError:
-                self.pluginPreview.setPlainText('')
+                self.pluginPreview.setPlainText("")
                 return False
 
         # get the plugin selected
         plugin = self.getSelectedPlugin()
         if plugin is None:
-            self.pluginPreview.setPlainText('')
+            self.pluginPreview.setPlainText("")
             return False
 
         # ask the plugin for text
-        params = plugins.ImportPluginParams(
-            filename, encoding, self.getPluginFields())
+        params = plugins.ImportPluginParams(filename, encoding, self.getPluginFields())
         try:
             text, ok = plugin.getPreview(params)
         except plugins.ImportPluginException as ex:
@@ -171,34 +173,34 @@ class ImportTabPlugins(importdialog.ImportTab):
         params = defn_plugin.ImportParamsPlugin(
             plugin=plugin,
             filename=filename,
-            linked=linked, encoding=encoding,
-            prefix=prefix, suffix=suffix,
+            linked=linked,
+            encoding=encoding,
+            prefix=prefix,
+            suffix=suffix,
             tags=tags,
-            **fields)
+            **fields,
+        )
 
         op = defn_plugin.OperationDataImportPlugin(params)
         try:
             doc.applyOperation(op)
         except plugins.ImportPluginException as ex:
-            self.pluginPreview.setPlainText( str(ex) )
+            self.pluginPreview.setPlainText(str(ex))
             return
 
         # feature feedback
-        utils.feedback.importcts['plugin'] += 1
+        utils.feedback.importcts["plugin"] += 1
 
-        out = [_('Imported data for datasets:')]
+        out = [_("Imported data for datasets:")]
         for ds in op.outnames:
-            out.append( '%s: %s' % (
-                ds,
-                doc.data[ds].description())
-            )
+            out.append("%s: %s" % (ds, doc.data[ds].description()))
         if op.outcustoms:
-            out.append('')
-            out.append(_('Set custom definitions:'))
+            out.append("")
+            out.append(_("Set custom definitions:"))
             # format custom definitions
-            out += ['%s %s=%s' % tuple(c) for c in op.outcustoms]
+            out += ["%s %s=%s" % tuple(c) for c in op.outcustoms]
 
-        self.pluginPreview.setPlainText('\n'.join(out))
+        self.pluginPreview.setPlainText("\n".join(out))
 
     def isFiletypeSupported(self, ftype):
         """Is the filetype supported by this tab?"""
@@ -228,5 +230,5 @@ class ImportTabPlugins(importdialog.ImportTab):
             self.pluginType.setCurrentIndex(idx)
             self.pluginChanged(-1)
 
-importdialog.registerImportTab(_('Plugins'), ImportTabPlugins)
 
+importdialog.registerImportTab(_("Plugins"), ImportTabPlugins)

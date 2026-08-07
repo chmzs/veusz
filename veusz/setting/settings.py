@@ -22,19 +22,19 @@
 
 from .reference import Reference, ReferenceMultiple
 
+
 class Settings:
     """A class for holding collections of settings."""
 
     # differentiate widgets, settings and setting
-    nodetype = 'settings'
+    nodetype = "settings"
 
     # various items in class hierarchy
     iswidget = False
     issetting = False
     issettings = True
 
-    def __init__(self, name, descr = '', usertext='', pixmap='',
-                 setnsmode='formatting'):
+    def __init__(self, name, descr="", usertext="", pixmap="", setnsmode="formatting"):
         """A new Settings with a name.
 
         name: name in hierarchy
@@ -46,7 +46,7 @@ class Settings:
                'hide')
         """
 
-        self.__dict__['setdict'] = {}
+        self.__dict__["setdict"] = {}
         self.name = name
         self.descr = descr
         self.usertext = usertext
@@ -59,10 +59,14 @@ class Settings:
         """Make a copy of the settings and its subsettings."""
 
         s = Settings(
-            self.name, descr=self.descr, usertext=self.usertext,
-            pixmap=self.pixmap, setnsmode=self.setnsmode )
+            self.name,
+            descr=self.descr,
+            usertext=self.usertext,
+            pixmap=self.pixmap,
+            setnsmode=self.setnsmode,
+        )
         for name in self.setnames:
-            s.add( self.setdict[name].copy() )
+            s.add(self.setdict[name].copy())
         return s
 
     def getList(self):
@@ -72,14 +76,16 @@ class Settings:
     def getSettingList(self):
         """Get a list of setting types."""
         return [
-            self.setdict[n] for n in self.setnames
+            self.setdict[n]
+            for n in self.setnames
             if not isinstance(self.setdict[n], Settings)
         ]
 
     def getSettingsList(self):
         """Get a list of settings types."""
         return [
-            self.setdict[n] for n in self.setnames
+            self.setdict[n]
+            for n in self.setnames
             if isinstance(self.setdict[n], Settings)
         ]
 
@@ -89,17 +95,11 @@ class Settings:
 
     def getSettingNames(self):
         """Get list of setting names."""
-        return [
-            n for n in self.setnames
-            if not isinstance(self.setdict[n], Settings)
-        ]
+        return [n for n in self.setnames if not isinstance(self.setdict[n], Settings)]
 
     def getSettingsNames(self):
         """Get list of settings names."""
-        return [
-            n for n in self.setnames
-            if isinstance(self.setdict[n], Settings)
-        ]
+        return [n for n in self.setnames if isinstance(self.setdict[n], Settings)]
 
     def isSetting(self, name):
         """Is the name a supported setting?"""
@@ -126,8 +126,8 @@ class Settings:
     def remove(self, name):
         """Remove name from the list of settings."""
 
-        del self.setnames[ self.setnames.index( name ) ]
-        del self.setdict[ name ]
+        del self.setnames[self.setnames.index(name)]
+        del self.setdict[name]
 
     def __setattr__(self, name, val):
         """Allow us to do
@@ -135,7 +135,7 @@ class Settings:
         foo.setname = 42
         """
 
-        d = self.__dict__['setdict']
+        d = self.__dict__["setdict"]
         if name in d:
             d[name].val = val
         else:
@@ -148,7 +148,7 @@ class Settings:
         """
 
         try:
-            s = self.__dict__['setdict'][name]
+            s = self.__dict__["setdict"][name]
             if isinstance(s, Settings):
                 return s
             return s.val
@@ -166,7 +166,7 @@ class Settings:
         print foo['setname']
         """
 
-        d = self.__dict__['setdict']
+        d = self.__dict__["setdict"]
         try:
             s = d[name]
             if isinstance(s, Settings):
@@ -178,9 +178,9 @@ class Settings:
 
     def __contains__(self, name):
         """Whether settings contains name."""
-        return name in self.__dict__['setdict']
+        return name in self.__dict__["setdict"]
 
-    def get(self, name = None):
+    def get(self, name=None):
         """Get the setting variable."""
 
         if name is None:
@@ -188,7 +188,7 @@ class Settings:
         else:
             return self.setdict[name]
 
-    def saveText(self, saveall, rootname = None):
+    def saveText(self, saveall, rootname=None):
         """Return the text which would reload the settings.
 
         if saveall is true, save those which haven't been modified.
@@ -198,14 +198,13 @@ class Settings:
         # we want to build the root up if we're not the first item
         # (first item is implicit)
         if rootname is None:
-            rootname = ''
+            rootname = ""
         else:
-            rootname += self.name + '/'
+            rootname += self.name + "/"
 
-        text = ''.join( [
-            self.setdict[name].saveText(saveall, rootname)
-            for name in self.setnames
-        ] )
+        text = "".join(
+            [self.setdict[name].saveText(saveall, rootname) for name in self.setnames]
+        )
         return text
 
     def linkToStylesheet(self, _root=None):
@@ -220,15 +219,15 @@ class Settings:
             while not obj.parent.iswidget:
                 path.insert(0, obj.name)
                 obj = obj.parent
-            path = ['', 'StyleSheet', obj.parent.typename] + path + ['']
-            _root = '/'.join(path)
+            path = ["", "StyleSheet", obj.parent.typename] + path + [""]
+            _root = "/".join(path)
 
         # iterate over subsettings
         for name, setn in self.setdict.items():
             thispath = _root + name
             if isinstance(setn, Settings):
                 # call recursively if this is a Settings
-                setn.linkToStylesheet(_root=thispath+'/')
+                setn.linkToStylesheet(_root=thispath + "/")
             elif not setn.hidden and (setn.isReference() or setn.isDefault()):
                 # link to stylesheet if the setting is a visible one
 
@@ -240,7 +239,7 @@ class Settings:
                     # leave it as it was
                     pass
                 else:
-                    if setn.isReference() and setn.getReference().split[0] == '..':
+                    if setn.isReference() and setn.getReference().split[0] == "..":
                         # convert a relative path to multiple references
                         paths = [thispath, setn.getReference().value]
                         ref = ReferenceMultiple(paths)

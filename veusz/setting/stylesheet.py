@@ -24,9 +24,11 @@ from . import collections
 
 from .. import qtall as qt
 
+
 def _(text, disambiguation=None, context="Setting"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class StyleSheet(Settings):
     """A class for handling default values of settings.
@@ -47,60 +49,73 @@ class StyleSheet(Settings):
 
     def __init__(self, **args):
         """Create the default settings."""
-        Settings.__init__(self, 'StyleSheet', setnsmode='stylesheet', **args)
-        self.pixmap = 'settings_stylesheet'
+        Settings.__init__(self, "StyleSheet", setnsmode="stylesheet", **args)
+        self.pixmap = "settings_stylesheet"
 
         for subset in self.registeredsettings:
-            self.add( subset() )
+            self.add(subset())
+
 
 class StylesheetLine(Settings):
     """Hold the properties of the default line."""
+
     def __init__(self):
         Settings.__init__(
-            self, 'Line', pixmap='settings_plotline',
-            descr=_('Default line style for document'),
-            usertext=_('Line'))
-        self.add( setting.DistancePt(
-            'width', '0.5pt',
-            descr=_('Default line width'),
-            usertext=_('Width'),
-            formatting=True) )
-        self.add( setting.Color(
-            'color', 'foreground',
-            descr=_('Default line color'),
-            usertext=_('Color'),
-            formatting=True) )
+            self,
+            "Line",
+            pixmap="settings_plotline",
+            descr=_("Default line style for document"),
+            usertext=_("Line"),
+        )
+        self.add(
+            setting.DistancePt(
+                "width",
+                "0.5pt",
+                descr=_("Default line width"),
+                usertext=_("Width"),
+                formatting=True,
+            )
+        )
+        self.add(
+            setting.Color(
+                "color",
+                "foreground",
+                descr=_("Default line color"),
+                usertext=_("Color"),
+                formatting=True,
+            )
+        )
+
+
 # register these properties with the stylesheet
 StyleSheet.register(StylesheetLine)
+
 
 def _registerFontStyleSheet():
     """Get fonts, and register default with StyleSheet and Text class."""
     families = qt.QFontDatabase.families()
 
     deffont = None
-    for f in (
-            'Times New Roman',
-            'Bitstream Vera Serif',
-            'Times',
-            'Utopia',
-            'Serif'
-    ):
+    for f in ("Times New Roman", "Bitstream Vera Serif", "Times", "Utopia", "Serif"):
         if f in families:
             deffont = f
             break
 
     if len(families) == 0:
         # testing - no fonts available
-        deffont = 'Serif'
-        families = ['Serif']
+        deffont = "Serif"
+        families = ["Serif"]
     elif deffont is None:
         print("Warning: did not find a default font. Choosing Qt default font.")
-        deffont = qt.QFontDatabase.systemFont(qt.QFontDatabase.SystemFont.GeneralFont).family()
+        deffont = qt.QFontDatabase.systemFont(
+            qt.QFontDatabase.SystemFont.GeneralFont
+        ).family()
 
     collections.Text.defaultfamily = deffont
     collections.Text.families = families
     StylesheetText.defaultfamily = deffont
     StylesheetText.families = families
+
 
 class StylesheetText(Settings):
     """Hold properties of default text font."""
@@ -111,32 +126,53 @@ class StylesheetText(Settings):
     def __init__(self):
         """Initialise with default font family and list of families."""
         Settings.__init__(
-            self, 'Font', pixmap='settings_axislabel',
-            descr=_('Default font for document'),
-            usertext=_('Font'))
+            self,
+            "Font",
+            pixmap="settings_axislabel",
+            descr=_("Default font for document"),
+            usertext=_("Font"),
+        )
 
         if StylesheetText.defaultfamily is None:
             _registerFontStyleSheet()
 
-        self.add( setting.FontFamily(
-            'font', StylesheetText.defaultfamily,
-            descr=_('Font name'), usertext=_('Font'),
-            formatting=True))
-        self.add( setting.DistancePt(
-            'size', '14pt',
-            descr=_('Default font size'),
-            usertext=_('Size'),
-            formatting=True))
-        self.add( setting.Color(
-            'color', 'foreground',
-            descr=_('Default font color'),
-            usertext=_('Color'),
-            formatting=True))
-        self.add( setting.FontStyle(
-            'style', '',
-            'font',
-            descr=_('Default font style'),
-            usertext=_('Style'),
-            formatting=True))
+        self.add(
+            setting.FontFamily(
+                "font",
+                StylesheetText.defaultfamily,
+                descr=_("Font name"),
+                usertext=_("Font"),
+                formatting=True,
+            )
+        )
+        self.add(
+            setting.DistancePt(
+                "size",
+                "14pt",
+                descr=_("Default font size"),
+                usertext=_("Size"),
+                formatting=True,
+            )
+        )
+        self.add(
+            setting.Color(
+                "color",
+                "foreground",
+                descr=_("Default font color"),
+                usertext=_("Color"),
+                formatting=True,
+            )
+        )
+        self.add(
+            setting.FontStyle(
+                "style",
+                "",
+                "font",
+                descr=_("Default font style"),
+                usertext=_("Style"),
+                formatting=True,
+            )
+        )
+
 
 StyleSheet.register(StylesheetText)

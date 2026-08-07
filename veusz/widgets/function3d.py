@@ -30,62 +30,70 @@ from ..helpers import threed
 
 from . import plotters3d
 
-def _(text, disambiguation=None, context='Function3D'):
+
+def _(text, disambiguation=None, context="Function3D"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class FunctionSurface(setting.Surface3DWColorMap):
     def __init__(self, *args, **argsv):
         setting.Surface3DWColorMap.__init__(self, *args, **argsv)
-        self.get('color').newDefault(setting.Reference('../color'))
+        self.get("color").newDefault(setting.Reference("../color"))
+
 
 class FunctionLine(setting.Line3DWColorMap):
     def __init__(self, *args, **argsv):
         setting.Line3DWColorMap.__init__(self, *args, **argsv)
-        self.get('color').newDefault(setting.Reference('../color'))
-        self.get('reflectivity').newDefault(20)
+        self.get("color").newDefault(setting.Reference("../color"))
+        self.get("reflectivity").newDefault(20)
+
 
 class Function3D(plotters3d.GenericPlotter3D):
     """Plotting functions in 3D."""
 
-    typename='function3d'
-    description=_('3D function')
-    allowusercreation=True
+    typename = "function3d"
+    description = _("3D function")
+    allowusercreation = True
 
     # list of the supported modes
     _modes = [
-        'x=fn(y,z)', 'y=fn(x,z)', 'z=fn(x,y)',
-        'x,y,z=fns(t)',
-        'x,y=fns(z)', 'y,z=fns(x)', 'x,z=fns(y)'
+        "x=fn(y,z)",
+        "y=fn(x,z)",
+        "z=fn(x,y)",
+        "x,y,z=fns(t)",
+        "x,y=fns(z)",
+        "y,z=fns(x)",
+        "x,z=fns(y)",
     ]
 
     # which axes are affected by which modes
     _affects = {
-        'z=fn(x,y)': (('zAxis', 'both'),),
-        'x=fn(y,z)': (('xAxis', 'both'),),
-        'y=fn(x,z)': (('yAxis', 'both'),),
-        'x,y,z=fns(t)': (('xAxis', 'sx'), ('yAxis', 'sy'), ('zAxis', 'sz')),
-        'x,y=fns(z)': (('xAxis', 'both'), ('yAxis', 'both')),
-        'y,z=fns(x)': (('yAxis', 'both'), ('zAxis', 'both')),
-        'x,z=fns(y)': (('xAxis', 'both'), ('zAxis', 'both')),
+        "z=fn(x,y)": (("zAxis", "both"),),
+        "x=fn(y,z)": (("xAxis", "both"),),
+        "y=fn(x,z)": (("yAxis", "both"),),
+        "x,y,z=fns(t)": (("xAxis", "sx"), ("yAxis", "sy"), ("zAxis", "sz")),
+        "x,y=fns(z)": (("xAxis", "both"), ("yAxis", "both")),
+        "y,z=fns(x)": (("yAxis", "both"), ("zAxis", "both")),
+        "x,z=fns(y)": (("xAxis", "both"), ("zAxis", "both")),
     }
 
     # which modes require which axes as inputs
     _requires = {
-        'z=fn(x,y)': (('both', 'xAxis'), ('both', 'yAxis')),
-        'x=fn(y,z)': (('both', 'yAxis'), ('both', 'zAxis')),
-        'y=fn(x,z)': (('both', 'xAxis'), ('both', 'zAxis')),
-        'x,y,z=fns(t)': (),
-        'x,y=fns(z)': (('both', 'zAxis'),),
-        'y,z=fns(x)': (('both', 'xAxis'),),
-        'x,z=fns(y)': (('both', 'yAxis'),),
+        "z=fn(x,y)": (("both", "xAxis"), ("both", "yAxis")),
+        "x=fn(y,z)": (("both", "yAxis"), ("both", "zAxis")),
+        "y=fn(x,z)": (("both", "xAxis"), ("both", "zAxis")),
+        "x,y,z=fns(t)": (),
+        "x,y=fns(z)": (("both", "zAxis"),),
+        "y,z=fns(x)": (("both", "xAxis"),),
+        "x,z=fns(y)": (("both", "yAxis"),),
     }
 
     # which modes require which variables
     _varmap = {
-        'x,y=fns(z)': ('x', 'y', 'z'),
-        'y,z=fns(x)': ('y', 'z', 'x'),
-        'x,z=fns(y)': ('x', 'z', 'y'),
+        "x,y=fns(z)": ("x", "y", "z"),
+        "y,z=fns(x)": ("y", "z", "x"),
+        "x,z=fns(y)": ("x", "z", "y"),
     }
 
     @staticmethod
@@ -93,80 +101,117 @@ class Function3D(plotters3d.GenericPlotter3D):
         """Return which function settings to show or hide depending on
         mode."""
         return {
-            'z=fn(x,y)': (('fnz',), ('fnx', 'fny')),
-            'x=fn(y,z)': (('fnx',), ('fny', 'fnz')),
-            'y=fn(x,z)': (('fny',), ('fnx', 'fnz')),
-            'x,y,z=fns(t)': (('fnx', 'fny', 'fnz'), ()),
-            'x,y=fns(z)': (('fnx', 'fny'), ('fnz',)),
-            'y,z=fns(x)': (('fny', 'fnz'), ('fnx',)),
-            'x,z=fns(y)': (('fnx', 'fnz'), ('fny',)),
+            "z=fn(x,y)": (("fnz",), ("fnx", "fny")),
+            "x=fn(y,z)": (("fnx",), ("fny", "fnz")),
+            "y=fn(x,z)": (("fny",), ("fnx", "fnz")),
+            "x,y,z=fns(t)": (("fnx", "fny", "fnz"), ()),
+            "x,y=fns(z)": (("fnx", "fny"), ("fnz",)),
+            "y,z=fns(x)": (("fny", "fnz"), ("fnx",)),
+            "x,z=fns(y)": (("fnx", "fnz"), ("fny",)),
         }[v]
 
     @classmethod
     def addSettings(klass, s):
         plotters3d.GenericPlotter3D.addSettings(s)
 
-        s.add(setting.Int(
-            'linesteps',
-            50,
-            minval=3,
-            descr=_('Number of steps to evaluate the function over for lines'),
-            usertext=_('Line steps'),
-            formatting=True ))
-        s.add(setting.Int(
-            'surfacesteps',
-            20,
-            minval=3,
-            descr=_(
-                'Number of steps to evaluate the function over for surfaces'
-                ' in each direction'),
-            usertext=_('Surface steps'),
-            formatting=True ))
-        s.add(setting.ChoiceSwitch(
-            'mode', klass._modes,
-            'x,y,z=fns(t)',
-            descr=_('Type of function to plot'),
-            usertext=_('Mode'),
-            showfn=klass._fnsetnshowhide), 0)
+        s.add(
+            setting.Int(
+                "linesteps",
+                50,
+                minval=3,
+                descr=_("Number of steps to evaluate the function over for lines"),
+                usertext=_("Line steps"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Int(
+                "surfacesteps",
+                20,
+                minval=3,
+                descr=_(
+                    "Number of steps to evaluate the function over for surfaces"
+                    " in each direction"
+                ),
+                usertext=_("Surface steps"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.ChoiceSwitch(
+                "mode",
+                klass._modes,
+                "x,y,z=fns(t)",
+                descr=_("Type of function to plot"),
+                usertext=_("Mode"),
+                showfn=klass._fnsetnshowhide,
+            ),
+            0,
+        )
 
-        s.add(setting.Str(
-            'fnx', '',
-            descr=_('Function for x coordinate'),
-            usertext=_('X function') ), 1)
-        s.add(setting.Str(
-            'fny', '',
-            descr=_('Function for y coordinate'),
-            usertext=_('Y function') ), 2)
-        s.add(setting.Str(
-            'fnz', '',
-            descr=_('Function for z coordinate'),
-            usertext=_('Z function') ), 3)
-        s.add(setting.Str(
-            'fncolor', '',
-            descr=_('Function to give color (0-1)'),
-            usertext=_('Color function') ), 4)
+        s.add(
+            setting.Str(
+                "fnx",
+                "",
+                descr=_("Function for x coordinate"),
+                usertext=_("X function"),
+            ),
+            1,
+        )
+        s.add(
+            setting.Str(
+                "fny",
+                "",
+                descr=_("Function for y coordinate"),
+                usertext=_("Y function"),
+            ),
+            2,
+        )
+        s.add(
+            setting.Str(
+                "fnz",
+                "",
+                descr=_("Function for z coordinate"),
+                usertext=_("Z function"),
+            ),
+            3,
+        )
+        s.add(
+            setting.Str(
+                "fncolor",
+                "",
+                descr=_("Function to give color (0-1)"),
+                usertext=_("Color function"),
+            ),
+            4,
+        )
 
-        s.add( setting.Color(
-            'color',
-            'auto',
-            descr=_('Master color'),
-            usertext=_('Color'),
-            formatting=True), 0 )
-        s.add(FunctionLine(
-            'Line',
-            descr=_('Line settings'),
-            usertext=_('Plot line')),
-            pixmap='settings_plotline' )
-        s.add(setting.LineGrid3D(
-            'GridLine',
-            descr=_('Grid line settings'),
-            usertext=_('Grid line')),
-            pixmap='settings_gridline' )
-        s.add(FunctionSurface(
-            'Surface',
-            descr=_('Surface fill settings'),
-            usertext=_('Surface')),
-            pixmap='settings_bgfill' )
+        s.add(
+            setting.Color(
+                "color",
+                "auto",
+                descr=_("Master color"),
+                usertext=_("Color"),
+                formatting=True,
+            ),
+            0,
+        )
+        s.add(
+            FunctionLine("Line", descr=_("Line settings"), usertext=_("Plot line")),
+            pixmap="settings_plotline",
+        )
+        s.add(
+            setting.LineGrid3D(
+                "GridLine", descr=_("Grid line settings"), usertext=_("Grid line")
+            ),
+            pixmap="settings_gridline",
+        )
+        s.add(
+            FunctionSurface(
+                "Surface", descr=_("Surface fill settings"), usertext=_("Surface")
+            ),
+            pixmap="settings_bgfill",
+        )
 
     def affectsAxisRange(self):
         """Which axes this widget affects."""
@@ -185,7 +230,7 @@ class Function3D(plotters3d.GenericPlotter3D):
         s = self.settings
         mode = s.mode
 
-        if mode == 'x,y,z=fns(t)':
+        if mode == "x,y,z=fns(t)":
             if not s.fnx or not s.fny or not s.fnz:
                 return None
 
@@ -197,7 +242,7 @@ class Function3D(plotters3d.GenericPlotter3D):
 
             # evaluate each expression
             env = self.document.evaluate.context.copy()
-            env['t'] = N.linspace(0, 1, s.linesteps)
+            env["t"] = N.linspace(0, 1, s.linesteps)
             zeros = N.zeros(s.linesteps, dtype=N.float64)
             try:
                 valsx = eval(xcomp, env) + zeros
@@ -209,8 +254,7 @@ class Function3D(plotters3d.GenericPlotter3D):
 
             fncolor = s.fncolor.strip()
             if fncolor:
-                fncolor = self.document.evaluate.compileCheckedExpression(
-                    fncolor)
+                fncolor = self.document.evaluate.compileCheckedExpression(fncolor)
                 try:
                     valscolor = eval(fncolor, env) + zeros
                 except:
@@ -223,7 +267,7 @@ class Function3D(plotters3d.GenericPlotter3D):
         else:
             # lookup variables to go with function
             var = self._varmap[mode]
-            fns = [getattr(s, 'fn'+var[0]), getattr(s, 'fn'+var[1])]
+            fns = [getattr(s, "fn" + var[0]), getattr(s, "fn" + var[1])]
             if not fns[0] or not fns[1]:
                 return None
 
@@ -234,7 +278,8 @@ class Function3D(plotters3d.GenericPlotter3D):
             arange = axis.getPlottedRange()
             if axis.settings.log:
                 evalpts = N.logspace(
-                    N.log10(arange[0]), N.log10(arange[1]), s.linesteps)
+                    N.log10(arange[0]), N.log10(arange[1]), s.linesteps
+                )
             else:
                 evalpts = N.linspace(arange[0], arange[1], s.linesteps)
 
@@ -251,8 +296,7 @@ class Function3D(plotters3d.GenericPlotter3D):
 
             fncolor = s.fncolor.strip()
             if fncolor:
-                fncolor = self.document.evaluate.compileCheckedExpression(
-                    fncolor)
+                fncolor = self.document.evaluate.compileCheckedExpression(fncolor)
                 try:
                     valscolor = eval(fncolor, env) + zeros
                 except:
@@ -261,8 +305,8 @@ class Function3D(plotters3d.GenericPlotter3D):
                 valscolor = None
 
             # assign correct output points
-            retn = [None]*4
-            idxs = ('x', 'y', 'z')
+            retn = [None] * 4
+            idxs = ("x", "y", "z")
             retn[idxs.index(var[0])] = vals1
             retn[idxs.index(var[1])] = vals2
             retn[idxs.index(var[2])] = evalpts
@@ -281,9 +325,9 @@ class Function3D(plotters3d.GenericPlotter3D):
         mode = s.mode
 
         var, ovar1, ovar2, axidx = {
-            'x=fn(y,z)': ('x', 'y', 'z', (0, 1, 2)),
-            'y=fn(x,z)': ('y', 'z', 'x', (1, 2, 0)),
-            'z=fn(x,y)': ('z', 'x', 'y', (2, 0, 1)),
+            "x=fn(y,z)": ("x", "y", "z", (0, 1, 2)),
+            "y=fn(x,z)": ("y", "z", "x", (1, 2, 0)),
+            "z=fn(x,y)": ("z", "x", "y", (2, 0, 1)),
         }[mode]
 
         axes = self.fetchAxes()
@@ -305,17 +349,17 @@ class Function3D(plotters3d.GenericPlotter3D):
 
         # set variables in environment
         grid1, grid2 = N.indices((steps, steps))
-        del1 = (pr1[1]-pr1[0])/(steps-1.)
-        steps1 = N.arange(steps)*del1 + pr1[0]
-        grid1 = grid1*del1 + pr1[0]
-        del2 = (pr2[1]-pr2[0])/(steps-1.)
-        steps2 = N.arange(steps)*del2 + pr2[0]
-        grid2 = grid2*del2 + pr2[0]
+        del1 = (pr1[1] - pr1[0]) / (steps - 1.0)
+        steps1 = N.arange(steps) * del1 + pr1[0]
+        grid1 = grid1 * del1 + pr1[0]
+        del2 = (pr2[1] - pr2[0]) / (steps - 1.0)
+        steps2 = N.arange(steps) * del2 + pr2[0]
+        grid2 = grid2 * del2 + pr2[0]
 
         fncolor = s.fncolor.strip()
         if fncolor:
-            colgrid1 = 0.5*(grid1[1:,1:]+grid1[:-1,:-1])
-            colgrid2 = 0.5*(grid2[1:,1:]+grid2[:-1,:-1])
+            colgrid1 = 0.5 * (grid1[1:, 1:] + grid1[:-1, :-1])
+            colgrid2 = 0.5 * (grid2[1:, 1:] + grid2[:-1, :-1])
             if logax1:
                 colgrid1 = N.exp(colgrid1)
             if logax2:
@@ -331,7 +375,7 @@ class Function3D(plotters3d.GenericPlotter3D):
         env[ovar1] = grid1
         env[ovar2] = grid2
 
-        fn = getattr(s, 'fn%s' % var)  # get function from user
+        fn = getattr(s, "fn%s" % var)  # get function from user
         if not fn:
             return
         comp = self.document.evaluate.compileCheckedExpression(fn)
@@ -345,16 +389,14 @@ class Function3D(plotters3d.GenericPlotter3D):
             return None
 
         if fncolor:
-            compcolor = self.document.evaluate.compileCheckedExpression(
-                fncolor)
+            compcolor = self.document.evaluate.compileCheckedExpression(fncolor)
             if not compcolor:
                 return
             env[ovar1] = colgrid1
             env[ovar2] = colgrid2
 
             try:
-                colors = eval(compcolor, env) + N.zeros(
-                    colgrid1.shape, dtype=N.float64)
+                colors = eval(compcolor, env) + N.zeros(colgrid1.shape, dtype=N.float64)
             except Exception:
                 # something wrong in the evaluation
                 return None
@@ -367,15 +409,15 @@ class Function3D(plotters3d.GenericPlotter3D):
     def getRange(self, axis, depname, axrange):
         """Get range of axis."""
         mode = self.settings.mode
-        if mode == 'x,y,z=fns(t)':
+        if mode == "x,y,z=fns(t)":
             # get range of each variable
             retn = self.getLineVals()
             if not retn:
                 return
             valsx, valsy, valsz, valscolor = retn
-            coord = {'sx': valsx, 'sy': valsy, 'sz': valsz}[depname]
+            coord = {"sx": valsx, "sy": valsy, "sz": valsz}[depname]
 
-        elif mode in ('x,y=fns(z)', 'y,z=fns(x)', 'x,z=fns(y)'):
+        elif mode in ("x,y=fns(z)", "y,z=fns(x)", "x,z=fns(y)"):
             # is this axis one of the ones we affect?
             var = self._varmap[mode]
             if self.fetchAxis(var[0]) is axis:
@@ -388,9 +430,9 @@ class Function3D(plotters3d.GenericPlotter3D):
             retn = self.getLineVals()
             if not retn:
                 return
-            coord = retn[('x', 'y', 'z').index(v)]
+            coord = retn[("x", "y", "z").index(v)]
 
-        elif mode in ('z=fn(x,y)', 'x=fn(y,z)', 'y=fn(x,z)'):
+        elif mode in ("z=fn(x,y)", "x=fn(y,z)", "y=fn(x,z)"):
             retn = self.getGridVals()
             if not retn:
                 return
@@ -410,11 +452,11 @@ class Function3D(plotters3d.GenericPlotter3D):
         prop is updated to use the data values colorvars (0-1) to apply
         a color map from the setting setn given."""
 
-        cmap = self.document.evaluate.getColormap(
-            setn.colorMap, setn.colorMapInvert)
+        cmap = self.document.evaluate.getColormap(setn.colorMap, setn.colorMapInvert)
         color2d = colorvals.reshape((1, colorvals.size))
         colorimg = utils.applyColorMap(
-            cmap, 'linear', color2d, 0., 1., setn.transparency)
+            cmap, "linear", color2d, 0.0, 1.0, setn.transparency
+        )
         prop.setRGBs(colorimg)
 
     def dataDrawSurface(self, painter, axes, container):
@@ -439,16 +481,21 @@ class Function3D(plotters3d.GenericPlotter3D):
             lineprop = s.GridLine.makeLineProp(painter)
 
         dirn = {
-            'x': threed.Mesh.Direction.X_DIRN,
-            'y': threed.Mesh.Direction.Y_DIRN,
-            'z': threed.Mesh.Direction.Z_DIRN
+            "x": threed.Mesh.Direction.X_DIRN,
+            "y": threed.Mesh.Direction.Y_DIRN,
+            "z": threed.Mesh.Direction.Z_DIRN,
         }[depvar]
 
         mesh = threed.Mesh(
-            threed.ValVector(lsteps1), threed.ValVector(lsteps2),
+            threed.ValVector(lsteps1),
+            threed.ValVector(lsteps2),
             threed.ValVector(N.ravel(lheight)),
-            dirn, lineprop, surfprop,
-            s.GridLine.hidehorz, s.GridLine.hidevert)
+            dirn,
+            lineprop,
+            surfprop,
+            s.GridLine.hidehorz,
+            s.GridLine.hidevert,
+        )
         container.addObject(mesh)
 
     def dataDrawLine(self, painter, axes, clipcontainer):
@@ -472,9 +519,7 @@ class Function3D(plotters3d.GenericPlotter3D):
         lz = axes[2].dataToLogicalCoords(valsz)
 
         line = threed.PolyLine(lineprop)
-        line.addPoints(
-            threed.ValVector(lx), threed.ValVector(ly),
-            threed.ValVector(lz))
+        line.addPoints(threed.ValVector(lx), threed.ValVector(ly), threed.ValVector(lz))
 
         clipcontainer.addObject(line)
 
@@ -491,12 +536,13 @@ class Function3D(plotters3d.GenericPlotter3D):
         s = self.settings
 
         clipcontainer = self.makeClipContainer(axes)
-        if mode in ('x,y,z=fns(t)', 'x,y=fns(z)', 'y,z=fns(x)', 'x,z=fns(y)'):
+        if mode in ("x,y,z=fns(t)", "x,y=fns(z)", "y,z=fns(x)", "x,z=fns(y)"):
             self.dataDrawLine(painter, axes, clipcontainer)
-        elif mode in ('z=fn(x,y)', 'x=fn(y,z)', 'y=fn(x,z)'):
+        elif mode in ("z=fn(x,y)", "x=fn(y,z)", "y=fn(x,z)"):
             self.dataDrawSurface(painter, axes, clipcontainer)
 
         clipcontainer.assignWidgetId(id(self))
         return clipcontainer
+
 
 document.thefactory.register(Function3D)

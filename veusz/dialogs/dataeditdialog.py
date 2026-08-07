@@ -31,9 +31,11 @@ from .. import setting
 from ..qtwidgets.datasetbrowser import DatasetBrowser
 from .veuszdialog import VeuszDialog, recreate_register
 
+
 def _(text, disambiguation=None, context="DataEditDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class DatasetTableModel1D(qt.QAbstractTableModel):
     """Provides access to editing and viewing of datasets."""
@@ -53,7 +55,7 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
             return 0
 
         try:
-            return len(self.document.data[self.dsname].data)+1
+            return len(self.document.data[self.dsname].data) + 1
         except (KeyError, AttributeError):
             return 0
 
@@ -70,7 +72,7 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
             ds = self.document.data[self.dsname]
         except KeyError:
             return 0
-        return len( ds.column_descriptions )
+        return len(ds.column_descriptions)
 
     def data(self, index, role):
         """Return data for index."""
@@ -79,8 +81,11 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
         if ds is not None:
             # select correct part of dataset
             data = getattr(ds, ds.columns[index.column()])
-        if ds is not None and data is not None and role in (
-            qt.Qt.ItemDataRole.DisplayRole, qt.Qt.ItemDataRole.EditRole):
+        if (
+            ds is not None
+            and data is not None
+            and role in (qt.Qt.ItemDataRole.DisplayRole, qt.Qt.ItemDataRole.EditRole)
+        ):
             # blank row at end of data
             if index.row() == len(data):
                 return None
@@ -108,7 +113,7 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
                 if section == len(ds.data):
                     return "+"
                 # return row numbers
-                return section+1
+                return section + 1
 
         return None
 
@@ -125,12 +130,14 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
     def removeRows(self, row, count):
         """Remove rows."""
         self.document.applyOperation(
-            document.OperationDatasetDeleteRow(self.dsname, row, count))
+            document.OperationDatasetDeleteRow(self.dsname, row, count)
+        )
 
     def insertRows(self, row, count):
         """Remove rows."""
         self.document.applyOperation(
-            document.OperationDatasetInsertRow(self.dsname, row, count))
+            document.OperationDatasetInsertRow(self.dsname, row, count)
+        )
 
     def setData(self, index, value, role):
         """Called to set the data."""
@@ -144,16 +151,15 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
         data = getattr(ds, ds.columns[index.column()])
 
         # add new column if necessary
-        ops = document.OperationMultiple([], descr=_('set value'))
+        ops = document.OperationMultiple([], descr=_("set value"))
         if data is None:
             ops.addOperation(
-                document.OperationDatasetAddColumn(
-                    self.dsname, ds.columns[column]))
+                document.OperationDatasetAddColumn(self.dsname, ds.columns[column])
+            )
 
         # add a row if necessary
         if row == len(ds.data):
-            ops.addOperation(
-                document.OperationDatasetInsertRow(self.dsname, row, 1))
+            ops.addOperation(document.OperationDatasetInsertRow(self.dsname, row, 1))
 
         # update if conversion okay
         try:
@@ -162,13 +168,14 @@ class DatasetTableModel1D(qt.QAbstractTableModel):
             return False
 
         ops.addOperation(
-            document.OperationDatasetSetVal(
-                self.dsname, ds.columns[column], row, val))
+            document.OperationDatasetSetVal(self.dsname, ds.columns[column], row, val)
+        )
         try:
             self.document.applyOperation(ops)
         except RuntimeError:
             return False
         return True
+
 
 class DatasetTableModelMulti(qt.QAbstractTableModel):
     """Edit multiple datasets simultaneously with a spreadsheet-like style."""
@@ -197,12 +204,14 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
             if name not in self.document.data:
                 continue
             dataset = self.document.data[name]
-            if (not hasattr(dataset, 'data') or
-                not hasattr(dataset, 'columns') or
-                dataset.dimensions != 1):
+            if (
+                not hasattr(dataset, "data")
+                or not hasattr(dataset, "columns")
+                or dataset.dimensions != 1
+            ):
                 continue
 
-            r = len(dataset.data)+1
+            r = len(dataset.data) + 1
             rowcounts.append(r)
             rows = max(rows, r)
 
@@ -210,8 +219,8 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
             for colidx, col in enumerate(dataset.columns):
                 data = getattr(dataset, col)
                 if data is not None:
-                    attr.append( (name, col, dsidx, colidx) )
-            colcounts.append( len(attr) )
+                    attr.append((name, col, dsidx, colidx))
+            colcounts.append(len(attr))
             colattrs += attr
 
         self.rows = rows
@@ -242,7 +251,7 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
         data = getattr(ds, colname)
 
         if role == qt.Qt.ItemDataRole.DisplayRole:
-            if index.row() < self.rowcounts[dsidx]-1:
+            if index.row() < self.rowcounts[dsidx] - 1:
                 # convert data to Data
                 d = data[index.row()]
                 return ds.uiDataItemToData(d)
@@ -259,13 +268,13 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
                 dsname, colname, dsidx, colidx = self.colattrs[section]
                 ds = self.document.data[dsname]
                 descr = ds.column_descriptions[colidx]
-                header = dsname + '\n' + descr
+                header = dsname + "\n" + descr
                 return header
             else:
                 # return row numbers
-                if section == self.rows-1:
+                if section == self.rows - 1:
                     return "+"
-                return section+1
+                return section + 1
 
         return None
 
@@ -291,13 +300,16 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
         dsname, colname, dsidx, colidx = self.colattrs[column]
         ds = self.document.data[dsname]
 
-        ops = document.OperationMultiple([], descr=_('set value'))
-        if row >= self.rowcounts[dsidx]-1:
+        ops = document.OperationMultiple([], descr=_("set value"))
+        if row >= self.rowcounts[dsidx] - 1:
             # add number of rows required to add new value below
             ops.addOperation(
                 document.OperationDatasetInsertRow(
-                    dsname, self.rowcounts[dsidx]-1,
-                    row+1-self.rowcounts[dsidx]+1))
+                    dsname,
+                    self.rowcounts[dsidx] - 1,
+                    row + 1 - self.rowcounts[dsidx] + 1,
+                )
+            )
 
         # convert text to value
         try:
@@ -305,8 +317,7 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
         except ValueError:
             return False
 
-        ops.addOperation(
-            document.OperationDatasetSetVal(dsname, colname, row, val))
+        ops.addOperation(document.OperationDatasetSetVal(dsname, colname, row, val))
 
         try:
             self.document.applyOperation(ops)
@@ -317,20 +328,17 @@ class DatasetTableModelMulti(qt.QAbstractTableModel):
     def insertRows(self, row, count):
         ops = []
         for i, name in enumerate(self.dsnames):
-            if self.rowcounts[i]-1 >= row:
-                ops.append(
-                    document.OperationDatasetInsertRow(name, row, count))
-        self.document.applyOperation(
-            document.OperationMultiple(ops, _('insert rows')))
+            if self.rowcounts[i] - 1 >= row:
+                ops.append(document.OperationDatasetInsertRow(name, row, count))
+        self.document.applyOperation(document.OperationMultiple(ops, _("insert rows")))
 
     def removeRows(self, row, count):
         ops = []
         for i, name in enumerate(self.dsnames):
-            if self.rowcounts[i]-1 >= row:
-                ops.append(
-                    document.OperationDatasetDeleteRow(name, row, count))
-        self.document.applyOperation(
-            document.OperationMultiple(ops, _('delete rows')))
+            if self.rowcounts[i] - 1 >= row:
+                ops.append(document.OperationDatasetDeleteRow(name, row, count))
+        self.document.applyOperation(document.OperationMultiple(ops, _("delete rows")))
+
 
 class DatasetTableModel2D(qt.QAbstractTableModel):
     """A 2D dataset model."""
@@ -347,7 +355,7 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
         """Get coordinates at edge of grid."""
         self.xedge = self.yedge = self.xcent = self.ycent = []
         ds = self.document.data.get(self.dsname)
-        if ds and ds.dimensions==2:
+        if ds and ds.dimensions == 2:
             self.xcent, self.ycent = ds.getPixelCentres()
             self.xedge, self.yedge = ds.getPixelEdges()
 
@@ -358,7 +366,7 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
             data = self.document.data[self.dsname].data
         except KeyError:
             return 0
-        if data is not None and data.ndim==2:
+        if data is not None and data.ndim == 2:
             return data.shape[0]
         else:
             return 0
@@ -370,7 +378,7 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
             data = self.document.data[self.dsname].data
         except KeyError:
             return 0
-        if data is not None and data.ndim==2:
+        if data is not None and data.ndim == 2:
             return data.shape[1]
         else:
             return 0
@@ -382,9 +390,9 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
                 data = self.document.data[self.dsname].data
             except KeyError:
                 return None
-            if data is not None and data.ndim==2:
+            if data is not None and data.ndim == 2:
                 try:
-                    num = data[data.shape[0]-index.row()-1, index.column()]
+                    num = data[data.shape[0] - index.row() - 1, index.column()]
                     return float(num)
                 except IndexError:
                     pass
@@ -402,18 +410,31 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
 
         # note: y coordinates are upside down (high y is at top)
         if ds is not None and role == qt.Qt.ItemDataRole.DisplayRole:
-            v = self.xcent[section] if xaxis else self.ycent[
-                len(self.ycent)-section-1]
-            return '%i (%s)' % (
-                len(self.ycent)-section, setting.ui_floattostring(v, maxdp=4))
+            v = (
+                self.xcent[section]
+                if xaxis
+                else self.ycent[len(self.ycent) - section - 1]
+            )
+            return "%i (%s)" % (
+                len(self.ycent) - section,
+                setting.ui_floattostring(v, maxdp=4),
+            )
 
         elif ds is not None and role == qt.Qt.ItemDataRole.ToolTipRole:
-            v1 = self.xedge[section] if xaxis else self.yedge[
-                len(self.yedge)-section-2]
-            v2 = self.xedge[section+1] if xaxis else self.yedge[
-                len(self.yedge)-section-1]
-            return '%s\u2013%s' % (
-                setting.ui_floattostring(v1), setting.ui_floattostring(v2))
+            v1 = (
+                self.xedge[section]
+                if xaxis
+                else self.yedge[len(self.yedge) - section - 2]
+            )
+            v2 = (
+                self.xedge[section + 1]
+                if xaxis
+                else self.yedge[len(self.yedge) - section - 1]
+            )
+            return "%s\u2013%s" % (
+                setting.ui_floattostring(v1),
+                setting.ui_floattostring(v2),
+            )
 
         return None
 
@@ -440,7 +461,7 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
             return False
 
         ds = self.document.data[self.dsname]
-        row = ds.data.shape[0]-index.row()-1
+        row = ds.data.shape[0] - index.row() - 1
         col = index.column()
 
         # update if conversion okay
@@ -449,10 +470,10 @@ class DatasetTableModel2D(qt.QAbstractTableModel):
         except ValueError:
             return False
 
-        op = document.OperationDatasetSetVal2D(
-            self.dsname, row, col, val)
+        op = document.OperationDatasetSetVal2D(self.dsname, row, col, val)
         self.document.applyOperation(op)
         return True
+
 
 class DatasetTableModelND(qt.QAbstractTableModel):
     """An ND dataset model."""
@@ -506,16 +527,17 @@ class DatasetTableModelND(qt.QAbstractTableModel):
 
         if ds is not None and role == qt.Qt.ItemDataRole.DisplayRole:
             if orientation == qt.Qt.Orientation.Horizontal:
-                return _('Value')
+                return _("Value")
             else:
                 idx = N.unravel_index(section, ds.data.shape)
-                txt = ','.join( [str(v+1) for v in idx] )
+                txt = ",".join([str(v + 1) for v in idx])
                 return txt
         return None
 
     def slotDocumentModified(self):
         """Called when document modified."""
         self.layoutChanged.emit()
+
 
 class ViewDelegate(qt.QStyledItemDelegate):
     """Delegate for fixing double editing.
@@ -526,8 +548,7 @@ class ViewDelegate(qt.QStyledItemDelegate):
         if type(index.data()) is float:
             return qt.QLineEdit(parent)
         else:
-            return qt.QStyledItemDelegate.createEditor(
-                self, parent, option, index)
+            return qt.QStyledItemDelegate.createEditor(self, parent, option, index)
 
     def setEditorData(self, editor, index):
         """Override setData to use correct formatting."""
@@ -537,17 +558,17 @@ class ViewDelegate(qt.QStyledItemDelegate):
         else:
             qt.QStyledItemDelegate.setEditorData(self, editor, index)
 
+
 class DataEditDialog(VeuszDialog):
     """Dialog for editing and rearranging data sets."""
 
     def __init__(self, parent, document):
-        VeuszDialog.__init__(self, parent, 'dataedit.ui')
+        VeuszDialog.__init__(self, parent, "dataedit.ui")
         self.document = document
 
         # set up dataset list
         self.dsbrowser = DatasetBrowser(document, parent, parent)
-        self.dsbrowser.setToolTip(
-            _('Select multiple datasets to edit simultaneously'))
+        self.dsbrowser.setToolTip(_("Select multiple datasets to edit simultaneously"))
         self.splitter.insertWidget(0, self.dsbrowser)
 
         self.deligate = ViewDelegate()
@@ -555,14 +576,16 @@ class DataEditDialog(VeuszDialog):
 
         # actions for data table
         for text, slot in (
-            (_('Copy'), self.slotCopy),
-            (_('Delete row'), self.slotDeleteRow),
-            (_('Insert row'), self.slotInsertRow),
+            (_("Copy"), self.slotCopy),
+            (_("Delete row"), self.slotDeleteRow),
+            (_("Insert row"), self.slotInsertRow),
         ):
             act = qt.QAction(text, self)
             act.triggered.connect(slot)
             self.datatableview.addAction(act)
-        self.datatableview.setContextMenuPolicy( qt.Qt.ContextMenuPolicy.ActionsContextMenu )
+        self.datatableview.setContextMenuPolicy(
+            qt.Qt.ContextMenuPolicy.ActionsContextMenu
+        )
 
         # layout edit dialog improvement
         self.splitter.setStretchFactor(0, 3)
@@ -577,30 +600,29 @@ class DataEditDialog(VeuszDialog):
 
         # select first item, if any or initialise if none
         if len(self.document.data) > 0:
-            self.selectDataset( sorted(self.document.data)[0] )
+            self.selectDataset(sorted(self.document.data)[0])
         else:
             self.slotDatasetsSelected([])
 
-        self.dsbrowser.navtree.selecteddatasets.connect(
-            self.slotDatasetsSelected)
+        self.dsbrowser.navtree.selecteddatasets.connect(self.slotDatasetsSelected)
 
         # connect buttons
         for btn, slot in (
-                (self.deletebutton, self.slotDatasetDelete),
-                (self.unlinkbutton, self.slotDatasetUnlink),
-                (self.duplicatebutton, self.slotDatasetDuplicate),
-                (self.importbutton, self.slotDatasetImport),
-                (self.createbutton, self.slotDatasetCreate),
-                (self.editbutton, self.slotDatasetEdit),
+            (self.deletebutton, self.slotDatasetDelete),
+            (self.unlinkbutton, self.slotDatasetUnlink),
+            (self.duplicatebutton, self.slotDatasetDuplicate),
+            (self.importbutton, self.slotDatasetImport),
+            (self.createbutton, self.slotDatasetCreate),
+            (self.editbutton, self.slotDatasetEdit),
         ):
             btn.clicked.connect(slot)
 
         # menu for new button
         self.newmenu = qt.QMenu()
         for text, slot in (
-                (_('Numerical dataset'), self.slotNewNumericalDataset),
-                (_('Text dataset'), self.slotNewTextDataset),
-                (_('Date/time dataset'), self.slotNewDateDataset)
+            (_("Numerical dataset"), self.slotNewNumericalDataset),
+            (_("Text dataset"), self.slotNewTextDataset),
+            (_("Date/time dataset"), self.slotNewDateDataset),
         ):
             a = self.newmenu.addAction(text)
             a.triggered.connect(slot)
@@ -649,7 +671,7 @@ class DataEditDialog(VeuszDialog):
 
         self.editbutton.setVisible(any(canedit))
         self.unlinkbutton.setEnabled(any(canunlink))
-        self.linkedlabel.setText('\n'.join(linkinfo))
+        self.linkedlabel.setText("\n".join(linkinfo))
         self.deletebutton.setEnabled(bool(names))
         self.duplicatebutton.setEnabled(bool(names))
 
@@ -668,7 +690,9 @@ class DataEditDialog(VeuszDialog):
         self.document.applyOperation(
             document.OperationMultiple(
                 [document.OperationDatasetDelete(n) for n in dsnames],
-                descr=_('delete datasets')))
+                descr=_("delete datasets"),
+            )
+        )
 
     def slotDatasetUnlink(self):
         """Allow user to remove link to file or other datasets."""
@@ -681,7 +705,8 @@ class DataEditDialog(VeuszDialog):
                 ops.append(document.OperationDatasetUnlinkRelation(name))
         if ops:
             self.document.applyOperation(
-                document.OperationMultiple(ops, _('unlink datasets')))
+                document.OperationMultiple(ops, _("unlink datasets"))
+            )
 
     def slotDatasetDuplicate(self):
         """Duplicate selected datasets."""
@@ -690,15 +715,15 @@ class DataEditDialog(VeuszDialog):
             # generate new name for dataset
             index = 2
             while True:
-                newname = f'{name}_{index}'
+                newname = f"{name}_{index}"
                 if newname not in self.document.data:
                     break
                 index += 1
-            ops.append(
-                document.OperationDatasetDuplicate(name, newname))
+            ops.append(document.OperationDatasetDuplicate(name, newname))
         if ops:
             self.document.applyOperation(
-                document.OperationMultiple(ops, _('duplicate datasets')))
+                document.OperationMultiple(ops, _("duplicate datasets"))
+            )
 
     def slotDatasetImport(self):
         """Show import dialog."""
@@ -714,7 +739,8 @@ class DataEditDialog(VeuszDialog):
             dataset = self.document.data[name]
             try:
                 recreate_register[type(dataset)](
-                    self.mainwindow, self.document, dataset, name)
+                    self.mainwindow, self.document, dataset, name
+                )
             except KeyError:
                 pass
 
@@ -725,7 +751,7 @@ class DataEditDialog(VeuszDialog):
         model = self.datatableview.model()
         indices = []
         for index in selmodel.selectedIndexes():
-            indices.append( (index.row(), index.column()) )
+            indices.append((index.row(), index.column()))
         indices.sort()
 
         # build up text stream for copying to clipboard
@@ -736,15 +762,14 @@ class DataEditDialog(VeuszDialog):
             if row != lastrow:
                 if rowitems:
                     # items are tab separated
-                    lines.append( '\t'.join(rowitems) )
+                    lines.append("\t".join(rowitems))
                     rowitems = []
                 lastrow = row
-            rowitems.append(
-                str(model.createIndex(row, column).data()) )
+            rowitems.append(str(model.createIndex(row, column).data()))
         if rowitems:
-            lines.append( '\t'.join(rowitems) )
-        lines.append('')  # blank line at end
-        lines = '\n'.join(lines)
+            lines.append("\t".join(rowitems))
+        lines.append("")  # blank line at end
+        lines = "\n".join(lines)
 
         # put text on clipboard
         qt.QApplication.clipboard().setText(lines)
@@ -752,37 +777,38 @@ class DataEditDialog(VeuszDialog):
     def slotDeleteRow(self):
         """Delete the current row."""
         self.datatableview.model().removeRows(
-            self.datatableview.currentIndex().row(), 1)
+            self.datatableview.currentIndex().row(), 1
+        )
 
     def slotInsertRow(self):
         """Insert a new row."""
         self.datatableview.model().insertRows(
-            self.datatableview.currentIndex().row(), 1)
+            self.datatableview.currentIndex().row(), 1
+        )
 
     def slotNewNumericalDataset(self):
         """Add new value dataset."""
-        self.newDataset( datasets.Dataset(data=[0.]) )
+        self.newDataset(datasets.Dataset(data=[0.0]))
 
     def slotNewTextDataset(self):
         """Add new text dataset."""
-        self.newDataset( datasets.DatasetText(data=['']) )
+        self.newDataset(datasets.DatasetText(data=[""]))
 
     def slotNewDateDataset(self):
         """Add new date dataset."""
-        self.newDataset( datasets.DatasetDateTime(data=[]) )
+        self.newDataset(datasets.DatasetDateTime(data=[]))
 
     def newDataset(self, ds):
         """Add new dataset to document."""
         # get a name for dataset
-        name = _('new dataset')
+        name = _("new dataset")
         if name in self.document.data:
             count = 1
             while name in self.document.data:
-                name = _('new dataset %i') % count
+                name = _("new dataset %i") % count
                 count += 1
 
         # add new dataset
-        self.document.applyOperation(
-            document.OperationDatasetSet(name, ds))
+        self.document.applyOperation(document.OperationDatasetSet(name, ds))
 
         self.dsbrowser.selectDataset(name)

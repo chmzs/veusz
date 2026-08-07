@@ -19,45 +19,42 @@ from setuptools.command.build_ext import build_ext
 
 ##################################################################
 
+
 def find_on_path(names, mainname):
     """From a list of names of executables, find the 1st one on a path.
 
     mainname is the generic name to report
     """
-    path = os.getenv('PATH', os.path.defpath)
+    path = os.getenv("PATH", os.path.defpath)
     pathparts = path.split(os.path.pathsep)
     for cmd in names:
         resolved = shutil.which(cmd)
         if resolved:
             return resolved
-    raise RuntimeError('Could not find %s executable' % mainname)
+    raise RuntimeError("Could not find %s executable" % mainname)
+
 
 def read_command_output(cmd):
     """Get text from a run command."""
-    p = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        universal_newlines=True)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
-        raise RuntimeError('Command %s returned error' % str(cmd))
+        raise RuntimeError("Command %s returned error" % str(cmd))
     return stdout.strip()
 
-class sip_build_ext(build_ext):
 
-    description = ('Compile SIP descriptions, then build C/C++ extensions '
-                   '(compile/link to build directory)')
+class sip_build_ext(build_ext):
+    description = (
+        "Compile SIP descriptions, then build C/C++ extensions "
+        "(compile/link to build directory)"
+    )
 
     user_options = build_ext.user_options + [
-        ('qmake-exe=', None,
-         'override qmake executable'),
-        ('qt-include-dir=', None,
-         'override Qt include directory'),
-        ('qt-library-dir=', None,
-         'override Qt library directory'),
-        ('qt-libinfix=', None,
-         'override Qt infix setting'),
-        ]
+        ("qmake-exe=", None, "override qmake executable"),
+        ("qt-include-dir=", None, "override Qt include directory"),
+        ("qt-library-dir=", None, "override Qt library directory"),
+        ("qt-libinfix=", None, "override Qt infix setting"),
+    ]
 
     def initialize_options(self):
         build_ext.initialize_options(self)
@@ -69,30 +66,32 @@ class sip_build_ext(build_ext):
     def _get_qmake(self, build_cmd):
         """Get qmake executable."""
         return (
-            build_cmd.qmake_exe or
-            os.environ.get('QMAKE_EXE') or
-            find_on_path(
-                ('qmake-qt6', 'qmake6', 'qmake', 'qmake6.exe', 'qmake.exe'),
-                'qmake')
+            build_cmd.qmake_exe
+            or os.environ.get("QMAKE_EXE")
+            or find_on_path(
+                ("qmake-qt6", "qmake6", "qmake", "qmake6.exe", "qmake.exe"), "qmake"
+            )
         )
 
     def _get_qt_inc_dir(self, build_cmd):
         """Get Qt include directory."""
         return (
-            build_cmd.qt_include_dir or
-            os.environ.get('QT_INCLUDE_DIR') or
-            read_command_output(
-                [self._get_qmake(build_cmd), '-query', 'QT_INSTALL_HEADERS'])
+            build_cmd.qt_include_dir
+            or os.environ.get("QT_INCLUDE_DIR")
+            or read_command_output(
+                [self._get_qmake(build_cmd), "-query", "QT_INSTALL_HEADERS"]
             )
+        )
 
     def _get_qt_library_dir(self, build_cmd):
         """Get Qt library directory."""
         return (
-            build_cmd.qt_library_dir or
-            os.environ.get('QT_LIBRARY_DIR') or
-            read_command_output(
-                [self._get_qmake(build_cmd), '-query', 'QT_INSTALL_LIBS'])
+            build_cmd.qt_library_dir
+            or os.environ.get("QT_LIBRARY_DIR")
+            or read_command_output(
+                [self._get_qmake(build_cmd), "-query", "QT_INSTALL_LIBS"]
             )
+        )
 
     def _get_qt_libinfix(self, build_cmd):
         """Get QT_LIBINFIX setting.
@@ -104,18 +103,19 @@ class sip_build_ext(build_ext):
         infix = build_cmd.qt_libinfix
         if infix is not None:
             return infix
-        if 'QT_LIBINFIX' in os.environ:
-            return os.environ['QT_LIBINFIX']
+        if "QT_LIBINFIX" in os.environ:
+            return os.environ["QT_LIBINFIX"]
 
         # use this to find location of qconfig file
         archdir = read_command_output(
-            [self._get_qmake(build_cmd), '-query', 'QT_INSTALL_ARCHDATA'])
-        qconfig = os.path.join(archdir, 'mkspecs', 'qconfig.pri')
+            [self._get_qmake(build_cmd), "-query", "QT_INSTALL_ARCHDATA"]
+        )
+        qconfig = os.path.join(archdir, "mkspecs", "qconfig.pri")
 
-        libinfix = ''
+        libinfix = ""
         for line in open(qconfig):
-            p = [x.strip() for x in line.split('=')]
-            if p[0] == 'QT_LIBINFIX':
+            p = [x.strip() for x in line.split("=")]
+            if p[0] == "QT_LIBINFIX":
                 libinfix = p[1]
 
         return libinfix
@@ -123,19 +123,22 @@ class sip_build_ext(build_ext):
     def _is_qt_framework(self, build_cmd):
         """Is the Qt a framework?"""
         return os.path.exists(
-            os.path.join(
-                self._get_qt_library_dir(build_cmd), 'QtCore.framework'))
+            os.path.join(self._get_qt_library_dir(build_cmd), "QtCore.framework")
+        )
 
     def _get_cpp_includes(self, build_cmd):
         """Get list of include directories to add."""
         inc_dir = self._get_qt_inc_dir(build_cmd)
         incdirs = [inc_dir]
-        for mod in ('QtCore', 'QtGui', 'QtWidgets', 'QtXml'):
+        for mod in ("QtCore", "QtGui", "QtWidgets", "QtXml"):
             if self._is_qt_framework(build_cmd):
                 incdirs.append(
                     os.path.join(
                         self._get_qt_library_dir(build_cmd),
-                        mod+'.framework', 'Headers') )
+                        mod + ".framework",
+                        "Headers",
+                    )
+                )
             else:
                 incdirs.append(os.path.join(inc_dir, mod))
         return incdirs
@@ -146,7 +149,7 @@ class sip_build_ext(build_ext):
         if not self.extensions:
             return
 
-        build_cmd = self.get_finalized_command('build_ext')
+        build_cmd = self.get_finalized_command("build_ext")
 
         # add directory of input files as include path
         indirs = list(set([os.path.dirname(x) for x in sources]))
@@ -157,40 +160,46 @@ class sip_build_ext(build_ext):
         libinfix = self._get_qt_libinfix(build_cmd)
 
         # link against libraries
-        if extension.language == 'c++':
+        if extension.language == "c++":
             extension.include_dirs += self._get_cpp_includes(build_cmd)
             lib_dir = self._get_qt_library_dir(build_cmd)
             if self._is_qt_framework(build_cmd):
                 # Mac OS framework
                 extension.extra_link_args = [
-                    '-F', os.path.join(lib_dir),
-                    '-framework', 'QtGui'+libinfix,
-                    '-framework', 'QtCore'+libinfix,
-                    '-framework', 'QtXml'+libinfix,
-                    '-framework', 'QtWidgets'+libinfix,
-                    '-Wl,-rpath,@executable_path/Frameworks',
-                    '-Wl,-rpath,' + lib_dir,
+                    "-F",
+                    os.path.join(lib_dir),
+                    "-framework",
+                    "QtGui" + libinfix,
+                    "-framework",
+                    "QtCore" + libinfix,
+                    "-framework",
+                    "QtXml" + libinfix,
+                    "-framework",
+                    "QtWidgets" + libinfix,
+                    "-Wl,-rpath,@executable_path/Frameworks",
+                    "-Wl,-rpath," + lib_dir,
                 ]
                 extension.extra_compile_args = [
-                    '-F', lib_dir,
-                    '-std=c++17',
+                    "-F",
+                    lib_dir,
+                    "-std=c++17",
                 ]
             else:
                 extension.libraries = [
-                    'Qt6Gui'+libinfix,
-                    'Qt6Core'+libinfix,
-                    'Qt6Xml'+libinfix,
-                    'Qt6Widgets'+libinfix,
+                    "Qt6Gui" + libinfix,
+                    "Qt6Core" + libinfix,
+                    "Qt6Xml" + libinfix,
+                    "Qt6Widgets" + libinfix,
                 ]
             extension.library_dirs = [lib_dir]
 
             # may cause problems with compilers which don't allow this
-            if self.compiler.compiler_type == 'unix':
-                extension.extra_compile_args.append('-std=c++17')
-            elif self.compiler.compiler_type == 'msvc':
-                extension.extra_compile_args.append('/permissive-')
-                extension.extra_compile_args.append('/Zc:__cplusplus')
-                extension.extra_compile_args.append('/std:c++17')
+            if self.compiler.compiler_type == "unix":
+                extension.extra_compile_args.append("-std=c++17")
+            elif self.compiler.compiler_type == "msvc":
+                extension.extra_compile_args.append("/permissive-")
+                extension.extra_compile_args.append("/Zc:__cplusplus")
+                extension.extra_compile_args.append("/std:c++17")
 
         depends = extension.depends
 
@@ -198,7 +207,7 @@ class sip_build_ext(build_ext):
         # since the main .sip files can only depend on additional .sip
         # files. For instance, if a .h changes, there is no need to
         # run sip again.
-        depends = [f for f in depends if os.path.splitext(f)[1] == '.sip']
+        depends = [f for f in depends if os.path.splitext(f)[1] == ".sip"]
 
         # Create the temporary directory if it does not exist already
         if not os.path.isdir(self.build_temp):
@@ -206,21 +215,20 @@ class sip_build_ext(build_ext):
 
         # Collect the names of the source (.sip) files
         sip_sources = []
-        sip_sources = [source for source in sources if source.endswith('.sip')]
-        other_sources = [
-            source for source in sources if not source.endswith('.sip')]
+        sip_sources = [source for source in sources if source.endswith(".sip")]
+        other_sources = [source for source in sources if not source.endswith(".sip")]
         generated_sources = []
 
         for sip in sip_sources:
             sip_basename = os.path.basename(sip)[:-4]
-            sip_builddir = os.path.join(self.build_temp, 'sip-' + sip_basename)
+            sip_builddir = os.path.join(self.build_temp, "sip-" + sip_basename)
             if not os.path.exists(sip_builddir) or self.force:
                 os.makedirs(sip_builddir, exist_ok=True)
                 self._sip_compile(sip, sip_builddir)
 
             # files get put in sip_builddir + modulename
             modulename = os.path.splitext(os.path.basename(sip))[0]
-            dirname = os.path.join(sip_builddir, 'output', modulename)
+            dirname = os.path.join(sip_builddir, "output", modulename)
             if not os.path.exists(dirname) or self.force:
                 os.makedirs(dirname, exist_ok=True)
 
@@ -237,34 +245,35 @@ class sip_build_ext(build_ext):
     def _sip_compile(self, source, sip_builddir):
         """Compile sip file to sources."""
 
-        pyqt6_include_dir = os.path.join(
-            get_path('platlib'), 'PyQt6', 'bindings')
+        pyqt6_include_dir = os.path.join(get_path("platlib"), "PyQt6", "bindings")
         if not os.path.isdir(pyqt6_include_dir):
             # debian doesn't put the files in platlib
             import PyQt6
+
             pyqt6_include_dir = os.path.join(
-                os.path.dirname(PyQt6.__file__), 'bindings')
+                os.path.dirname(PyQt6.__file__), "bindings"
+            )
             if not os.path.isdir(pyqt6_include_dir):
-                raise RuntimeError('Could not find PyQt6 bindings directory')
+                raise RuntimeError("Could not find PyQt6 bindings directory")
 
-        pyqt6_toml = os.path.join(pyqt6_include_dir, 'QtCore', 'QtCore.toml')
+        pyqt6_toml = os.path.join(pyqt6_include_dir, "QtCore", "QtCore.toml")
 
-        with open(pyqt6_toml, 'rb') as fin:
+        with open(pyqt6_toml, "rb") as fin:
             pyqt6_cfg = tomllib.load(fin)
-        abi_version = pyqt6_cfg.get('sip-abi-version')
+        abi_version = pyqt6_cfg.get("sip-abi-version")
 
         modulename = os.path.splitext(os.path.basename(source))[0]
         srcdir = os.path.abspath(os.path.dirname(source))
 
         # location of sip output files
-        output_dir = os.path.abspath(os.path.join(sip_builddir, 'output'))
+        output_dir = os.path.abspath(os.path.join(sip_builddir, "output"))
         os.makedirs(output_dir)
 
         def toml_esc(s):
-            s = s.replace("\\", "\\\\").replace('"', r'\"')
-            return '"'+s+'"'
+            s = s.replace("\\", "\\\\").replace('"', r"\"")
+            return '"' + s + '"'
 
-        toml_text=f'''
+        toml_text = f'''
 [build-system]
 requires=["sip >= 6.8, <7"]
 build-backend="sipbuild.api"
@@ -284,18 +293,18 @@ pep484-pyi=false
 protected-is-public=false
 '''
 
-        pyproject_fname = os.path.join(sip_builddir, 'pyproject.toml')
-        with open(pyproject_fname, 'w') as fout:
+        pyproject_fname = os.path.join(sip_builddir, "pyproject.toml")
+        with open(pyproject_fname, "w") as fout:
             fout.write(toml_text)
 
         # generate the source files for the bindings
-        build_cmd = shutil.which('sip-build')
+        build_cmd = shutil.which("sip-build")
         if not build_cmd:
-            raise RuntimeError('Could not find sip-build command on PATH')
-        subprocess.check_call([build_cmd, '--no-compile'], cwd=sip_builddir)
+            raise RuntimeError("Could not find sip-build command on PATH")
+        subprocess.check_call([build_cmd, "--no-compile"], cwd=sip_builddir)
 
         # put sip header in correct location
         shutil.copyfile(
-            os.path.join(output_dir, 'sip.h'),
-            os.path.join(output_dir, modulename, 'sip.h')
+            os.path.join(output_dir, "sip.h"),
+            os.path.join(output_dir, modulename, "sip.h"),
         )

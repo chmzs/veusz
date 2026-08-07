@@ -39,17 +39,20 @@ from .. import datasets
 from .. import plugins
 from .. import qtall as qt
 
+
 def _(text, disambiguation=None, context="Operations"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 ###############################################################################
 # Setting operations
+
 
 class Operation:
     """Root class for operations."""
 
-    descr = 'REPLACE THIS'
+    descr = "REPLACE THIS"
 
     def do(self, document):
         """Apply operation to document."""
@@ -57,10 +60,11 @@ class Operation:
     def undo(self, document):
         """Undo operation."""
 
+
 class OperationSettingSet(Operation):
     """Set a variable to a value."""
 
-    descr = _('change setting')
+    descr = _("change setting")
 
     def __init__(self, setting, value):
         """Set the setting to value.
@@ -87,14 +91,13 @@ class OperationSettingSet(Operation):
         setting = document.resolveSettingPath(None, self.settingpath)
         setting.set(self.oldvalue)
 
+
 class OperationSettingPropagate(Operation):
     """Propagate setting to other widgets."""
 
-    descr = _('propagate setting')
+    descr = _("propagate setting")
 
-    def __init__(self, setting, widgetname = None, root = None,
-                 maxlevels = -1):
-
+    def __init__(self, setting, widgetname=None, root=None, maxlevels=-1):
         """Take the setting given, and propagate it to other widgets,
         according to the parameters here.
 
@@ -133,8 +136,9 @@ class OperationSettingPropagate(Operation):
 
         # get a list of matching widgets
         widgetlist = []
-        self._recursiveGet(root, self.widgetname, self.widgettype, widgetlist,
-                           self.maxlevels)
+        self._recursiveGet(
+            root, self.widgetname, self.widgettype, widgetlist, self.maxlevels
+        )
 
         self.restorevals = {}
         # set the settings for the widgets
@@ -163,24 +167,27 @@ class OperationSettingPropagate(Operation):
         """
 
         if maxlevels != 0:
-
             # if levels is not zero, add the children of this root
             newmaxlevels = maxlevels - 1
             for w in root.children:
-                if ( (w.name == name or name is None) and
-                     (w.typename == typename or typename is None) ):
+                if (w.name == name or name is None) and (
+                    w.typename == typename or typename is None
+                ):
                     outlist.append(w)
 
                 OperationSettingPropagate._recursiveGet(
-                    w, name, typename, outlist, newmaxlevels)
+                    w, name, typename, outlist, newmaxlevels
+                )
+
 
 ###############################################################################
 # Widget operations
 
+
 class OperationWidgetRename(Operation):
     """Rename widget."""
 
-    descr = _('rename')
+    descr = _("rename")
 
     def __init__(self, widget, newname):
         """Rename the widget to newname."""
@@ -202,10 +209,11 @@ class OperationWidgetRename(Operation):
         widget = document.resolveWidgetPath(None, self.newpath)
         widget.rename(self.oldname)
 
+
 class OperationWidgetDelete(Operation):
     """Delete widget."""
 
-    descr = _('delete')
+    descr = _("delete")
 
     def __init__(self, widget):
         """Delete the widget."""
@@ -229,10 +237,11 @@ class OperationWidgetDelete(Operation):
         self.oldwidget.parent = oldparent
         oldparent.addChild(self.oldwidget, index=self.oldindex)
 
+
 class OperationWidgetsDelete(Operation):
     """Delete mutliple widget."""
 
-    descr = _('delete')
+    descr = _("delete")
 
     def __init__(self, widgets):
         """Delete the widget."""
@@ -249,7 +258,7 @@ class OperationWidgetsDelete(Operation):
         while i < len(widgetpaths):
             wp = widgetpaths[i]
             for j in range(i):
-                if wp[:len(widgetpaths[j])+1] == widgetpaths[j]+'/':
+                if wp[: len(widgetpaths[j]) + 1] == widgetpaths[j] + "/":
                     del widgetpaths[i]
                     break
             else:
@@ -261,24 +270,25 @@ class OperationWidgetsDelete(Operation):
 
         # delete each widget keeping track of details
         for path in widgetpaths:
-            self.oldwidgets.append( document.resolveWidgetPath(None, path) )
+            self.oldwidgets.append(document.resolveWidgetPath(None, path))
             oldparent = self.oldwidgets[-1].parent
-            self.oldparentpaths.append( oldparent.path )
-            self.oldindexes.append( oldparent.children.index(self.oldwidgets[-1]) )
+            self.oldparentpaths.append(oldparent.path)
+            self.oldindexes.append(oldparent.children.index(self.oldwidgets[-1]))
             oldparent.removeChild(self.oldwidgets[-1].name)
 
     def undo(self, document):
         """Restore deleted widget."""
 
         # put back widgets in reverse order so that indexes are corrent
-        for i in range(len(self.oldwidgets)-1,-1,-1):
+        for i in range(len(self.oldwidgets) - 1, -1, -1):
             oldparent = document.resolveWidgetPath(None, self.oldparentpaths[i])
             oldparent.addChild(self.oldwidgets[i], index=self.oldindexes[i])
+
 
 class OperationWidgetMoveUpDown(Operation):
     """Move a widget up or down in the hierarchy."""
 
-    descr = _('move')
+    descr = _("move")
 
     def __init__(self, widget, direction):
         """Move the widget specified up or down in the hierarchy.
@@ -304,10 +314,11 @@ class OperationWidgetMoveUpDown(Operation):
             parent = widget.parent
             parent.moveChild(widget, -self.direction)
 
+
 class OperationWidgetMove(Operation):
     """Move a widget arbitrarily in the hierarchy."""
 
-    descr = _('move')
+    descr = _("move")
 
     def __init__(self, oldchildpath, newparentpath, newindex):
         """Move widget with path oldchildpath to be a child of
@@ -332,14 +343,14 @@ class OperationWidgetMove(Operation):
 
         if oldparent is newparent:
             # moving within same parent
-            self.movemode = 'sameparent'
+            self.movemode = "sameparent"
             del oldparent.children[self.oldchildindex]
             if self.newindex > self.oldchildindex:
                 self.newindex -= 1
             oldparent.children.insert(self.newindex, child)
         else:
             # moving to different parent
-            self.movemode = 'differentparent'
+            self.movemode = "differentparent"
 
             # remove from old parent
             del oldparent.children[self.oldchildindex]
@@ -375,13 +386,13 @@ class OperationWidgetMove(Operation):
         if self.oldname is not None:
             child.name = self.oldname
 
+
 class OperationWidgetAdd(Operation):
     """Add a widget of specified type to parent."""
 
-    descr = _('add')
+    descr = _("add")
 
-    def __init__(self, parent, type, autoadd=True, name=None,
-                 index=-1, **defaultvals):
+    def __init__(self, parent, type, autoadd=True, name=None, index=-1, **defaultvals):
         """Add a widget of type given
 
         parent is the parent widget
@@ -407,11 +418,14 @@ class OperationWidgetAdd(Operation):
 
         parent = document.resolveWidgetPath(None, self.parentpath)
         w = widgetfactory.thefactory.makeWidget(
-            self.wtype, parent, document,
+            self.wtype,
+            parent,
+            document,
             autoadd=self.autoadd,
             name=self.name,
             index=self.index,
-            **self.defaultvals)
+            **self.defaultvals,
+        )
         self.createdname = w.name
         return w
 
@@ -421,13 +435,15 @@ class OperationWidgetAdd(Operation):
         parent = document.resolveWidgetPath(None, self.parentpath)
         parent.removeChild(self.createdname)
 
+
 ###############################################################################
 # Dataset operations
+
 
 class OperationDatasetSet(Operation):
     """Set a dataset to that specified."""
 
-    descr = _('set dataset')
+    descr = _("set dataset")
 
     def __init__(self, datasetname, dataset):
         self.datasetname = datasetname
@@ -447,10 +463,11 @@ class OperationDatasetSet(Operation):
         else:
             document.setData(self.datasetname, self.olddata)
 
+
 class OperationDatasetDelete(Operation):
     """Delete a dateset."""
 
-    descr = _('delete dataset')
+    descr = _("delete dataset")
 
     def __init__(self, datasetname):
         self.datasetname = datasetname
@@ -464,13 +481,14 @@ class OperationDatasetDelete(Operation):
         """Put dataset back"""
         document.setData(self.datasetname, self.olddata)
 
+
 class OperationDatasetRename(Operation):
     """Rename the dataset.
 
     Assumes newname doesn't already exist
     """
 
-    descr = _('rename dataset')
+    descr = _("rename dataset")
 
     def __init__(self, oldname, newname):
         self.oldname = oldname
@@ -512,13 +530,14 @@ class OperationDatasetRename(Operation):
 
         document.renameDataset(self.newname, self.oldname)
 
+
 class OperationDatasetDuplicate(Operation):
     """Duplicate a dataset.
 
     Assumes duplicate name doesn't already exist
     """
 
-    descr = _('duplicate dataset')
+    descr = _("duplicate dataset")
 
     def __init__(self, origname, duplname):
         self.origname = origname
@@ -540,9 +559,11 @@ class OperationDatasetDuplicate(Operation):
         else:
             document.setData(self.duplname, self.olddata)
 
+
 class OperationDatasetUnlinkFile(Operation):
     """Remove association between dataset and file."""
-    descr = _('unlink dataset')
+
+    descr = _("unlink dataset")
 
     def __init__(self, datasetname):
         self.datasetname = datasetname
@@ -556,11 +577,11 @@ class OperationDatasetUnlinkFile(Operation):
         dataset = document.data[self.datasetname]
         dataset.linked = self.oldfilelink
 
-class OperationDatasetUnlinkRelation(Operation):
-    """Remove association between dataset and another dataset.
-    """
 
-    descr = _('unlink dataset')
+class OperationDatasetUnlinkRelation(Operation):
+    """Remove association between dataset and another dataset."""
+
+    descr = _("unlink dataset")
 
     def __init__(self, datasetname):
         self.datasetname = datasetname
@@ -573,6 +594,7 @@ class OperationDatasetUnlinkRelation(Operation):
 
     def undo(self, document):
         document.setData(self.datasetname, self.olddataset)
+
 
 class OperationDatasetCreate(Operation):
     """Create dataset base class."""
@@ -594,10 +616,11 @@ class OperationDatasetCreate(Operation):
         if self.olddataset is not None:
             document.setData(self.datasetname, self.olddataset)
 
+
 class OperationDatasetCreateRange(OperationDatasetCreate):
     """Create a dataset in a specfied range."""
 
-    descr = _('create dataset from range')
+    descr = _("create dataset from range")
 
     def __init__(self, datasetname, numsteps, parts, linked=False):
         """Create a dataset with numsteps values.
@@ -614,31 +637,32 @@ class OperationDatasetCreateRange(OperationDatasetCreate):
         """Create dataset using range."""
 
         OperationDatasetCreate.do(self, document)
-        data = self.parts['data']
-        serr = self.parts.get('serr', None)
-        perr = self.parts.get('perr', None)
-        nerr = self.parts.get('nerr', None)
+        data = self.parts["data"]
+        serr = self.parts.get("serr", None)
+        perr = self.parts.get("perr", None)
+        nerr = self.parts.get("nerr", None)
 
-        ds = datasets.DatasetRange(
-            self.numsteps, data, serr=serr,
-            perr=perr, nerr=nerr)
+        ds = datasets.DatasetRange(self.numsteps, data, serr=serr, perr=perr, nerr=nerr)
         if not self.linked:
             # copy these values if we don't want to link
             ds = datasets.Dataset(
-                data=ds.data, serr=ds.serr,
-                perr=ds.perr, nerr=ds.nerr)
+                data=ds.data, serr=ds.serr, perr=ds.perr, nerr=ds.nerr
+            )
 
         document.setData(self.datasetname, ds)
         return ds
 
+
 class CreateDatasetException(Exception):
     """Thrown by dataset creation routines."""
+
     pass
+
 
 class OperationDatasetCreateParameteric(OperationDatasetCreate):
     """Create a dataset using expressions dependent on t."""
 
-    descr = _('create parametric dataset')
+    descr = _("create parametric dataset")
 
     def __init__(self, datasetname, t0, t1, numsteps, parts, linked=False):
         """Create a parametric dataset.
@@ -659,21 +683,22 @@ class OperationDatasetCreateParameteric(OperationDatasetCreate):
         OperationDatasetCreate.do(self, document)
 
         p = self.parts.copy()
-        p['parametric'] = (self.t0, self.t1, self.numsteps)
+        p["parametric"] = (self.t0, self.t1, self.numsteps)
         ds = datasets.DatasetExpression(**p)
         ds.document = document
 
         if not self.linked:
             # copy these values if we don't want to link
             ds = datasets.Dataset(
-                data=ds.data, serr=ds.serr,
-                perr=ds.perr, nerr=ds.nerr)
+                data=ds.data, serr=ds.serr, perr=ds.perr, nerr=ds.nerr
+            )
 
         document.setData(self.datasetname, ds)
         return ds
 
+
 class OperationDatasetCreateExpression(OperationDatasetCreate):
-    descr = _('create dataset from expression')
+    descr = _("create dataset from expression")
 
     def __init__(self, datasetname, parts, link, parametric=None):
         """Create a dataset from existing dataset using expressions.
@@ -698,7 +723,7 @@ class OperationDatasetCreateExpression(OperationDatasetCreate):
         """
 
         p = self.parts.copy()
-        p['parametric'] = self.parametric
+        p["parametric"] = self.parametric
         ds = datasets.DatasetExpression(**p)
         ds.document = document
 
@@ -709,27 +734,34 @@ class OperationDatasetCreateExpression(OperationDatasetCreate):
         OperationDatasetCreate.do(self, document)
 
         p = self.parts.copy()
-        p['parametric'] = self.parametric
+        p["parametric"] = self.parametric
         ds = datasets.DatasetExpression(**p)
         ds.document = document
 
         if not self.link:
             # copy these values if we don't want to link
             ds = datasets.Dataset(
-                data=ds.data, serr=ds.serr,
-                perr=ds.perr, nerr=ds.nerr)
+                data=ds.data, serr=ds.serr, perr=ds.perr, nerr=ds.nerr
+            )
 
         document.setData(self.datasetname, ds)
         return ds
+
 
 class OperationDatasetsFilter(Operation):
     """Operation to filter datasets."""
 
     descr = _("filter datasets")
 
-    def __init__(self, inexpr, indatasets,
-                 prefix="", suffix="",
-                 invert=False, replaceblanks=False):
+    def __init__(
+        self,
+        inexpr,
+        indatasets,
+        prefix="",
+        suffix="",
+        invert=False,
+        replaceblanks=False,
+    ):
         """Initialise operation:
         inexpr: input expression
         indatasets: list of dataset names
@@ -750,9 +782,13 @@ class OperationDatasetsFilter(Operation):
     def makeGen(self):
         """Return generator object."""
         return datasets.DatasetFilterGenerator(
-            self.inexpr, self.indatasets,
-            prefix=self.prefix, suffix=self.suffix,
-            invert=self.invert, replaceblanks=self.replaceblanks)
+            self.inexpr,
+            self.indatasets,
+            prefix=self.prefix,
+            suffix=self.suffix,
+            invert=self.invert,
+            replaceblanks=self.replaceblanks,
+        )
 
     def check(self, doc):
         """Check the filter is ok.
@@ -784,6 +820,7 @@ class OperationDatasetsFilter(Operation):
             else:
                 doc.setData(name, val)
 
+
 class OperationDataset2DBase(Operation):
     """Operation as base for 2D dataset creation operations."""
 
@@ -812,9 +849,13 @@ class OperationDataset2DBase(Operation):
             # unlink if necessary
             ds = datasets.Dataset2D(
                 ds.data,
-                xrange=ds.xrange, yrange=ds.yrange,
-                xedge=ds.xedge, yedge=ds.yedge,
-                xcent=ds.xcent, ycent=ds.ycent)
+                xrange=ds.xrange,
+                yrange=ds.yrange,
+                xedge=ds.xedge,
+                yedge=ds.yedge,
+                xcent=ds.xcent,
+                ycent=ds.ycent,
+            )
         document.setData(self.datasetname, ds)
         return ds
 
@@ -824,8 +865,9 @@ class OperationDataset2DBase(Operation):
         if self.olddataset:
             document.setData(self.datasetname, self.olddataset)
 
+
 class OperationDataset2DCreateExpressionXYZ(OperationDataset2DBase):
-    descr = _('create 2D dataset from x, y and z expressions')
+    descr = _("create 2D dataset from x, y and z expressions")
 
     def __init__(self, datasetname, xexpr, yexpr, zexpr, link):
         OperationDataset2DBase.__init__(self, datasetname, link)
@@ -834,11 +876,11 @@ class OperationDataset2DCreateExpressionXYZ(OperationDataset2DBase):
         self.zexpr = zexpr
 
     def makeDSClass(self):
-        return datasets.Dataset2DXYZExpression(
-            self.xexpr, self.yexpr, self.zexpr)
+        return datasets.Dataset2DXYZExpression(self.xexpr, self.yexpr, self.zexpr)
+
 
 class OperationDataset2DCreateExpression(OperationDataset2DBase):
-    descr = _('create 2D dataset from expression')
+    descr = _("create 2D dataset from expression")
 
     def __init__(self, datasetname, expr, link):
         OperationDataset2DBase.__init__(self, datasetname, link)
@@ -847,8 +889,9 @@ class OperationDataset2DCreateExpression(OperationDataset2DBase):
     def makeDSClass(self):
         return datasets.Dataset2DExpression(self.expr)
 
+
 class OperationDataset2DXYFunc(OperationDataset2DBase):
-    descr = _('create 2D dataset from function of x and y')
+    descr = _("create 2D dataset from function of x and y")
 
     def __init__(self, datasetname, xstep, ystep, expr, link):
         """Create 2d dataset:
@@ -866,10 +909,11 @@ class OperationDataset2DXYFunc(OperationDataset2DBase):
     def makeDSClass(self):
         return datasets.Dataset2DXYFunc(self.xstep, self.ystep, self.expr)
 
+
 class OperationDatasetUnlinkByFile(Operation):
     """Unlink all datasets associated with file."""
 
-    descr = _('unlink datasets')
+    descr = _("unlink datasets")
 
     def __init__(self, filename):
         """Unlink all datasets associated with filename."""
@@ -891,10 +935,11 @@ class OperationDatasetUnlinkByFile(Operation):
             except KeyError:
                 pass
 
+
 class OperationDatasetDeleteByFile(Operation):
     """Delete all datasets associated with file."""
 
-    descr = _('delete datasets')
+    descr = _("delete datasets")
 
     def __init__(self, filename):
         """Delete all datasets associated with filename."""
@@ -913,13 +958,15 @@ class OperationDatasetDeleteByFile(Operation):
         for name, ds in self.olddatasets.items():
             document.setData(name, ds)
 
+
 ###############################################################################
 # Import datasets
+
 
 class OperationDataTag(Operation):
     """Add a tag to a list of datasets."""
 
-    descr = _('add dataset tags')
+    descr = _("add dataset tags")
 
     def __init__(self, tag, datasetnames):
         """Add tag to datasets listed."""
@@ -940,10 +987,11 @@ class OperationDataTag(Operation):
         for name in self.removetags:
             document.data[name].tags.remove(self.tag)
 
+
 class OperationDataUntag(Operation):
     """Add a tag to a list of datasets."""
 
-    descr = _('remove dataset tags')
+    descr = _("remove dataset tags")
 
     def __init__(self, tag, datasetnames):
         """Remove tag to datasets listed."""
@@ -960,13 +1008,15 @@ class OperationDataUntag(Operation):
         for name in self.datasetnames:
             document.data[name].tags.add(self.tag)
 
+
 ###############################################################################
 # Alter dataset
+
 
 class OperationDatasetAddColumn(Operation):
     """Add a column to a dataset, blanked to zero."""
 
-    descr = _('add dataset column')
+    descr = _("add dataset column")
 
     def __init__(self, datasetname, columnname):
         """Initialise column columnname in datasetname.
@@ -981,8 +1031,7 @@ class OperationDatasetAddColumn(Operation):
         ds = document.data[self.datasetname]
         datacol = ds.data
         try:
-            setattr(ds, self.columnname,
-                    N.zeros(datacol.shape, dtype='float64'))
+            setattr(ds, self.columnname, N.zeros(datacol.shape, dtype="float64"))
         except AttributeError:
             raise RuntimeError("Invalid column name for dataset")
         document.setData(self.datasetname, ds)
@@ -993,10 +1042,11 @@ class OperationDatasetAddColumn(Operation):
         setattr(ds, self.columnname, None)
         document.setData(self.datasetname, ds)
 
+
 class OperationDatasetSetVal(Operation):
     """Set a value in the dataset."""
 
-    descr = _('change dataset value')
+    descr = _("change dataset value")
 
     def __init__(self, datasetname, columnname, row, val):
         """Set row in column columnname to val."""
@@ -1020,10 +1070,11 @@ class OperationDatasetSetVal(Operation):
         datacol[self.row] = self.oldval
         ds.changeValues(self.columnname, datacol)
 
+
 class OperationDatasetSetVal2D(Operation):
     """Set a value in a 2D dataset."""
 
-    descr = _('change 2D dataset value')
+    descr = _("change 2D dataset value")
 
     def __init__(self, datasetname, row, col, val):
         """Set row in column columnname to val."""
@@ -1045,10 +1096,11 @@ class OperationDatasetSetVal2D(Operation):
         ds.data[self.row, self.col] = self.oldval
         document.modifiedData(ds)
 
+
 class OperationDatasetDeleteRow(Operation):
     """Delete a row or several in the dataset."""
 
-    descr = _('delete dataset row')
+    descr = _("delete dataset row")
 
     def __init__(self, datasetname, row, numrows=1):
         """Delete a row in a dataset."""
@@ -1066,10 +1118,11 @@ class OperationDatasetDeleteRow(Operation):
         ds = document.data[self.datasetname]
         ds.insertRows(self.row, self.numrows, self.saveddata)
 
+
 class OperationDatasetInsertRow(Operation):
     """Insert a row or several in the dataset."""
 
-    descr = _('insert dataset row')
+    descr = _("insert dataset row")
 
     def __init__(self, datasetname, row, numrows=1):
         """Delete a row in a dataset."""
@@ -1087,22 +1140,24 @@ class OperationDatasetInsertRow(Operation):
         ds = document.data[self.datasetname]
         ds.deleteRows(self.row, self.numrows)
 
+
 ###############################################################################
 # Custom setting operations
+
 
 class OperationSetCustom(Operation):
     """Set custom objects, such as constants."""
 
-    descr = _('set a custom definition')
+    descr = _("set a custom definition")
 
     # translate ctype below into attribute of evaluate
     type_to_attr = {
-        'definition': 'def_definitions',
-        'function':   'def_definitions',
-        'constant':   'def_definitions',
-        'import':     'def_imports',
-        'color':      'def_colors',
-        'colormap':   'def_colormaps',
+        "definition": "def_definitions",
+        "function": "def_definitions",
+        "constant": "def_definitions",
+        "import": "def_imports",
+        "color": "def_colors",
+        "colormap": "def_colormaps",
     }
 
     def __init__(self, ctype, vals):
@@ -1129,13 +1184,15 @@ class OperationSetCustom(Operation):
         self._getlist(document)[:] = self.oldval
         document.evaluate.update()
 
+
 ###############################################################################
 # Misc operations
+
 
 class OperationMultiple(Operation):
     """Multiple operations batched into one."""
 
-    def __init__(self, operations, descr='change'):
+    def __init__(self, operations, descr="change"):
         """A batch operation made up of the operations in list.
 
         Optional argument descr gives a description of the combined operation
@@ -1160,10 +1217,11 @@ class OperationMultiple(Operation):
         for op in self.operations[::-1]:
             op.undo(document)
 
+
 class OperationLoadStyleSheet(OperationMultiple):
     """An operation to load a stylesheet."""
 
-    descr = _('load stylesheet')
+    descr = _("load stylesheet")
 
     def __init__(self, filename):
         """Load stylesheet with filename."""
@@ -1181,15 +1239,16 @@ class OperationLoadStyleSheet(OperationMultiple):
         # fire up interpreter to read file
         interpreter = commandinterpreter.CommandInterpreter(document)
         try:
-            interpreter.runFile( io.open(
-                self.filename, 'r', encoding='utf8') )
+            interpreter.runFile(io.open(self.filename, "r", encoding="utf8"))
         except:
             document.batchHistory(None)
             raise
         document.batchHistory(None)
 
+
 class OperationLoadCustom(OperationLoadStyleSheet):
-    descr = _('load custom definitions')
+    descr = _("load custom definitions")
+
 
 class OperationToolsPlugin(OperationMultiple):
     """An operation to represent what a tools plugin does."""
@@ -1218,6 +1277,7 @@ class OperationToolsPlugin(OperationMultiple):
             raise
         document.batchHistory(None)
 
+
 class OperationDatasetPlugin(Operation):
     """An operation to activate a dataset plugin."""
 
@@ -1230,14 +1290,14 @@ class OperationDatasetPlugin(Operation):
         self.raiseerrors = raiseerrors
 
     def do(self, document):
-        """Use the plugin.
-        """
+        """Use the plugin."""
 
         self.datasetnames = []
         self.olddata = {}
 
         manager = self.manager = plugins.DatasetPluginManager(
-            self.plugin, document, self.fields, raiseerrors=self.raiseerrors)
+            self.plugin, document, self.fields, raiseerrors=self.raiseerrors
+        )
 
         names = self.datasetnames = list(manager.datasetnames)
 
@@ -1274,15 +1334,23 @@ class OperationDatasetPlugin(Operation):
         for name, ds in self.olddata.items():
             document.setData(name, ds)
 
+
 class OperationDatasetHistogram(Operation):
     """Operation to make histogram from data."""
 
     descr = _("make histogram")
 
-    def __init__(self, expr, outposns, outvalues,
-                 binparams=None, binmanual=None, method='counts',
-                 cumulative = 'none',
-                 errors=False):
+    def __init__(
+        self,
+        expr,
+        outposns,
+        outvalues,
+        binparams=None,
+        binmanual=None,
+        method="counts",
+        cumulative="none",
+        errors=False,
+    ):
         """
         inexpr = input dataset expression
         outposns = name of dataset for bin positions
@@ -1307,19 +1375,22 @@ class OperationDatasetHistogram(Operation):
         """Create histogram datasets."""
 
         gen = datasets.DatasetHistoGenerator(
-            document, self.expr, binparams=self.binparams,
+            document,
+            self.expr,
+            binparams=self.binparams,
             binmanual=self.binmanual,
             method=self.method,
             cumulative=self.cumulative,
-            errors=self.errors)
+            errors=self.errors,
+        )
 
         self.oldposnsds = self.oldvaluesds = None
 
-        if self.outvalues != '':
+        if self.outvalues != "":
             self.oldvaluesds = document.data.get(self.outvalues, None)
             document.setData(self.outvalues, gen.generateValueDataset())
 
-        if self.outposns != '':
+        if self.outposns != "":
             self.oldposnsds = document.data.get(self.outposns, None)
             document.setData(self.outposns, gen.generateBinDataset())
 
@@ -1327,13 +1398,13 @@ class OperationDatasetHistogram(Operation):
         """Undo creation of datasets."""
 
         if self.oldposnsds is not None:
-            if self.outposns != '':
+            if self.outposns != "":
                 document.setData(self.outposns, self.oldposnsds)
         else:
             document.deleteData(self.outposns)
 
         if self.oldvaluesds is not None:
-            if self.outvalues != '':
+            if self.outvalues != "":
                 document.setData(self.outvalues, self.oldvaluesds)
         else:
             document.deleteData(self.outvalues)

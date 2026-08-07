@@ -4,10 +4,7 @@ Auto-generate PyInstaller spec files for Veusz.
 Analyzes the codebase to determine hidden imports, data files, and binaries.
 """
 
-import os
-import sys
 import ast
-import glob
 from pathlib import Path
 
 VEUSZ_ROOT = Path(__file__).parent.parent
@@ -15,38 +12,64 @@ VEUSZ_PKG = VEUSZ_ROOT / "veuzz" / "veusz"
 SUPPORT_DIR = VEUSZ_ROOT / "support"
 
 # Known patterns
-ICON_EXTS = ('.png', '.svg', '.ico', '.icns')
-UI_EXTS = ('.ui',)
-EXAMPLE_EXTS = ('.vsz', '.dat', '.csv', '.py')
-DOC_FILES = ['VERSION', 'ChangeLog', 'AUTHORS', 'README.md', 'INSTALL.md', 'COPYING']
+ICON_EXTS = (".png", ".svg", ".ico", ".icns")
+UI_EXTS = (".ui",)
+EXAMPLE_EXTS = (".vsz", ".dat", ".csv", ".py")
+DOC_FILES = ["VERSION", "ChangeLog", "AUTHORS", "README.md", "INSTALL.md", "COPYING"]
 
 # Modules that need explicit hidden imports (from common issues)
 KNOWN_HIDDEN_IMPORTS = [
     # h5py
-    'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py._proxy',
+    "h5py.defs",
+    "h5py.utils",
+    "h5py.h5ac",
+    "h5py._proxy",
     # iminuit
-    'iminuit', 'iminuit.latex', 'iminuit.util',
+    "iminuit",
+    "iminuit.latex",
+    "iminuit.util",
     # astropy
-    'astropy.io.fits', 'astropy.table', 'astropy.units', 'astropy.coordinates',
+    "astropy.io.fits",
+    "astropy.table",
+    "astropy.units",
+    "astropy.coordinates",
     # PyQt6
-    'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'PyQt6.QtPrintSupport',
-    'PyQt6.QtSvg', 'PyQt6.QtOpenGLWidgets',
+    "PyQt6.QtCore",
+    "PyQt6.QtGui",
+    "PyQt6.QtWidgets",
+    "PyQt6.QtPrintSupport",
+    "PyQt6.QtSvg",
+    "PyQt6.QtOpenGLWidgets",
     # veusz internal
-    'veusz.helpers.threed',
-    'veusz.helpers.qtmml',
-    'veusz.helpers.recordpaint',
-    'veusz.helpers._nc_cntr',
-    'veusz.helpers.qtloops',
+    "veusz.helpers.threed",
+    "veusz.helpers.qtmml",
+    "veusz.helpers.recordpaint",
+    "veusz.helpers._nc_cntr",
+    "veusz.helpers.qtloops",
 ]
 
 # Qt modules to exclude (reduce size)
 EXCLUDE_QT_MODULES = [
-    'QtWebEngine', 'QtWebEngineCore', 'QtWebEngineWidgets',
-    'QtWebSockets', 'QtQml', 'QtQmlModels', 'QtQuick',
-    'QtDBus', 'QtNetwork', 'QtNfc', 'QtPositioning',
-    'QtRemoteObjects', 'QtScxml', 'QtSensors',
-    'QtSerialPort', 'QtTextToSpeech', 'QtWebChannel',
-    'QtWebView', 'QtCharts', 'QtDataVisualization',
+    "QtWebEngine",
+    "QtWebEngineCore",
+    "QtWebEngineWidgets",
+    "QtWebSockets",
+    "QtQml",
+    "QtQmlModels",
+    "QtQuick",
+    "QtDBus",
+    "QtNetwork",
+    "QtNfc",
+    "QtPositioning",
+    "QtRemoteObjects",
+    "QtScxml",
+    "QtSensors",
+    "QtSerialPort",
+    "QtTextToSpeech",
+    "QtWebChannel",
+    "QtWebView",
+    "QtCharts",
+    "QtDataVisualization",
 ]
 
 
@@ -55,15 +78,15 @@ def find_python_imports(root_dir):
     imports = set()
     for py_file in root_dir.rglob("*.py"):
         try:
-            content = py_file.read_text(encoding='utf-8')
+            content = py_file.read_text(encoding="utf-8")
             tree = ast.parse(content)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        imports.add(alias.name.split('.')[0])
+                        imports.add(alias.name.split(".")[0])
                 elif isinstance(node, ast.ImportFrom):
                     if node.module:
-                        imports.add(node.module.split('.')[0])
+                        imports.add(node.module.split(".")[0])
         except Exception:
             pass
     return imports
@@ -79,16 +102,14 @@ def get_data_files():
             data_glob.append(f)
 
     # Icons
-    data_glob.extend([
-        'icons/*.png', 'icons/*.svg', 'icons/*.ico', 'icons/*.icns'
-    ])
+    data_glob.extend(["icons/*.png", "icons/*.svg", "icons/*.ico", "icons/*.icns"])
 
     # UI files
-    data_glob.append('ui/*.ui')
+    data_glob.append("ui/*.ui")
 
     # Examples
     for ext in EXAMPLE_EXTS:
-        data_glob.append(f'examples/*{ext}')
+        data_glob.append(f"examples/*{ext}")
 
     return data_glob
 
@@ -96,8 +117,8 @@ def get_data_files():
 def get_api_files():
     """API files needed for embedding."""
     return [
-        ('veusz/embed.py', 'veusz/embed.py', 'DATA'),
-        ('veusz/__init__.py', 'veusz/__init__.py', 'DATA'),
+        ("veusz/embed.py", "veusz/embed.py", "DATA"),
+        ("veusz/__init__.py", "veusz/__init__.py", "DATA"),
     ]
 
 
@@ -105,7 +126,7 @@ def generate_windows_spec():
     """Generate Windows PyInstaller spec."""
     icon_path = VEUSZ_ROOT / "icons" / "veusz.ico"
 
-    spec = f'''# -*- mode: python -*-
+    spec = f"""# -*- mode: python -*-
 # Auto-generated Windows PyInstaller spec for Veusz
 # DO NOT EDIT MANUALLY - run python support/generate_pyinstaller_spec.py
 
@@ -161,13 +182,13 @@ coll = COLLECT(
     upx=False,
     name='veusz_main'
 )
-'''
+"""
     return spec
 
 
 def generate_linux_spec():
     """Generate Linux PyInstaller spec."""
-    spec = f'''# -*- mode: python -*-
+    spec = f"""# -*- mode: python -*-
 # Auto-generated Linux PyInstaller spec for Veusz
 # DO NOT EDIT MANUALLY - run python support/generate_pyinstaller_spec.py
 
@@ -245,13 +266,13 @@ print(cmd)
 retn = os.system(cmd)
 if retn != 0:
     raise RuntimeError('tar failed')
-'''
+"""
     return spec
 
 
 def generate_macos_spec():
     """Generate macOS PyInstaller spec."""
-    spec = f'''# -*- mode: python -*-
+    spec = f"""# -*- mode: python -*-
 # Auto-generated macOS PyInstaller spec for Veusz
 # DO NOT EDIT MANUALLY - run python support/generate_pyinstaller_spec.py
 
@@ -364,25 +385,25 @@ app = BUNDLE(
         ]
     }}
 )
-'''
+"""
     return spec
 
 
 def main():
     """Generate all spec files."""
     specs = {
-        'veusz_windows_pyinst.spec': generate_windows_spec(),
-        'veusz_linux_pyinst.spec': generate_linux_spec(),
-        'veusz_mac_pyinst.spec': generate_macos_spec(),
+        "veusz_windows_pyinst.spec": generate_windows_spec(),
+        "veusz_linux_pyinst.spec": generate_linux_spec(),
+        "veusz_mac_pyinst.spec": generate_macos_spec(),
     }
 
     for filename, content in specs.items():
         path = SUPPORT_DIR / filename
-        path.write_text(content, encoding='utf-8')
+        path.write_text(content, encoding="utf-8")
         print(f"Generated {path}")
 
     print("\nDone! Review and test the generated specs.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

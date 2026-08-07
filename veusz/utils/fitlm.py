@@ -25,15 +25,24 @@ Numerical fitting of functions to data.
 import sys
 
 import numpy as N
+
 try:
     import numpy.linalg as NLA
 except:
     import scipy.linalg as NLA
 
-def fitLM(func, params, xvals, yvals, errors,
-          stopdeltalambda = 1e-5,
-          deltaderiv = 1e-5, maxiters = 20, Lambda = 1e-4):
 
+def fitLM(
+    func,
+    params,
+    xvals,
+    yvals,
+    errors,
+    stopdeltalambda=1e-5,
+    deltaderiv=1e-5,
+    maxiters=20,
+    Lambda=1e-4,
+):
     """
     Use Marquardt method as described in Bevington & Robinson to fit data
 
@@ -55,16 +64,16 @@ def fitLM(func, params, xvals, yvals, errors,
     """
 
     # optimisation to avoid computing this all the time
-    inve2 = 1. / errors**2
+    inve2 = 1.0 / errors**2
 
     # work out fit using current parameters
     oldfunc = func(params, xvals)
-    chi2 = ( (oldfunc - yvals)**2 * inve2 ).sum()
+    chi2 = ((oldfunc - yvals) ** 2 * inve2).sum()
 
     # initialise temporary space
-    beta = N.zeros( len(params), dtype='float64' )
-    alpha = N.zeros( (len(params), len(params)), dtype='float64' )
-    derivs = N.zeros( (len(params), len(xvals)), dtype='float64' )
+    beta = N.zeros(len(params), dtype="float64")
+    alpha = N.zeros((len(params), len(params)), dtype="float64")
+    derivs = N.zeros((len(params), len(xvals)), dtype="float64")
 
     done = False
     iters = 0
@@ -75,45 +84,45 @@ def fitLM(func, params, xvals, yvals, errors,
         # also calculate the derivative of the function at each of the points
         # wrt the parameters
 
-        for i in range( len(params) ):
+        for i in range(len(params)):
             params[i] += deltaderiv
             new_func = func(params, xvals)
-            chi2_new = ((new_func - yvals)**2 * inve2).sum()
+            chi2_new = ((new_func - yvals) ** 2 * inve2).sum()
             params[i] -= deltaderiv
 
             beta[i] = chi2_new - chi2
             derivs[i] = new_func - oldfunc
 
         # beta is now dchi2 / dparam
-        beta *= (-0.5 / deltaderiv)
-        derivs *= (1. / deltaderiv)
+        beta *= -0.5 / deltaderiv
+        derivs *= 1.0 / deltaderiv
 
         # calculate alpha matrix
         # FIXME: stupid - must be a better way to avoid this iteration
-        for j in range( len(params) ):
-            for k in range(j+1):
-                v = (derivs[j]*derivs[k] * inve2).sum()
+        for j in range(len(params)):
+            for k in range(j + 1):
+                v = (derivs[j] * derivs[k] * inve2).sum()
                 alpha[j][k] = v
                 alpha[k][j] = v
 
         # twiddle alpha using lambda
-        alpha *= 1. + N.identity(len(params), dtype='float64')*Lambda
+        alpha *= 1.0 + N.identity(len(params), dtype="float64") * Lambda
 
         # now work out deltas on parameters to get better fit
         deltas = NLA.solve(alpha, beta)
 
         # new solution
-        new_params = params+deltas
+        new_params = params + deltas
         new_func = func(new_params, xvals)
-        new_chi2 = ( (new_func - yvals)**2 * inve2 ).sum()
+        new_chi2 = ((new_func - yvals) ** 2 * inve2).sum()
 
         if N.isnan(new_chi2):
-            sys.stderr.write('Chi2 is NaN. Aborting fit.\n')
+            sys.stderr.write("Chi2 is NaN. Aborting fit.\n")
             break
 
         if new_chi2 > chi2:
             # if solution is worse, increase lambda
-            Lambda *= 10.
+            Lambda *= 10.0
         else:
             # better fit, so we accept this solution
 
@@ -128,7 +137,7 @@ def fitLM(func, params, xvals, yvals, errors,
             # format new parameters
             iters += 1
             p = [iters, chi2] + params.tolist()
-            str = ("%5i " + "%8g " * (len(params)+1)) % tuple(p)
+            str = ("%5i " + "%8g " * (len(params) + 1)) % tuple(p)
             print(str)
 
     if not done:

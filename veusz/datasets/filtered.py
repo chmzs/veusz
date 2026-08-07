@@ -25,13 +25,20 @@ from .base import DatasetBase
 from .oned import Dataset
 from .expression import evalDatasetExpression
 
+
 class DatasetFilterGenerator:
     """This object is shared by all DatasetFiltered datasets, to calculate
     the filter expression."""
 
-    def __init__(self, inexpr, indatasets,
-                 prefix="", suffix="",
-                 invert=False, replaceblanks=False):
+    def __init__(
+        self,
+        inexpr,
+        indatasets,
+        prefix="",
+        suffix="",
+        invert=False,
+        replaceblanks=False,
+    ):
         """
         inexpr = filter expression
         indatasets = list of input datasets
@@ -83,7 +90,7 @@ class DatasetFilterGenerator:
             self.changeset = doc.changeset
             log = self.evaluateFilter(doc)
             if log:
-                doc.log('\n'.join(log)+'\n')
+                doc.log("\n".join(log) + "\n")
 
     def evaluateFilter(self, doc):
         """Update filtering calculation if doc changed.
@@ -100,11 +107,11 @@ class DatasetFilterGenerator:
             return ["Invalid filter expression: '%s'" % self.inexpr]
         if d.dimensions != 1:
             return [
-                _("Invalid number of dimensions in filter expression '%s'") %
-                self.inexpr]
+                _("Invalid number of dimensions in filter expression '%s'")
+                % self.inexpr
+            ]
         if d.datatype != "numeric":
-            return [
-                _("Input filter expression non-numeric: '%s'") % self.inexpr]
+            return [_("Input filter expression non-numeric: '%s'") % self.inexpr]
 
         filterarr = d.data.astype(N.bool_)
         if self.invert:
@@ -117,8 +124,7 @@ class DatasetFilterGenerator:
             if ds is None:
                 continue
             if ds.dimensions != 1:
-                log.append(
-                    _("Filtered dataset '%s' has more than 1 dimension") % name)
+                log.append(_("Filtered dataset '%s' has more than 1 dimension") % name)
                 continue
             minlen = min(len(ds.data), len(filterarr))
             filterarrchop = filterarr[:minlen]
@@ -149,15 +155,16 @@ class DatasetFilterGenerator:
             repr(names),
         ]
         if self.prefix:
-            args.append("prefix="+repr(self.prefix))
+            args.append("prefix=" + repr(self.prefix))
         if self.suffix:
-            args.append("suffix="+repr(self.suffix))
+            args.append("suffix=" + repr(self.suffix))
         if self.invert:
             args.append("invert=True")
         if self.replaceblanks:
             args.append("replaceblanks=True")
 
         fileobj.write("FilterDatasets(%s)\n" % ", ".join(args))
+
 
 class DatasetFiltered(DatasetBase):
     """A dataset which is another dataset filtered by an expression."""
@@ -187,8 +194,7 @@ class DatasetFiltered(DatasetBase):
                 self._internalds = ds
 
     def linkedInformation(self):
-        return _("Filtered '%s' using '%s'") % (
-            self.namein, self.generator.inexpr)
+        return _("Filtered '%s' using '%s'") % (self.namein, self.generator.inexpr)
 
     def canUnlink(self):
         return True
@@ -218,6 +224,7 @@ class DatasetFiltered(DatasetBase):
     def __getitem__(self, key):
         self._checkUpdate()
         return self._internalds[key]
+
     def __len__(self):
         self._checkUpdate()
         return len(self._internalds)

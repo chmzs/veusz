@@ -36,25 +36,31 @@ from . import datasets
 # loaded lazily
 h5py = None
 
-def _(text, disambiguation=None, context='DocumentLoader'):
+
+def _(text, disambiguation=None, context="DocumentLoader"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class LoadError(RuntimeError):
     """Error when loading document."""
-    def __init__(self, text, backtrace=''):
+
+    def __init__(self, text, backtrace=""):
         RuntimeError.__init__(self, text)
         self.backtrace = backtrace
+
 
 def bconv(s):
     """Sometimes h5py returns non-unicode strings,
     so hack to decode strings if in wrong format."""
     if isinstance(s, bytes):
-        return s.decode('utf-8')
+        return s.decode("utf-8")
     return s
+
 
 def _importcaller(interface, name, callbackimporterror):
     """Wrap an import statement to check for IOError."""
+
     def wrapped(*args, **argsk):
         while True:
             try:
@@ -82,16 +88,18 @@ def _importcaller(interface, name, callbackimporterror):
                 if raiseerror:
                     # send error message back to UI
                     raise LoadError(
-                        _("Error reading file '%s':\n\n%s") %
-                        (filename, errmsg))
+                        _("Error reading file '%s':\n\n%s") % (filename, errmsg)
+                    )
             else:
                 # imported ok
                 break
+
     return wrapped
 
-def executeScript(thedoc, filename, script,
-                  callbackunsafe=None,
-                  callbackimporterror=None):
+
+def executeScript(
+    thedoc, filename, script, callbackunsafe=None, callbackimporterror=None
+):
     """Execute a script for the document.
 
     This handles setting up the environment and checking for unsafe
@@ -108,14 +116,16 @@ def executeScript(thedoc, filename, script,
 
     def genexception(exc):
         info = sys.exc_info()
-        backtrace = ''.join(traceback.format_exception(*info))
+        backtrace = "".join(traceback.format_exception(*info))
         return LoadError(str(exc), backtrace=backtrace)
 
     # compile script and check for security (if reqd)
     while True:
         try:
             compiled = utils.compileChecked(
-                script, mode='exec', filename=filename,
+                script,
+                mode="exec",
+                filename=filename,
                 ignoresecurity=thedoc.evaluate.inSecureMode(),
             )
             break
@@ -135,7 +145,7 @@ def executeScript(thedoc, filename, script,
         env[cmd] = getattr(interface, cmd)
 
     # define root node
-    env['Root'] = interface.Root
+    env["Root"] = interface.Root
 
     # wrap unsafe calls with a function to check whether ok
     def _unsafecaller(func):
@@ -145,7 +155,9 @@ def executeScript(thedoc, filename, script,
                     raise LoadError(_("Unsafe command in script"))
                 thedoc.evaluate.setSecurity(True)
             func(*args, **argsk)
+
         return wrapped
+
     for name in interface.unsafe_commands:
         env[name] = _unsafecaller(getattr(interface, name))
 
@@ -154,9 +166,9 @@ def executeScript(thedoc, filename, script,
         env[name] = _importcaller(interface, name, callbackimporterror)
 
     # get ready for loading document
-    env['__file__'] = filename
+    env["__file__"] = filename
     # allow import to happen relative to loaded file
-    interface.AddImportPath( os.path.dirname(os.path.abspath(filename)) )
+    interface.AddImportPath(os.path.dirname(os.path.abspath(filename)))
 
     with thedoc.suspend():
         try:
@@ -167,63 +179,69 @@ def executeScript(thedoc, filename, script,
         except Exception as e:
             raise genexception(e)
 
+
 def loadHDF5Dataset1D(datagrp):
     args = {}
     # this weird usage of sets is to work around some sort of weird
     # error where h5py gives an error when doing 'a' in datagrp
     # this gives error: 'perr' in datagrp
-    parts = set(datagrp) & set(('data', 'serr', 'perr', 'nerr'))
+    parts = set(datagrp) & set(("data", "serr", "perr", "nerr"))
     for v in parts:
         args[v] = N.array(datagrp[v])
     return datasets.Dataset(**args)
 
+
 def loadHDF5Dataset2D(datagrp):
     args = {}
     parts = set(datagrp) & set(
-        ('data', 'xcent', 'xedge', 'ycent', 'yedge', 'xrange', 'yrange'))
+        ("data", "xcent", "xedge", "ycent", "yedge", "xrange", "yrange")
+    )
     for v in parts:
         args[v] = N.array(datagrp[v])
     return datasets.Dataset2D(**args)
 
+
 def loadHDF5DatasetDate(datagrp):
-    return datasets.DatasetDateTime(data=datagrp['data'])
+    return datasets.DatasetDateTime(data=datagrp["data"])
+
 
 def loadHDF5DatasetText(datagrp):
-    data = [d.decode('utf-8') for d in datagrp['data']]
+    data = [d.decode("utf-8") for d in datagrp["data"]]
     return datasets.DatasetText(data=data)
+
 
 def loadHDF5Datasets(thedoc, hdffile):
     """Load all the Veusz datasets in the HDF5 file."""
-    alldatagrp = hdffile['Veusz']['Data']
+    alldatagrp = hdffile["Veusz"]["Data"]
 
     datafuncs = {
-        '1d': loadHDF5Dataset1D,
-        '2d': loadHDF5Dataset2D,
-        'date': loadHDF5DatasetDate,
-        'text': loadHDF5DatasetText,
+        "1d": loadHDF5Dataset1D,
+        "2d": loadHDF5Dataset2D,
+        "date": loadHDF5DatasetDate,
+        "text": loadHDF5DatasetText,
     }
 
     for name in alldatagrp:
         datagrp = alldatagrp[name]
-        datatype = bconv(datagrp.attrs['vsz_datatype'])
+        datatype = bconv(datagrp.attrs["vsz_datatype"])
         veuszname = utils.unescapeHDFDataName(bconv(name))
 
         dataset = datafuncs[datatype](datagrp)
         thedoc.setData(veuszname, dataset)
 
+
 def tagHDF5Datasets(thedoc, hdffile):
     """Tag datasets loaded from HDF5 file."""
-    tags = hdffile['Veusz']['Document']['Tags']
+    tags = hdffile["Veusz"]["Document"]["Tags"]
     for tag in tags:
         vsztag = bconv(tag)
         datasets = tags[tag]
         for name in datasets:
-            dsname = name.decode('utf-8')
+            dsname = name.decode("utf-8")
             thedoc.data[dsname].tags.add(vsztag)
 
-def loadHDF5Doc(thedoc, filename,
-                callbackunsafe=None,
-                callbackimporterror=None):
+
+def loadHDF5Doc(thedoc, filename, callbackunsafe=None, callbackimporterror=None):
     """Load an HDF5 of the name given."""
 
     try:
@@ -237,15 +255,16 @@ def loadHDF5Doc(thedoc, filename,
         thedoc.filename = filename
         thedoc.evaluate.updateSecurityFromPath()
 
-        hdffile = h5py.File(filename, 'r')
+        hdffile = h5py.File(filename, "r")
 
         try:
-            vszformat = hdffile['Veusz'].attrs['vsz_format']
-            vszversion = hdffile['Veusz'].attrs['vsz_version']
+            vszformat = hdffile["Veusz"].attrs["vsz_format"]
+            vszversion = hdffile["Veusz"].attrs["vsz_version"]
         except KeyError:
             raise LoadError(
-                _("HDF5 file '%s' is not a Veusz saved document") %
-                os.path.basename(filename))
+                _("HDF5 file '%s' is not a Veusz saved document")
+                % os.path.basename(filename)
+            )
 
         maxformat = 1
         if vszformat > maxformat:
@@ -254,18 +273,23 @@ def loadHDF5Doc(thedoc, filename,
                     "This document version (%i) is not supported. "
                     "It was written by Veusz %s.\n"
                     "This Veusz only supports document version %i."
-                ) % (vszformat, vszversion, maxformat))
+                )
+                % (vszformat, vszversion, maxformat)
+            )
 
         # load document
-        script = hdffile['Veusz']['Document']['document'][0].decode('utf-8')
+        script = hdffile["Veusz"]["Document"]["document"][0].decode("utf-8")
 
         # Remove embedded BOM characters
         script = removeBOMs(script)
-        
+
         executeScript(
-            thedoc, filename, script,
+            thedoc,
+            filename,
+            script,
             callbackunsafe=callbackunsafe,
-            callbackimporterror=callbackimporterror)
+            callbackimporterror=callbackimporterror,
+        )
 
         # then load datasets
         loadHDF5Datasets(thedoc, hdffile)
@@ -274,27 +298,30 @@ def loadHDF5Doc(thedoc, filename,
 
         hdffile.close()
 
-def loadDocument(thedoc, filename, mode='vsz',
-                 callbackunsafe=None,
-                 callbackimporterror=None):
+
+def loadDocument(
+    thedoc, filename, mode="vsz", callbackunsafe=None, callbackimporterror=None
+):
     """Load document from file.
 
     mode is 'vsz' or 'hdf5'
     """
 
-    if mode == 'vsz':
+    if mode == "vsz":
         try:
-            with io.open(filename, 'r', encoding='utf-8') as f:
+            with io.open(filename, "r", encoding="utf-8") as f:
                 script = f.read()
         except EnvironmentError as e:
             raise LoadError(
-                _("Cannot open document '%s'\n\n%s") %
-                (os.path.basename(filename), e.strerror) )
+                _("Cannot open document '%s'\n\n%s")
+                % (os.path.basename(filename), e.strerror)
+            )
         except UnicodeDecodeError:
             raise LoadError(
-                _("File '%s' is not a valid Veusz document") %
-                os.path.basename(filename) )
-        
+                _("File '%s' is not a valid Veusz document")
+                % os.path.basename(filename)
+            )
+
         # Remove embedded BOM characters
         script = removeBOMs(script)
 
@@ -302,21 +329,27 @@ def loadDocument(thedoc, filename, mode='vsz',
         thedoc.filename = filename
         thedoc.evaluate.updateSecurityFromPath()
         executeScript(
-            thedoc, filename, script,
+            thedoc,
+            filename,
+            script,
             callbackunsafe=callbackunsafe,
-            callbackimporterror=callbackimporterror)
+            callbackimporterror=callbackimporterror,
+        )
 
-    elif mode == 'hdf5':
+    elif mode == "hdf5":
         loadHDF5Doc(
-            thedoc, filename,
+            thedoc,
+            filename,
             callbackunsafe=callbackunsafe,
-            callbackimporterror=callbackimporterror)
+            callbackimporterror=callbackimporterror,
+        )
 
     else:
-        raise RuntimeError('Invalid load mode')
+        raise RuntimeError("Invalid load mode")
 
     thedoc.setModified(False)
     thedoc.clearHistory()
+
 
 def removeBOMs(script):
     """
@@ -328,13 +361,15 @@ def removeBOMs(script):
     # fast path: the regex below is quadratic on large scripts that
     # contain a single very long line (e.g. embedded base64 images) and
     # no BOM marker, so skip it entirely when there is nothing to replace
-    if 'ufeff' not in script:
+    if "ufeff" not in script:
         return script
-    pattern = r'(.*?)(\\+)ufeff(.*?)'
+    pattern = r"(.*?)(\\+)ufeff(.*?)"
+
     def replacer(m):
         bs = m.group(2)
         if len(bs) % 2 == 0:
             return m.group(0)
         else:
             return f"{m.group(1)}{bs[1:]}{m.group(3)}"
+
     return re.sub(pattern, replacer, script)

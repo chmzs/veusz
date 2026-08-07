@@ -23,11 +23,12 @@
 from .. import qtall as qt
 from .veuszdialog import VeuszDialog
 
+
 class ErrorLoadingDialog(VeuszDialog):
     """Dialog when error loading."""
 
     def __init__(self, parent, filename, error, traceback):
-        VeuszDialog.__init__(self, parent, 'errorloading.ui')
+        VeuszDialog.__init__(self, parent, "errorloading.ui")
 
         # insert filename into label
         text = self.errorlabel.text()
@@ -39,6 +40,9 @@ class ErrorLoadingDialog(VeuszDialog):
         self.errortextedit.setPlainText(traceback)
 
         # set warning pixmap to left of dialog
-        icon = qt.QCoreApplication.instance().style().standardIcon(
-            qt.QStyle.StandardPixmap.SP_MessageBoxWarning, None, self)
+        icon = (
+            qt.QCoreApplication.instance()
+            .style()
+            .standardIcon(qt.QStyle.StandardPixmap.SP_MessageBoxWarning, None, self)
+        )
         self.iconlabel.setPixmap(icon.pixmap(32))

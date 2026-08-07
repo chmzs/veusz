@@ -22,16 +22,22 @@
 
 from .commonfn import _
 
+
 class DatasetException(Exception):
     """Raised with dataset errors."""
+
     pass
+
 
 class DatasetExpressionException(DatasetException):
     """Raised if there is an error evaluating a dataset expression."""
+
     pass
+
 
 class DatasetBase:
     """Base class for all datasets."""
+
 
 class DatasetConcreteBase(DatasetBase):
     """A base dataset class for datasets which are real, and not proxies,
@@ -42,10 +48,10 @@ class DatasetConcreteBase(DatasetBase):
 
     # datatype is fundamental type of data
     # displaytype is formatting suggestion for data
-    datatype = displaytype = 'numeric'
+    datatype = displaytype = "numeric"
 
     # dataset type to show to user
-    dstype = 'Dataset'
+    dstype = "Dataset"
 
     # list of columns in dataset (if any)
     columns = ()
@@ -70,26 +76,26 @@ class DatasetConcreteBase(DatasetBase):
         self.tags = set()
 
     def saveLinksToSavedDoc(self, fileobj, savedlinks, relpath=None):
-        '''Save the link to the saved document, if this dataset is linked.
+        """Save the link to the saved document, if this dataset is linked.
 
         savedlinks is a dict containing any linked files which have
         already been written
 
         relpath is a directory to save linked files relative to
-        '''
+        """
 
         # links should only be saved once
         if self.linked is not None and self.linked not in savedlinks:
             savedlinks[self.linked] = True
             self.linked.saveToFile(fileobj, relpath=relpath)
 
-    def saveToFile(self, fileobj, name, mode='text', hdfgroup=None):
+    def saveToFile(self, fileobj, name, mode="text", hdfgroup=None):
         """Save dataset to file."""
         self.saveDataRelationToText(fileobj, name)
         if self.linked is None:
-            if mode == 'text':
+            if mode == "text":
                 self.saveDataDumpToText(fileobj, name)
-            elif mode == 'hdf5':
+            elif mode == "hdf5":
                 self.saveDataDumpToHDF5(hdfgroup, name)
 
     def saveDataRelationToText(self, fileobj, name):
@@ -124,9 +130,11 @@ class DatasetConcreteBase(DatasetBase):
         We assume here it is a float, so override if not
         """
         from .. import setting
+
         if isinstance(val, str):
             val, ok = setting.uilocale.toDouble(val)
-            if ok: return val
+            if ok:
+                return val
             raise ValueError("Invalid floating point number")
         return float(val)
 
@@ -173,9 +181,9 @@ class DatasetConcreteBase(DatasetBase):
     def linkedInformation(self):
         """Return information about any linking for the user."""
         if self.linked is None:
-            return _('Linked file: None')
+            return _("Linked file: None")
         else:
-            return _('Linked file: %s') % self.linked.filename
+            return _("Linked file: %s") % self.linked.filename
 
     def returnCopy(self):
         """Return an unlinked copy of self."""
@@ -189,6 +197,6 @@ class DatasetConcreteBase(DatasetBase):
         """Is it possible to rename this dataset?"""
         return self.linked is None
 
-    def datasetAsText(self, fmt='%g', join='\t'):
+    def datasetAsText(self, fmt="%g", join="\t"):
         """Return dataset as text (for use by user)."""
-        return ''
+        return ""

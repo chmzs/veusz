@@ -28,29 +28,35 @@ from .. import document
 from .. import setting
 from .. import utils
 
-def _(text, disambiguation=None, context='Covariance'):
+
+def _(text, disambiguation=None, context="Covariance"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class CovarianceLine(setting.Line):
     def __init__(self, name, **args):
         setting.Line.__init__(self, name, **args)
 
-        self.add( setting.Int(
-            'steps',
-            25,
-            minval=4,
-            descr=_('Number of line steps to draw'),
-            usertext=_('Steps') ))
+        self.add(
+            setting.Int(
+                "steps",
+                25,
+                minval=4,
+                descr=_("Number of line steps to draw"),
+                usertext=_("Steps"),
+            )
+        )
 
-        self.get('color').newDefault('auto')
+        self.get("color").newDefault("auto")
+
 
 class Covariance(plotters.GenericPlotter):
     """Plot covariance matrix for points as shapes."""
 
-    typename = 'covariance'
-    allowusercreation=True
-    description=_('Plot covariance ellipses')
+    typename = "covariance"
+    allowusercreation = True
+    description = _("Plot covariance ellipses")
 
     def __init__(self, parent, **args):
         """Initialise plotter."""
@@ -65,65 +71,93 @@ class Covariance(plotters.GenericPlotter):
         """Construct list of settings."""
         plotters.GenericPlotter.addSettings(s)
 
-        s.add( setting.DatasetExtended(
-            'covyy', '',
-            descr=_('Covariance matrix entry (Y,Y) [computed from data if blank]'),
-            usertext=_('Cov(Y,Y)')), 0 )
-        s.add( setting.DatasetExtended(
-            'covxy', '',
-            descr=_('Covariance matrix entry (X,Y) [computed from data if blank]'),
-            usertext=_('Cov(X,Y)')), 0 )
-        s.add( setting.DatasetExtended(
-            'covyx', '',
-            descr=_('Covariance matrix entry (Y,X) [computed from data if blank]'),
-            usertext=_('Cov(Y,X)')), 0 )
-        s.add( setting.DatasetExtended(
-            'covxx', '',
-            descr=_('Covariance matrix entry (X,X) [computed from data if blank]'),
-            usertext=_('Cov(X,X)')), 0 )
+        s.add(
+            setting.DatasetExtended(
+                "covyy",
+                "",
+                descr=_("Covariance matrix entry (Y,Y) [computed from data if blank]"),
+                usertext=_("Cov(Y,Y)"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "covxy",
+                "",
+                descr=_("Covariance matrix entry (X,Y) [computed from data if blank]"),
+                usertext=_("Cov(X,Y)"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "covyx",
+                "",
+                descr=_("Covariance matrix entry (Y,X) [computed from data if blank]"),
+                usertext=_("Cov(Y,X)"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "covxx",
+                "",
+                descr=_("Covariance matrix entry (X,X) [computed from data if blank]"),
+                usertext=_("Cov(X,X)"),
+            ),
+            0,
+        )
 
-        s.add( setting.DatasetExtended(
-            'yData', 'y',
-            descr=_('Y values, given by dataset, expression or list of values'),
-            usertext=_('Y data')), 0 )
-        s.add( setting.DatasetExtended(
-            'xData', 'x',
-            descr=_('X values, given by dataset, expression or list of values'),
-            usertext=_('X data')), 0 )
+        s.add(
+            setting.DatasetExtended(
+                "yData",
+                "y",
+                descr=_("Y values, given by dataset, expression or list of values"),
+                usertext=_("Y data"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "xData",
+                "x",
+                descr=_("X values, given by dataset, expression or list of values"),
+                usertext=_("X data"),
+            ),
+            0,
+        )
 
-        s.add( CovarianceLine(
-            'Line',
-            descr=_('Line'),
-            usertext=_('Ellipse line')),
-            pixmap='settings_plotline' )
+        s.add(
+            CovarianceLine("Line", descr=_("Line"), usertext=_("Ellipse line")),
+            pixmap="settings_plotline",
+        )
 
-        s.add( setting.PlotterFill(
-            'Fill',
-            descr=_('Fill'),
-            usertext=_('Ellipse fill')),
-            pixmap='settings_plotfillbelow' )
+        s.add(
+            setting.PlotterFill("Fill", descr=_("Fill"), usertext=_("Ellipse fill")),
+            pixmap="settings_plotfillbelow",
+        )
 
     def _computeCovFromData(self, data):
         """Compute a single covariance matrix given data."""
 
-        minlen = min(len(data['xData']), len(data['yData']))
-        xd = data['xData'][:minlen]
-        yd = data['yData'][:minlen]
+        minlen = min(len(data["xData"]), len(data["yData"]))
+        xd = data["xData"][:minlen]
+        yd = data["yData"][:minlen]
         finite = N.isfinite(xd) & N.isfinite(yd)
         xd = xd[finite]
         yd = yd[finite]
 
         if len(xd) < 2:
-            cov = N.array([[0,0],[0,0]])
+            cov = N.array([[0, 0], [0, 0]])
         else:
             cov = N.cov(xd, y=yd)
 
-        data['xData'] = N.array([N.mean(xd)])
-        data['yData'] = N.array([N.mean(yd)])
-        data['covxx'] = N.array([cov[0,0]])
-        data['covxy'] = N.array([cov[1,0]])
-        data['covyx'] = N.array([cov[0,1]])
-        data['covyy'] = N.array([cov[1,1]])
+        data["xData"] = N.array([N.mean(xd)])
+        data["yData"] = N.array([N.mean(yd)])
+        data["covxx"] = N.array([cov[0, 0]])
+        data["covxy"] = N.array([cov[1, 0]])
+        data["covyx"] = N.array([cov[0, 1]])
+        data["covyy"] = N.array([cov[1, 1]])
 
     def _computeEllipses(self):
         """Calculate points for ellipses."""
@@ -140,7 +174,7 @@ class Covariance(plotters.GenericPlotter):
         minlen = 1e99
         data = {}
         anynone = False
-        for attr in 'xData', 'yData', 'covxx', 'covxy', 'covyx', 'covyy':
+        for attr in "xData", "yData", "covxx", "covxy", "covyx", "covyy":
             dataset = s.get(attr).getData(d)
             # needs to be defined
             if dataset is not None:
@@ -152,11 +186,16 @@ class Covariance(plotters.GenericPlotter):
                 anynone = True
 
         # if covariance matrix not provided, compute from xy data
-        if ( data['xData'] is not None and data['yData'] is not None and
-             s.get('covxx').isEmpty() and s.get('covxy').isEmpty() and
-             s.get('covyx').isEmpty() and s.get('covyy').isEmpty() ):
+        if (
+            data["xData"] is not None
+            and data["yData"] is not None
+            and s.get("covxx").isEmpty()
+            and s.get("covxy").isEmpty()
+            and s.get("covyx").isEmpty()
+            and s.get("covyy").isEmpty()
+        ):
             self._computeCovFromData(data)
-            minlen=1
+            minlen = 1
         elif anynone:
             # invalid
             return
@@ -172,9 +211,9 @@ class Covariance(plotters.GenericPlotter):
             data[attr] = data[attr][valid]
 
         # construct covariance matrices
-        cov = N.column_stack((
-            data['covxx'], data['covyx'], data['covxy'], data['covyy']
-            )).reshape(minlen, 2, 2)
+        cov = N.column_stack(
+            (data["covxx"], data["covyx"], data["covxy"], data["covyy"])
+        ).reshape(minlen, 2, 2)
 
         # compute eigenvalues and vectors from covariance matrices
         try:
@@ -184,16 +223,16 @@ class Covariance(plotters.GenericPlotter):
 
         # multiply vectors be sqrt eigenvalues (error is sqrt)
         sqrtvals = N.sqrt(eigvals)
-        eigcomb = eigvecs * sqrtvals[:,:,None]
+        eigcomb = eigvecs * sqrtvals[:, :, None]
 
         # generate points in ellipse
         numsteps = s.Line.steps
-        x = N.linspace(0, N.pi*2, numsteps, endpoint=False)
+        x = N.linspace(0, N.pi * 2, numsteps, endpoint=False)
         f1, f2 = N.cos(x), N.sin(x)
 
-        combv = f1*eigcomb[:,0,:,None] + f2*eigcomb[:,1,:,None]
-        xpts = data['xData'][:,None] - combv[:,0,:]
-        ypts = data['yData'][:,None] + combv[:,1,:]
+        combv = f1 * eigcomb[:, 0, :, None] + f2 * eigcomb[:, 1, :, None]
+        xpts = data["xData"][:, None] - combv[:, 0, :]
+        ypts = data["yData"][:, None] + combv[:, 1, :]
 
         # funny covariance matrix does this
         if N.any(N.iscomplex(xpts)) or N.any(N.iscomplex(ypts)):
@@ -205,7 +244,7 @@ class Covariance(plotters.GenericPlotter):
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
         s = self.settings
-        return ( (s.xAxis, 'sx'), (s.yAxis, 'sy') )
+        return ((s.xAxis, "sx"), (s.yAxis, "sy"))
 
     def getRange(self, axis, depname, axrange):
         """Return range of data."""
@@ -214,7 +253,7 @@ class Covariance(plotters.GenericPlotter):
         if not self._elpts:
             return
 
-        vals = self._elpts[{'sx': 0, 'sy': 1}[depname]]
+        vals = self._elpts[{"sx": 0, "sy": 1}[depname]]
         if axis.settings.log:
             vals = N.clip(vals, 1e-99, 1e99)
         if len(vals) > 0:
@@ -239,10 +278,9 @@ class Covariance(plotters.GenericPlotter):
         ptsy = axes[1].dataToPlotterCoords(posn, self._elpts[1])
 
         pen = s.Line.makeQPenWHide(painter)
-        pw = pen.widthF()*2
+        pw = pen.widthF() * 2
         x1, y1, x2, y2 = posn
-        lineclip = qt.QRectF(
-            qt.QPointF(x1-pw, y1-pw), qt.QPointF(x2+pw, y2+pw))
+        lineclip = qt.QRectF(qt.QPointF(x1 - pw, y1 - pw), qt.QPointF(x2 + pw, y2 + pw))
 
         for xvals, yvals in zip(ptsx, ptsy):
             path = qt.QPainterPath()
@@ -253,5 +291,6 @@ class Covariance(plotters.GenericPlotter):
             path.addPolygon(clippedpoly)
             path.closeSubpath()
             utils.brushExtFillPath(painter, s.Fill, path, stroke=pen)
+
 
 document.thefactory.register(Covariance)

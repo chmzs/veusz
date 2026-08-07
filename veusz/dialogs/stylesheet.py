@@ -21,13 +21,14 @@
 from .. import utils
 from .. import qtall as qt
 from .. import document
-from ..windows.treeeditwindow import TabbedFormatting, PropertyList, \
-    SettingsProxySingle
+from ..windows.treeeditwindow import TabbedFormatting, PropertyList, SettingsProxySingle
 from .veuszdialog import VeuszDialog
+
 
 def _(text, disambiguation=None, context="StylesheetDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class StylesheetDialog(VeuszDialog):
     """This is a dialog box to edit stylesheets.
@@ -35,7 +36,7 @@ class StylesheetDialog(VeuszDialog):
     """
 
     def __init__(self, parent, document):
-        VeuszDialog.__init__(self, parent, 'stylesheet.ui')
+        VeuszDialog.__init__(self, parent, "stylesheet.ui")
         self.document = document
         self.stylesheet = document.basewidget.settings.StyleSheet
 
@@ -47,8 +48,7 @@ class StylesheetDialog(VeuszDialog):
 
         self.fillStyleList()
 
-        self.stylesListWidget.currentItemChanged.connect(
-            self.slotStyleItemChanged)
+        self.stylesListWidget.currentItemChanged.connect(self.slotStyleItemChanged)
 
         self.stylesListWidget.setCurrentRow(0)
 
@@ -62,18 +62,16 @@ class StylesheetDialog(VeuszDialog):
 
         # recent button shows list of recently used files for loading
         self.recentButton.filechosen.connect(self.loadStyleSheet)
-        self.recentButton.setSetting('stylesheetdialog_recent')
+        self.recentButton.setSetting("stylesheetdialog_recent")
 
     def loadStyleSheet(self, filename):
         """Load the given stylesheet."""
-        self.document.applyOperation(
-            document.OperationLoadStyleSheet(filename) )
+        self.document.applyOperation(document.OperationLoadStyleSheet(filename))
 
     def fillStyleList(self):
         """Fill list of styles."""
         for stns in self.stylesheet.getSettingsList():
-            item = qt.QListWidgetItem(
-                utils.getIcon(stns.pixmap), stns.usertext)
+            item = qt.QListWidgetItem(utils.getIcon(stns.pixmap), stns.usertext)
             item.VZsettings = stns
             self.stylesListWidget.addItem(item)
 
@@ -103,32 +101,36 @@ class StylesheetDialog(VeuszDialog):
         """Save stylesheet as a file."""
 
         filename = self.parent().fileSaveDialog(
-            [_('Veusz stylesheet (*.vst)')], _('Save stylesheet'))
+            [_("Veusz stylesheet (*.vst)")], _("Save stylesheet")
+        )
         if filename:
             try:
-                f = open(filename, 'w')
+                f = open(filename, "w")
                 self.document.exportStyleSheet(f)
                 f.close()
                 self.recentButton.addFile(filename)
 
             except EnvironmentError as e:
                 qt.QMessageBox.critical(
-                    self, _("Error - Veusz"),
-                    _("Unable to save '%s'\n\n%s") % (
-                        filename, e.strerror))
+                    self,
+                    _("Error - Veusz"),
+                    _("Unable to save '%s'\n\n%s") % (filename, e.strerror),
+                )
 
     def slotLoadStyleSheet(self):
         """Load a style sheet."""
         filename = self.parent().fileOpenDialog(
-            [_('Veusz stylesheet (*.vst)')], _('Load stylesheet'))
+            [_("Veusz stylesheet (*.vst)")], _("Load stylesheet")
+        )
         if filename:
             try:
                 self.loadStyleSheet(filename)
             except EnvironmentError as e:
                 qt.QMessageBox.critical(
-                    self, _("Error - Veusz"),
-                    _("Unable to load '%s'\n\n%s") % (
-                        filename, e.strerror))
+                    self,
+                    _("Error - Veusz"),
+                    _("Unable to load '%s'\n\n%s") % (filename, e.strerror),
+                )
             else:
                 # add to recent file list
                 self.recentButton.addFile(filename)

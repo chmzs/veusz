@@ -27,21 +27,20 @@ try:
     from astropy.io.votable.table import parse
 except ImportError:
     parse = None
-    print('VO table import: astropy module not available')
+    print("VO table import: astropy module not available")
+
 
 class ImportPluginVoTable(ImportPlugin):
-    name = 'VO table import'
-    author = 'Graham Bell'
-    description = 'Reads datasets from VO tables'
+    name = "VO table import"
+    author = "Graham Bell"
+    description = "Reads datasets from VO tables"
 
     def _load_votable(self, params):
-        if 'url' in params.field_results:
+        if "url" in params.field_results:
             try:
-                buff = io.StringIO(request.urlopen(
-                    params.field_results['url']).read())
+                buff = io.StringIO(request.urlopen(params.field_results["url"]).read())
             except TypeError:
-                buff = io.BytesIO(request.urlopen(
-                    params.field_results['url']).read())
+                buff = io.BytesIO(request.urlopen(params.field_results["url"]).read())
             return parse(buff, filename=params.filename)
         else:
             return parse(params.filename)
@@ -55,28 +54,30 @@ class ImportPluginVoTable(ImportPlugin):
                 fieldname = field.name
 
                 if field.datatype in [
-                        'float', 'double', 'short', 'int', 'unsignedByte']:
-                    result.append(Dataset1D(
-                        fieldname, table.array[fieldname]))
+                    "float",
+                    "double",
+                    "short",
+                    "int",
+                    "unsignedByte",
+                ]:
+                    result.append(Dataset1D(fieldname, table.array[fieldname]))
 
-                elif field.datatype in ['char', 'string', 'unicodeChar']:
-                    result.append(DatasetText(
-                        fieldname, table.array[fieldname]))
+                elif field.datatype in ["char", "string", "unicodeChar"]:
+                    result.append(DatasetText(fieldname, table.array[fieldname]))
 
-                elif field.datatype in ['floatComplex', 'doubleComplex']:
-                    print(
-                        'VO table import: skipping complex field ' +
-                        fieldname)
+                elif field.datatype in ["floatComplex", "doubleComplex"]:
+                    print("VO table import: skipping complex field " + fieldname)
 
-                elif field.datatype in ['boolean', 'bit']:
-                    print(
-                        'VO table import: skipping boolean field ' +
-                        fieldname)
+                elif field.datatype in ["boolean", "bit"]:
+                    print("VO table import: skipping boolean field " + fieldname)
 
                 else:
                     print(
-                        'VO table import: unknown data type ' +
-                        field.datatype + ' for field ' + fieldname)
+                        "VO table import: unknown data type "
+                        + field.datatype
+                        + " for field "
+                        + fieldname
+                    )
 
         return result
 
@@ -85,18 +86,17 @@ class ImportPluginVoTable(ImportPlugin):
             votable = self._load_votable(params)
 
         except:
-            return ('', False)
+            return ("", False)
 
         summary = []
 
         for table in votable.iter_tables():
-            summary.append(table.name + ':')
+            summary.append(table.name + ":")
             for field in table.fields:
-                summary.append(
-                    '    ' + field.name +
-                    ' (' + field.datatype +')')
+                summary.append("    " + field.name + " (" + field.datatype + ")")
 
-        return ('\n'.join(summary), True)
+        return ("\n".join(summary), True)
+
 
 if parse is not None:
     importpluginregistry += [ImportPluginVoTable]

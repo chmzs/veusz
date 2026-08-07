@@ -29,9 +29,11 @@ from .. import utils
 from . import exceptiondialog
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="PluginDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def handlePlugin(mainwindow, doc, pluginkls):
     """Show plugin dialog or directly execute (if it takes no parameters)."""
@@ -41,48 +43,51 @@ def handlePlugin(mainwindow, doc, pluginkls):
         d = PluginDialog(mainwindow, doc, plugin, pluginkls)
         mainwindow.showDialog(d)
     else:
-        fields = {'currentwidget': '/'}
+        fields = {"currentwidget": "/"}
         if mainwindow.treeedit.selwidgets:
-            fields = {'currentwidget': mainwindow.treeedit.selwidgets[0].path}
+            fields = {"currentwidget": mainwindow.treeedit.selwidgets[0].path}
         runPlugin(mainwindow, doc, plugin, fields)
+
 
 def wordwrap(text, linelength=80):
     """Wrap on a word boundary."""
     out = []
     l = 0
-    for w in text.split(' '):
-        if w.find('\n') >= 0:
+    for w in text.split(" "):
+        if w.find("\n") >= 0:
             l = 0
         if l + len(w) > linelength:
-            out.append('\n')
+            out.append("\n")
             l = 0
         out.append(w)
         l += len(w)
-    return ' '.join(out)
+    return " ".join(out)
+
 
 class PluginDialog(VeuszDialog):
     """Dialog box class for plugins."""
 
     def __init__(self, mainwindow, doc, plugininst, pluginkls):
-        VeuszDialog.__init__(self, mainwindow, 'plugin.ui')
+        VeuszDialog.__init__(self, mainwindow, "plugin.ui")
 
         reset = self.buttonBox.button(qt.QDialogButtonBox.StandardButton.Reset)
         reset.setAutoDefault(False)
         reset.setDefault(False)
-        reset.clicked.connect( self.slotReset)
-        self.buttonBox.button(
-            qt.QDialogButtonBox.StandardButton.Apply).clicked.connect(self.slotApply)
+        reset.clicked.connect(self.slotReset)
+        self.buttonBox.button(qt.QDialogButtonBox.StandardButton.Apply).clicked.connect(
+            self.slotApply
+        )
 
         self.pluginkls = pluginkls
         self.plugininst = plugininst
         self.document = doc
 
-        title = ': '.join(list(plugininst.menu))
+        title = ": ".join(list(plugininst.menu))
         self.setWindowTitle(title)
         descr = plugininst.description_full
         if plugininst.author:
-            descr += '\n ' + _('Author: %s') % plugininst.author
-        self.descriptionLabel.setText( wordwrap(descr) )
+            descr += "\n " + _("Author: %s") % plugininst.author
+        self.descriptionLabel.setText(wordwrap(descr))
 
         self.fieldcntrls = []
         self.fields = []
@@ -98,15 +103,15 @@ class PluginDialog(VeuszDialog):
                 cntrl.deleteLater()
         del self.fieldcntrls[:]
 
-        currentwidget = '/'
+        currentwidget = "/"
         if self.mainwindow.treeedit.selwidgets:
             currentwidget = self.mainwindow.treeedit.selwidgets[0].path
         for row, field in enumerate(self.plugininst.fields):
             if isinstance(field, list) or isinstance(field, tuple):
                 for c, f in enumerate(field):
                     cntrls = f.makeControl(self.document, currentwidget)
-                    layout.addWidget(cntrls[0], row, c*2)
-                    layout.addWidget(cntrls[1], row, c*2+1)
+                    layout.addWidget(cntrls[0], row, c * 2)
+                    layout.addWidget(cntrls[1], row, c * 2 + 1)
                     self.fieldcntrls.append(cntrls)
                     self.fields.append(f)
             else:
@@ -131,11 +136,9 @@ class PluginDialog(VeuszDialog):
         """Use the plugin with the inputted data."""
 
         # default field
-        fields = {'currentwidget': '/'}
+        fields = {"currentwidget": "/"}
         if self.mainwindow.treeedit.selwidgets:
-            fields = {
-                'currentwidget': self.mainwindow.treeedit.selwidgets[0].path
-            }
+            fields = {"currentwidget": self.mainwindow.treeedit.selwidgets[0].path}
 
         # read values from controls
         for field, cntrls in zip(self.fields, self.fieldcntrls):
@@ -149,6 +152,7 @@ class PluginDialog(VeuszDialog):
         self.notifyLabel.setText(statustext)
         qt.QTimer.singleShot(3000, self.notifyLabel.clear)
 
+
 def runPlugin(window, doc, plugin, fields):
     """Execute a plugin.
     window - parent window
@@ -156,39 +160,37 @@ def runPlugin(window, doc, plugin, fields):
     plugin - plugin object."""
 
     if isinstance(plugin, plugins.ToolsPlugin):
-        mode = 'tools'
+        mode = "tools"
     elif isinstance(plugin, plugins.DatasetPlugin):
-        mode = 'dataset'
+        mode = "dataset"
     else:
         raise RuntimeError("Invalid plugin class")
 
-    resultstext = ''
+    resultstext = ""
     try:
         with utils.OverrideCursor():
             # use correct operation class for different plugin types
-            if mode == 'tools':
+            if mode == "tools":
                 op = document.OperationToolsPlugin(plugin, fields)
-            elif mode == 'dataset':
+            elif mode == "dataset":
                 # a bit of a hack as we don't give currentwidget to this plugin
-                del fields['currentwidget']
-                op = document.OperationDatasetPlugin(
-                    plugin, fields, raiseerrors=True)
+                del fields["currentwidget"]
+                op = document.OperationDatasetPlugin(plugin, fields, raiseerrors=True)
 
             results = doc.applyOperation(op)
 
             # evaluate datasets using plugin to check it works
-            if mode == 'dataset':
+            if mode == "dataset":
                 op.validate()
-                resultstext = _('Created datasets: ') + ', '.join(results)
+                resultstext = _("Created datasets: ") + ", ".join(results)
             else:
-                resultstext = _('Done')
+                resultstext = _("Done")
 
     except (plugins.ToolsPluginException, plugins.DatasetPluginException) as ex:
         # unwind operations
         op.undo(doc)
 
-        qt.QMessageBox.warning(
-            window, _("Error in %s") % plugin.name, str(ex))
+        qt.QMessageBox.warning(window, _("Error in %s") % plugin.name, str(ex))
 
     except Exception:
         op.undo(doc)
@@ -197,6 +199,7 @@ def runPlugin(window, doc, plugin, fields):
         exceptiondialog.ExceptionDialog(sys.exc_info(), window).exec()
 
     return resultstext
+
 
 def recreateDataset(mainwindow, document, dataset, datasetname):
     """Open dialog to recreate plugin dataset(s)."""

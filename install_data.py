@@ -63,28 +63,30 @@ Original licence:
 import os
 from setuptools import Command
 
-def change_root (new_root, pathname):
+
+def change_root(new_root, pathname):
     """Return 'pathname' with 'new_root' prepended.  If 'pathname' is
     relative, this is equivalent to "os.path.join(new_root,pathname)".
     Otherwise, it requires making 'pathname' relative and then joining the
     two, which is tricky on DOS/Windows and Mac OS.
     """
-    if os.name == 'posix':
+    if os.name == "posix":
         if not os.path.isabs(pathname):
             return os.path.join(new_root, pathname)
         else:
             return os.path.join(new_root, pathname[1:])
 
-    elif os.name == 'nt':
+    elif os.name == "nt":
         (drive, path) = os.path.splitdrive(pathname)
-        if path[0] == '\\':
+        if path[0] == "\\":
             path = path[1:]
         return os.path.join(new_root, path)
 
     else:
         raise RuntimeError("nothing known about platform '%s'" % os.name)
 
-def convert_path (pathname):
+
+def convert_path(pathname):
     """Return 'pathname' as a name that will work on the native filesystem,
     i.e. split it on '/' and put it back together again using the current
     directory separator.  Needed because filenames in the setup script are
@@ -93,18 +95,18 @@ def convert_path (pathname):
     ValueError on non-Unix-ish systems if 'pathname' either starts or
     ends with a slash.
     """
-    if os.sep == '/':
+    if os.sep == "/":
         return pathname
     if not pathname:
         return pathname
-    if pathname[0] == '/':
+    if pathname[0] == "/":
         raise ValueError("path '%s' cannot be absolute" % pathname)
-    if pathname[-1] == '/':
+    if pathname[-1] == "/":
         raise ValueError("path '%s' cannot end with '/'" % pathname)
 
-    paths = pathname.split('/')
-    while '.' in paths:
-        paths.remove('.')
+    paths = pathname.split("/")
+    while "." in paths:
+        paths.remove(".")
     if not paths:
         return os.curdir
     return os.path.join(*paths)
@@ -112,19 +114,19 @@ def convert_path (pathname):
 
 # contributed by Bastian Kleineidam
 class install_data(Command):
-
     description = "install data files"
 
     user_options = [
-        ('install-dir=', 'd',
-         "base directory for installing data files "
-         "(default: installation base dir)"),
-        ('root=', None,
-         "install everything relative to this alternate root directory"),
-        ('force', 'f', "force installation (overwrite existing files)"),
-        ]
+        (
+            "install-dir=",
+            "d",
+            "base directory for installing data files (default: installation base dir)",
+        ),
+        ("root=", None, "install everything relative to this alternate root directory"),
+        ("force", "f", "force installation (overwrite existing files)"),
+    ]
 
-    boolean_options = ['force']
+    boolean_options = ["force"]
 
     def initialize_options(self):
         self.install_dir = None
@@ -135,11 +137,12 @@ class install_data(Command):
         self.warn_dir = 1
 
     def finalize_options(self):
-        self.set_undefined_options('install',
-                                   ('install_data', 'install_dir'),
-                                   ('root', 'root'),
-                                   ('force', 'force'),
-                                  )
+        self.set_undefined_options(
+            "install",
+            ("install_data", "install_dir"),
+            ("root", "root"),
+            ("force", "force"),
+        )
 
     def run(self):
         self.mkpath(self.install_dir)
@@ -148,9 +151,10 @@ class install_data(Command):
                 # it's a simple file, so copy it
                 f = convert_path(f)
                 if self.warn_dir:
-                    self.warn("setup script did not provide a directory for "
-                              "'%s' -- installing right in '%s'" %
-                              (f, self.install_dir))
+                    self.warn(
+                        "setup script did not provide a directory for "
+                        "'%s' -- installing right in '%s'" % (f, self.install_dir)
+                    )
                 (out, _) = self.copy_file(f, self.install_dir)
                 self.outfiles.append(out)
             else:

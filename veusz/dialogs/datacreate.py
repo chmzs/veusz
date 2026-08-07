@@ -27,13 +27,17 @@ from .. import datasets
 from .. import setting
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="DataCreateDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class _DSException(RuntimeError):
     """A class to handle errors while trying to create datasets."""
+
     pass
+
 
 class DataCreateDialog(VeuszDialog):
     """Dialog to create datasets.
@@ -44,7 +48,7 @@ class DataCreateDialog(VeuszDialog):
     def __init__(self, parent, document):
         """Initialise dialog with document."""
 
-        VeuszDialog.__init__(self, parent, 'datacreate.ui')
+        VeuszDialog.__init__(self, parent, "datacreate.ui")
         self.document = document
 
         # create button group to get notification of changes
@@ -52,12 +56,15 @@ class DataCreateDialog(VeuszDialog):
 
         # connect create button
         self.createbutton = self.buttonBox.addButton(
-            _("C&reate"), qt.QDialogButtonBox.ButtonRole.ApplyRole )
+            _("C&reate"), qt.QDialogButtonBox.ButtonRole.ApplyRole
+        )
         self.replacebutton = self.buttonBox.addButton(
-            _("&Replace"), qt.QDialogButtonBox.ButtonRole.ApplyRole )
+            _("&Replace"), qt.QDialogButtonBox.ButtonRole.ApplyRole
+        )
 
-        self.buttonBox.button(
-            qt.QDialogButtonBox.StandardButton.Reset).clicked.connect(self.resetButtonClicked)
+        self.buttonBox.button(qt.QDialogButtonBox.StandardButton.Reset).clicked.connect(
+            self.resetButtonClicked
+        )
 
         self.createbutton.clicked.connect(self.createButtonClicked)
         self.replacebutton.clicked.connect(self.createButtonClicked)
@@ -66,16 +73,19 @@ class DataCreateDialog(VeuszDialog):
         self.document.signalModified.connect(self.modifiedDocSlot)
 
         # set validators for edit controls
-        self.numstepsedit.setValidator( qt.QIntValidator(1, 99999999, self) )
-        self.tstartedit.setValidator( qt.QDoubleValidator(self) )
-        self.tendedit.setValidator( qt.QDoubleValidator(self) )
-        self.tstepsedit.setValidator( qt.QIntValidator(1, 99999999, self) )
+        self.numstepsedit.setValidator(qt.QIntValidator(1, 99999999, self))
+        self.tstartedit.setValidator(qt.QDoubleValidator(self))
+        self.tendedit.setValidator(qt.QDoubleValidator(self))
+        self.tstepsedit.setValidator(qt.QIntValidator(1, 99999999, self))
 
         # connect up edit control to update create button status
         for edit in (
-                self.numstepsedit, self.tstartedit, self.tendedit,
-                self.tstepsedit, self.nameedit,
-                self.valueedit
+            self.numstepsedit,
+            self.tstartedit,
+            self.tendedit,
+            self.tstepsedit,
+            self.nameedit,
+            self.valueedit,
         ):
             edit.editTextChanged.connect(self.editsEditSlot)
 
@@ -83,12 +93,14 @@ class DataCreateDialog(VeuszDialog):
 
         # edit controls for dataset
         self.dsedits = {
-            'data': self.valueedit, 'serr': self.symerroredit,
-            'perr': self.poserroredit, 'nerr': self.negerroredit
+            "data": self.valueedit,
+            "serr": self.symerroredit,
+            "perr": self.poserroredit,
+            "nerr": self.negerroredit,
         }
 
         # update button state
-        self.editsEditSlot('')
+        self.editsEditSlot("")
 
     def slotMethodChanged(self, button):
         """Called when a new data creation method is used."""
@@ -108,11 +120,11 @@ class DataCreateDialog(VeuszDialog):
         self.expressionhelperlabel.setVisible(isfunction)
 
         # enable/disable create button
-        self.editsEditSlot('')
+        self.editsEditSlot("")
 
     def modifiedDocSlot(self):
         """Update create button if document changes."""
-        self.editsEditSlot('')
+        self.editsEditSlot("")
 
     def datasetSelected(self, index):
         """If dataset is selected from drop down box, reload entries
@@ -136,9 +148,9 @@ class DataCreateDialog(VeuszDialog):
                 # parametric dataset
                 self.parametricradio.click()
                 p = ds.parametric
-                self.tstartedit.setText( '%g' % p[0] )
-                self.tendedit.setText( '%g' % p[1] )
-                self.tstepsedit.setText( str(p[2]) )
+                self.tstartedit.setText("%g" % p[0])
+                self.tendedit.setText("%g" % p[1])
+                self.tstepsedit.setText(str(p[2]))
 
             # make sure name is set
             self.nameedit.setText(dsname)
@@ -146,7 +158,7 @@ class DataCreateDialog(VeuszDialog):
             for part in self.dsedits:
                 text = ds.expr[part]
                 if text is None:
-                    text = ''
+                    text = ""
                 self.dsedits[part].setText(text)
 
         elif isinstance(ds, datasets.DatasetRange):
@@ -156,11 +168,11 @@ class DataCreateDialog(VeuszDialog):
             self.nameedit.setText(dsname)
             # set expressions
             for part in self.dsedits:
-                data = getattr(ds, 'range_%s' % part)
+                data = getattr(ds, "range_%s" % part)
                 if data is None:
-                    text = ''
+                    text = ""
                 else:
-                    text = '%g:%g' % data
+                    text = "%g:%g" % data
                 self.dsedits[part].setText(text)
 
     def editsEditSlot(self, dummytext):
@@ -179,9 +191,9 @@ class DataCreateDialog(VeuszDialog):
         elif method is self.parametricradio:
             # parametric
             editsokay = (
-                self.tstartedit.hasAcceptableInput() and
-                self.tendedit.hasAcceptableInput() and
-                self.tstepsedit.hasAcceptableInput()
+                self.tstartedit.hasAcceptableInput()
+                and self.tendedit.hasAcceptableInput()
+                and self.tstepsedit.hasAcceptableInput()
             )
         else:
             # function
@@ -204,10 +216,15 @@ class DataCreateDialog(VeuszDialog):
         """Reset button clicked - reset dialog."""
 
         for cntrl in (
-                self.valueedit, self.symerroredit, self.poserroredit,
-                self.negerroredit, self.numstepsedit,
-                self.tstartedit, self.tendedit, self.tstepsedit,
-                self.nameedit
+            self.valueedit,
+            self.symerroredit,
+            self.poserroredit,
+            self.negerroredit,
+            self.numstepsedit,
+            self.tstartedit,
+            self.tendedit,
+            self.tstepsedit,
+            self.nameedit,
         ):
             cntrl.setEditText("")
 
@@ -238,17 +255,19 @@ class DataCreateDialog(VeuszDialog):
                 status = _("Created dataset '%s'") % dsname
             self.statuslabel.setText(status)
 
-        except (document.CreateDatasetException,
-                datasets.DatasetException, _DSException) as e:
-
+        except (
+            document.CreateDatasetException,
+            datasets.DatasetException,
+            _DSException,
+        ) as e:
             # all bad roads lead here - take exception string and tell user
             if dsexists:
                 status = _("Replacement failed")
             else:
                 status = _("Creation failed")
 
-            if str(e) != '':
-                status += ': %s' % str(e)
+            if str(e) != "":
+                status += ": %s" % str(e)
 
             self.statuslabel.setText(status)
 
@@ -269,9 +288,9 @@ class DataCreateDialog(VeuszDialog):
             if not text:
                 continue
 
-            if text.find(':') != -1:
+            if text.find(":") != -1:
                 # an actual range
-                parts = text.split(':')
+                parts = text.split(":")
 
                 if len(parts) != 2:
                     raise _DSException(_("Incorrect range format, use form 1:10"))
@@ -290,8 +309,7 @@ class DataCreateDialog(VeuszDialog):
             vals[key] = (minval, maxval)
 
         linked = self.linkcheckbox.checkState() == qt.Qt.CheckState.Checked
-        return document.OperationDatasetCreateRange(
-            name, numsteps, vals, linked=linked)
+        return document.OperationDatasetCreateRange(name, numsteps, vals, linked=linked)
 
     def createParametric(self, name):
         """Use a parametric form to create the dataset.
@@ -314,7 +332,8 @@ class DataCreateDialog(VeuszDialog):
 
         linked = self.linkcheckbox.checkState() == qt.Qt.CheckState.Checked
         return document.OperationDatasetCreateParameteric(
-            name, t0, t1, numsteps, vals, linked=linked)
+            name, t0, t1, numsteps, vals, linked=linked
+        )
 
     def createFromExpression(self, name):
         """Create a dataset based on the expressions given."""
@@ -331,6 +350,7 @@ class DataCreateDialog(VeuszDialog):
         if not op.validateExpression(self.document):
             raise _DSException()
         return op
+
 
 def recreateDataset(mainwindow, document, dataset, datasetname):
     """Open dialog to recreate a DatasetExpression / DatasetRange."""

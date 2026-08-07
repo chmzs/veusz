@@ -30,9 +30,11 @@ from . import widget
 from . import graph
 from . import controlgraph
 
-def _(text, disambiguation=None, context='Grid'):
+
+def _(text, disambiguation=None, context="Grid"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class _gridengine:
     """Internal class to build up grid of widgets."""
@@ -54,7 +56,7 @@ class _gridengine:
         if r >= len(self.alloced):
             return False
         row = self.alloced[r]
-        if c >= len( row ):
+        if c >= len(row):
             return False
         else:
             return row[c]
@@ -63,17 +65,17 @@ class _gridengine:
         """Is the block (c,r) -> (c+w,r+h) allocated?"""
         for y in range(h):
             for x in range(w):
-                if self.isAlloced(c+x, y+r):
+                if self.isAlloced(c + x, y + r):
                     return True
         return False
 
     def setAlloced(self, c, r):
         """Set element (c,r) as allocated."""
         while r >= len(self.alloced):
-            self.alloced.append( [] )
+            self.alloced.append([])
         row = self.alloced[r]
         while c >= len(row):
-            row.append( False )
+            row.append(False)
 
         row[c] = True
 
@@ -81,7 +83,7 @@ class _gridengine:
         """Set block (c,r)->(c+w,r+h) as allocated."""
         for y in range(h):
             for x in range(w):
-                self.setAlloced(x+c, y+r)
+                self.setAlloced(x + c, y + r)
 
     def add(self, width, height):
         """Add a block of width x height, returning position as tuple."""
@@ -97,8 +99,7 @@ class _gridengine:
             # if we run out of columns, move to the next row
             while self.isAllocedBlock(self.col, self.row, width, height):
                 self.col += 1
-                if (self.col + width > self.columns) and \
-                       (width <= self.columns):
+                if (self.col + width > self.columns) and (width <= self.columns):
                     self.col = 0
                     self.row += 1
 
@@ -139,6 +140,7 @@ class _gridengine:
             w = max(w, len(l))
         return (w, h)
 
+
 class Grid(widget.Widget):
     """Class to hold plots in a grid arrangement.
 
@@ -148,20 +150,23 @@ class Grid(widget.Widget):
     The same is true if cols is specified.
     """
 
-    typename='grid'
-    allowusercreation=True
-    description=_('Arrange graphs in a grid')
+    typename = "grid"
+    allowusercreation = True
+    description = _("Arrange graphs in a grid")
 
     def __init__(self, parent, name=None):
-        """Initialise the grid.
-        """
+        """Initialise the grid."""
 
         widget.Widget.__init__(self, parent, name=name)
 
-        self.addAction( widget.Action(
-            'zeroMargins', self.actionZeroMargins,
-            descr=_('Zero margins of graphs in grid'),
-            usertext=_('Zero margins')) )
+        self.addAction(
+            widget.Action(
+                "zeroMargins",
+                self.actionZeroMargins,
+                descr=_("Zero margins of graphs in grid"),
+                usertext=_("Zero margins"),
+            )
+        )
 
         # calculated positions for children
         self.childpositions = {}
@@ -177,66 +182,103 @@ class Grid(widget.Widget):
         """Construct list of settings."""
         widget.Widget.addSettings(s)
 
-        s.add(setting.Int(
-            'rows', 2,
-            descr=_('Number of rows in grid'),
-            usertext=_('Number of rows')) )
-        s.add(setting.Int(
-            'columns', 2,
-            descr=_('Number of columns in grid'),
-            usertext=_('Number of columns')) )
+        s.add(
+            setting.Int(
+                "rows",
+                2,
+                descr=_("Number of rows in grid"),
+                usertext=_("Number of rows"),
+            )
+        )
+        s.add(
+            setting.Int(
+                "columns",
+                2,
+                descr=_("Number of columns in grid"),
+                usertext=_("Number of columns"),
+            )
+        )
 
-        s.add( setting.FloatList(
-            'scaleRows',
-            [],
-            descr=_(
-                'Row scaling factors. A sequence of values\nby which to '
-                'scale rows relative to each other.'),
-            usertext=_('Row scalings')) )
-        s.add( setting.FloatList(
-            'scaleCols',
-            [],
-            descr=_(
-                'Column scaling factors. A sequence of values\nby which to '
-                'scale columns relative to each other.'),
-            usertext=_('Column scalings')) )
+        s.add(
+            setting.FloatList(
+                "scaleRows",
+                [],
+                descr=_(
+                    "Row scaling factors. A sequence of values\nby which to "
+                    "scale rows relative to each other."
+                ),
+                usertext=_("Row scalings"),
+            )
+        )
+        s.add(
+            setting.FloatList(
+                "scaleCols",
+                [],
+                descr=_(
+                    "Column scaling factors. A sequence of values\nby which to "
+                    "scale columns relative to each other."
+                ),
+                usertext=_("Column scalings"),
+            )
+        )
 
-        s.add( setting.Distance(
-            'leftMargin', '1.7cm',
-            descr=_('Distance from left of grid to edge of page'),
-            usertext=_('Left margin'),
-            formatting=True) )
-        s.add( setting.Distance(
-            'rightMargin', '0.2cm',
-            descr=_('Distance from right of grid to edge of page'),
-            usertext=_('Right margin'),
-            formatting=True) )
-        s.add( setting.Distance(
-            'topMargin', '0.2cm',
-            descr=_('Distance from top of grid to edge of page'),
-            usertext=_('Top margin'),
-            formatting=True) )
-        s.add( setting.Distance(
-            'bottomMargin', '1.7cm',
-            descr=_('Distance from bottom of grid to edge of page'),
-            usertext=_('Bottom margin'),
-            formatting=True) )
-        s.add( setting.Distance(
-            'internalMargin', '0cm',
-            descr=_('Gap between grid members'),
-            usertext=_('Internal margin'),
-            formatting=True) )
+        s.add(
+            setting.Distance(
+                "leftMargin",
+                "1.7cm",
+                descr=_("Distance from left of grid to edge of page"),
+                usertext=_("Left margin"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Distance(
+                "rightMargin",
+                "0.2cm",
+                descr=_("Distance from right of grid to edge of page"),
+                usertext=_("Right margin"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Distance(
+                "topMargin",
+                "0.2cm",
+                descr=_("Distance from top of grid to edge of page"),
+                usertext=_("Top margin"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Distance(
+                "bottomMargin",
+                "1.7cm",
+                descr=_("Distance from bottom of grid to edge of page"),
+                usertext=_("Bottom margin"),
+                formatting=True,
+            )
+        )
+        s.add(
+            setting.Distance(
+                "internalMargin",
+                "0cm",
+                descr=_("Gap between grid members"),
+                usertext=_("Internal margin"),
+                formatting=True,
+            )
+        )
 
     @classmethod
     def allowedParentTypes(klass):
         from . import page
+
         return (page.Page, Grid)
 
     @property
     def userdescription(self):
         """User friendly description."""
         s = self.settings
-        return "%(rows)i rows, %(columns)i columns"  % s
+        return "%(rows)i rows, %(columns)i columns" % s
 
     def _recalcPositions(self):
         """(internal) recalculate the positions of the children."""
@@ -245,8 +287,7 @@ class Grid(widget.Widget):
         ge = _gridengine(self.settings.columns, self.settings.rows)
 
         # copy children, and remove any which are axes
-        children = [ c for c in self.children if
-                     not c.isaxis ]
+        children = [c for c in self.children if not c.isaxis]
         child_dimensions = {}
         child_posns = {}
         for c in children:
@@ -263,30 +304,30 @@ class Grid(widget.Widget):
 
         # get total scaling factors for cols
         scalecols = list(self.settings.scaleCols[:nocols])
-        scalecols += [1.]*(nocols-len(scalecols))
+        scalecols += [1.0] * (nocols - len(scalecols))
         totscalecols = sum(scalecols)
-        if totscalecols == 0.:
-            totscalecols = 1.
+        if totscalecols == 0.0:
+            totscalecols = 1.0
 
         # fractional starting positions of columns
-        last = 0.
+        last = 0.0
         startcols = [last]
         for scale in scalecols:
-            last += scale/totscalecols
+            last += scale / totscalecols
             startcols.append(last)
 
         # similarly get total scaling factors for rows
         scalerows = list(self.settings.scaleRows[:norows])
-        scalerows += [1.]*(norows-len(scalerows))
+        scalerows += [1.0] * (norows - len(scalerows))
         totscalerows = sum(scalerows)
-        if totscalerows == 0.:
-            totscalerows = 1.
+        if totscalerows == 0.0:
+            totscalerows = 1.0
 
         # fractional starting positions of rows
-        last = 0.
+        last = 0.0
         startrows = [last]
         for scale in scalerows:
-            last += scale/totscalerows
+            last += scale / totscalerows
             startrows.append(last)
 
         # iterate over children, and modify positions
@@ -295,13 +336,14 @@ class Grid(widget.Widget):
             dims = child_dimensions[child]
             pos = child_posns[child]
             self.childpositions[child] = (
-                ( pos[0],
-                  pos[1] ),
-                ( startcols[pos[0]],
-                  startrows[pos[1]],
-                  startcols[pos[0]+dims[0]],
-                  startrows[pos[1]+dims[1]] ),
-                )
+                (pos[0], pos[1]),
+                (
+                    startcols[pos[0]],
+                    startrows[pos[1]],
+                    startcols[pos[0] + dims[0]],
+                    startrows[pos[1] + dims[1]],
+                ),
+            )
 
     def actionZeroMargins(self):
         """Zero margins of plots inside this grid."""
@@ -310,13 +352,12 @@ class Grid(widget.Widget):
         for c in self.children:
             if isinstance(c, graph.Graph):
                 s = c.settings
-                for v in (
-                        'leftMargin', 'topMargin', 'rightMargin', 'bottomMargin'):
-                    operations.append(
-                        document.OperationSettingSet(s.get(v), '0cm') )
+                for v in ("leftMargin", "topMargin", "rightMargin", "bottomMargin"):
+                    operations.append(document.OperationSettingSet(s.get(v), "0cm"))
 
         self.document.applyOperation(
-            document.OperationMultiple(operations, descr='zero margins') )
+            document.OperationMultiple(operations, descr="zero margins")
+        )
 
     def _drawChild(self, phelper, child, bounds, parentposn):
         """Draw child at correct position, with correct bounds."""
@@ -325,14 +366,14 @@ class Grid(widget.Widget):
         coutbound = newbounds = parentposn
 
         if child in self.childpositions:
-            intmargin = self.settings.get('internalMargin').convert(phelper)
+            intmargin = self.settings.get("internalMargin").convert(phelper)
             cidx, cpos = self.childpositions[child]
 
             # calculate size after margins
-            dx = bounds[2]-bounds[0]
-            dy = bounds[3]-bounds[1]
-            marx = intmargin*max(0, self.dims[0]-1)
-            mary = intmargin*max(0, self.dims[1]-1)
+            dx = bounds[2] - bounds[0]
+            dy = bounds[3] - bounds[1]
+            marx = intmargin * max(0, self.dims[0] - 1)
+            mary = intmargin * max(0, self.dims[1] - 1)
             if dx > marx and dy > mary:
                 dx -= marx
                 dy -= mary
@@ -342,23 +383,23 @@ class Grid(widget.Widget):
 
             # bounds for child
             newbounds = [
-                bounds[0]+dx*cpos[0]+intmargin*cidx[0],
-                bounds[1]+dy*cpos[1]+intmargin*cidx[1],
-                bounds[0]+dx*cpos[2]+intmargin*cidx[0],
-                bounds[1]+dy*cpos[3]+intmargin*cidx[1]
+                bounds[0] + dx * cpos[0] + intmargin * cidx[0],
+                bounds[1] + dy * cpos[1] + intmargin * cidx[1],
+                bounds[0] + dx * cpos[2] + intmargin * cidx[0],
+                bounds[1] + dy * cpos[3] + intmargin * cidx[1],
             ]
             # bounds the axes can spread into
             coutbound = list(newbounds)
 
             # adjust outer bounds to half the internal margin space
             if cidx[0] > 0:
-                coutbound[0] -= intmargin/2.
+                coutbound[0] -= intmargin / 2.0
             if cidx[1] > 0:
-                coutbound[1] -= intmargin/2.
-            if cidx[0] < self.dims[0]-1:
-                coutbound[2] += intmargin/2.
-            if cidx[1] < self.dims[1]-1:
-                coutbound[3] += intmargin/2.
+                coutbound[1] -= intmargin / 2.0
+            if cidx[0] < self.dims[0] - 1:
+                coutbound[2] += intmargin / 2.0
+            if cidx[1] < self.dims[1] - 1:
+                coutbound[3] += intmargin / 2.0
 
             # work out bounds for graph in box
             # this is the space available for axes, etc
@@ -367,9 +408,9 @@ class Grid(widget.Widget):
                 coutbound[0] = parentposn[0]
             if cidx[1] == 0:
                 coutbound[1] = parentposn[1]
-            if cidx[0] == self.dims[0]-1:
+            if cidx[0] == self.dims[0] - 1:
                 coutbound[2] = parentposn[2]
-            if cidx[1] == self.dims[1]-1:
+            if cidx[1] == self.dims[1] - 1:
                 coutbound[3] = parentposn[3]
 
         # draw widget
@@ -379,10 +420,10 @@ class Grid(widget.Widget):
         """Use settings to compute margins."""
         s = self.settings
         return (
-            s.get('leftMargin').convert(painthelper),
-            s.get('topMargin').convert(painthelper),
-            s.get('rightMargin').convert(painthelper),
-            s.get('bottomMargin').convert(painthelper)
+            s.get("leftMargin").convert(painthelper),
+            s.get("topMargin").convert(painthelper),
+            s.get("rightMargin").convert(painthelper),
+            s.get("bottomMargin").convert(painthelper),
         )
 
     def draw(self, parentposn, phelper, outerbounds=None):
@@ -393,10 +434,11 @@ class Grid(widget.Widget):
         # if the contents have been modified, recalculate the positions
         dimensions = (s.columns, s.rows)
         scalings = (s.scaleRows, s.scaleCols)
-        if ( self.children != self.lastchildren or
-             self.lastdimensions != dimensions or
-             self.lastscalings != scalings ):
-
+        if (
+            self.children != self.lastchildren
+            or self.lastdimensions != dimensions
+            or self.lastscalings != scalings
+        ):
             self._recalcPositions()
             self.lastchildren = list(self.children)
             self.lastdimensions = dimensions
@@ -408,8 +450,9 @@ class Grid(widget.Widget):
         painter = phelper.painter(self, bounds)
 
         # controls for adjusting grid margins
-        phelper.setControlGraph(self,[
-                controlgraph.ControlMarginBox(self, bounds, maxbounds, phelper)])
+        phelper.setControlGraph(
+            self, [controlgraph.ControlMarginBox(self, bounds, maxbounds, phelper)]
+        )
 
         with painter:
             for child in self.children:
@@ -422,6 +465,7 @@ class Grid(widget.Widget):
     def updateControlItem(self, cgi):
         """Grid resized or moved - call helper routine to move self."""
         cgi.setWidgetMargins()
+
 
 # allow the factory to instantiate a grid
 document.thefactory.register(Grid)

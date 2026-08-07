@@ -18,15 +18,14 @@
 #
 ##############################################################################
 
-"""A combobox which remembers previous setting
-"""
+"""A combobox which remembers previous setting"""
 
 from .. import qtall as qt
 from .. import setting
 
+
 class HistoryValueCombo(qt.QComboBox):
-    """This combobox records what value was previously saved
-    """
+    """This combobox records what value was previously saved"""
 
     def __init__(self, *args, **argsv):
         qt.QComboBox.__init__(self, *args, **argsv)
@@ -43,8 +42,7 @@ class HistoryValueCombo(qt.QComboBox):
             dialog = dialog.parent()
 
         # combine dialog and object names to make setting
-        return '%s_%s_HistoryValueCombo'  % (
-            dialog.objectName(), self.objectName() )
+        return "%s_%s_HistoryValueCombo" % (dialog.objectName(), self.objectName())
 
     def saveHistory(self):
         """Save contents of history combo to settings."""
@@ -54,7 +52,7 @@ class HistoryValueCombo(qt.QComboBox):
             return
 
         # collect current items
-        history = [ self.itemText(i) for i in range(self.count()) ]
+        history = [self.itemText(i) for i in range(self.count())]
         history.insert(0, self.currentText())
 
         # remove dups
@@ -93,4 +91,3 @@ class HistoryValueCombo(qt.QComboBox):
         if self.hasshown:
             text = self.currentText()
             setting.settingdb[self.getSettingName()] = text
-

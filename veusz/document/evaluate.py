@@ -32,26 +32,31 @@ from .. import datasets
 from .. import qtall as qt
 
 # python identifier
-identifier_re = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+identifier_re = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 # for splitting
-identifier_split_re = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
+identifier_split_re = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 # python module
-module_re = re.compile(r'^[A-Za-z_\.]+$')
+module_re = re.compile(r"^[A-Za-z_\.]+$")
 
 # function(arg1, arg2...) for custom functions
 # not quite correct as doesn't check for commas in correct places
-function_re = re.compile(r'''
+function_re = re.compile(
+    r"""
 ^([A-Za-z_][A-Za-z0-9_]*)[ ]*  # identifier
 \((                            # begin args
 (?: [ ]* ,? [ ]* [A-Za-z_][A-Za-z0-9_]* )*     # named args
 (?: [ ]* ,? [ ]* \*[A-Za-z_][A-Za-z0-9_]* )?   # *args
 (?: [ ]* ,? [ ]* \*\*[A-Za-z_][A-Za-z0-9_]* )? # **kwargs
-)\)$                           # endargs''', re.VERBOSE)
+)\)$                           # endargs""",
+    re.VERBOSE,
+)
+
 
 def _(text, disambiguation=None, context="Evaluate"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 # Notes on Security
 # -----------------
@@ -67,6 +72,7 @@ def _(text, disambiguation=None, context="Evaluate"):
 #  * Executing statements when loading
 #  * Importing functions
 #  * Evaluating expressions (non checking Python)
+
 
 class Evaluate:
     """Class to manage evaluation of expressions in a special environment."""
@@ -123,26 +129,29 @@ class Evaluate:
         # add numpy things
         # we try to avoid various bits and pieces for safety
         for name, val in N.__dict__.items():
-            if ( (callable(val) or type(val)==float) and
-                 name not in __builtins__ and
-                 name[:1] != '_' and name[-1:] != '_' ):
+            if (
+                (callable(val) or type(val) == float)
+                and name not in __builtins__
+                and name[:1] != "_"
+                and name[-1:] != "_"
+            ):
                 c[name] = val
 
         # safe functions
-        c['os_path_join'] = os.path.join
-        c['os_path_dirname'] = os.path.dirname
-        c['veusz_markercodes'] = tuple(utils.MarkerCodes)
+        c["os_path_join"] = os.path.join
+        c["os_path_dirname"] = os.path.dirname
+        c["veusz_markercodes"] = tuple(utils.MarkerCodes)
 
         # helpful functions for expansion
-        c['ENVIRON'] = dict(os.environ)
-        c['DATE'] = self._evalformatdate
-        c['TIME'] = self._evalformattime
-        c['DATA'] = self._evaldata
-        c['FILENAME'] = self._evalfilename
-        c['BASENAME'] = self._evalbasename
-        c['ESCAPE'] = utils.latexEscape
-        c['SETTING'] = self._evalsetting
-        c['LANG'] = self._evallang
+        c["ENVIRON"] = dict(os.environ)
+        c["DATE"] = self._evalformatdate
+        c["TIME"] = self._evalformattime
+        c["DATA"] = self._evaldata
+        c["FILENAME"] = self._evalfilename
+        c["BASENAME"] = self._evalbasename
+        c["ESCAPE"] = utils.latexEscape
+        c["SETTING"] = self._evalsetting
+        c["LANG"] = self._evallang
 
         for name, val in self.def_imports:
             self._updateImport(name, val)
@@ -161,7 +170,7 @@ class Evaluate:
 
     def setSecurity(self, secure):
         """Updated the security context."""
-        oldsecure = getattr(self, 'secure_document', False)
+        oldsecure = getattr(self, "secure_document", False)
 
         self.secure_document = secure
         self.doc.sigSecuritySet.emit(secure)
@@ -177,8 +186,7 @@ class Evaluate:
         """Make document secure if in a secure location."""
         filename = self.doc.filename
         absfilename = os.path.abspath(filename)
-        paths = setting.settingdb['secure_dirs'] + [
-            utils.exampleDirectory]
+        paths = setting.settingdb["secure_dirs"] + [utils.exampleDirectory]
         for dirname in paths:
             absdirname = os.path.abspath(dirname)
             if absfilename.startswith(absdirname + os.sep):
@@ -186,10 +194,7 @@ class Evaluate:
 
     def inSecureMode(self):
         """Is the document in a safe location?"""
-        return (
-            setting.transient_settings['unsafe_mode'] or
-            self.secure_document
-        )
+        return setting.transient_settings["unsafe_mode"] or self.secure_document
 
     def _updateImport(self, module, val):
         """Add an import statement to the eval function context."""
@@ -198,33 +203,33 @@ class Evaluate:
             symbols = identifier_split_re.findall(val)
             if self._checkImportsSafe():
                 if symbols:
-                    defn = 'from %s import %s' % (
-                        module, ', '.join(symbols))
+                    defn = "from %s import %s" % (module, ", ".join(symbols))
                     try:
                         exec(defn, self.context)
                     except Exception:
-                        self.doc.log(_(
-                            "Failed to import '%s' from module '%s'") % (
-                                ', '.join(symbols), module))
+                        self.doc.log(
+                            _("Failed to import '%s' from module '%s'")
+                            % (", ".join(symbols), module)
+                        )
                         return
                 else:
-                    defn = 'import %s' % module
+                    defn = "import %s" % module
                     try:
                         exec(defn, self.context)
                     except Exception:
-                        self.doc.log(_(
-                            "Failed to import module '%s'") % module)
+                        self.doc.log(_("Failed to import module '%s'") % module)
                         return
             else:
                 if not symbols:
                     self.doc.log(_("Did not import module '%s'") % module)
                 else:
-                    self.doc.log(_(
-                        "Did not import '%s' from module '%s'") % (
-                            ', '.join(list(symbols)), module))
+                    self.doc.log(
+                        _("Did not import '%s' from module '%s'")
+                        % (", ".join(list(symbols)), module)
+                    )
 
         else:
-            self.doc.log( _("Invalid module name '%s'") % module )
+            self.doc.log(_("Invalid module name '%s'") % module)
 
     def validateProcessColormap(self, colormap):
         """Validate and process a colormap value.
@@ -233,13 +238,13 @@ class Evaluate:
 
         try:
             if len(colormap) < 2:
-                raise ValueError( _("Need at least two entries in colormap") )
+                raise ValueError(_("Need at least two entries in colormap"))
         except TypeError:
-            raise ValueError( _("Invalid type for colormap") )
+            raise ValueError(_("Invalid type for colormap"))
 
         out = []
         for entry in colormap:
-            if entry == (-1,0,0,0):
+            if entry == (-1, 0, 0, 0):
                 out.append(entry)
                 continue
 
@@ -247,22 +252,21 @@ class Evaluate:
                 try:
                     v - 0
                 except TypeError:
-                    raise ValueError(
-                        _("Colormap entries should be numerical") )
+                    raise ValueError(_("Colormap entries should be numerical"))
                 if v < 0 or v > 255:
-                    raise ValueError(
-                        _("Colormap entries should be between 0 and 255") )
+                    raise ValueError(_("Colormap entries should be between 0 and 255"))
 
             if len(entry) == 3:
-                out.append( (int(entry[2]), int(entry[1]), int(entry[0]),
-                             255) )
+                out.append((int(entry[2]), int(entry[1]), int(entry[0]), 255))
             elif len(entry) == 4:
-                out.append( (int(entry[2]), int(entry[1]), int(entry[0]),
-                             int(entry[3])) )
+                out.append((int(entry[2]), int(entry[1]), int(entry[0]), int(entry[3])))
             else:
-                raise ValueError( _(
-                    "Each colormap entry consists of R,G,B "
-                    "and optionally alpha values") )
+                raise ValueError(
+                    _(
+                        "Each colormap entry consists of R,G,B "
+                        "and optionally alpha values"
+                    )
+                )
 
         return tuple(out)
 
@@ -272,9 +276,9 @@ class Evaluate:
         try:
             cmap = self.validateProcessColormap(val)
         except ValueError as e:
-            self.doc.log( str(e) )
+            self.doc.log(str(e))
         else:
-            self.colormaps[ str(name) ] = cmap
+            self.colormaps[str(name)] = cmap
 
     def _updateDefinition(self, name, val):
         """Update a function or constant in eval function context."""
@@ -285,12 +289,12 @@ class Evaluate:
             m = function_re.match(name)
             if not m:
                 self.doc.log(
-                    _("Invalid function or constant specification '%s'") %
-                    name)
+                    _("Invalid function or constant specification '%s'") % name
+                )
                 return
             name = m.group(1)
             args = m.group(2)
-            defn = 'lambda %s: %s' % (args, val)
+            defn = "lambda %s: %s" % (args, val)
 
         # evaluate, but we ignore any unsafe commands or exceptions
         comp = self.compileCheckedExpression(defn)
@@ -299,8 +303,7 @@ class Evaluate:
         try:
             self.context[name] = eval(comp, self.context)
         except Exception as e:
-            self.doc.log( _(
-                "Error evaluating '%s': '%s'") % (name, str(e)) )
+            self.doc.log(_("Error evaluating '%s': '%s'") % (name, str(e)))
 
     def compileCheckedExpression(self, expr, origexpr=None, log=True):
         """Compile expression and check for errors.
@@ -331,14 +334,12 @@ class Evaluate:
             )
         except utils.SafeEvalException as e:
             if log:
-                self.doc.log(
-                    _("Unsafe expression '%s': %s") % (origexpr, str(e)))
+                self.doc.log(_("Unsafe expression '%s': %s") % (origexpr, str(e)))
             self.compfailed.add(expr)
             return None
         except Exception as e:
             if log:
-                self.doc.log(
-                    _("Error in expression '%s': %s") % (origexpr, str(e)))
+                self.doc.log(_("Error in expression '%s': %s") % (origexpr, str(e)))
             return None
         else:
             self.compiled[expr] = checked
@@ -356,9 +357,9 @@ class Evaluate:
         t = datetime.datetime.now()
         return t.isoformat() if fmt is None else t.strftime(fmt)
 
-    def _evaldata(self, name, part='data'):
+    def _evaldata(self, name, part="data"):
         """DATA(name, [part]) eval: return dataset as array."""
-        if part not in ('data', 'perr', 'serr', 'nerr'):
+        if part not in ("data", "perr", "serr", "nerr"):
             raise RuntimeError("Invalid dataset part '%s'" % part)
         if name not in self.doc.data:
             raise RuntimeError("Dataset '%s' does not exist" % name)
@@ -387,15 +388,16 @@ class Evaluate:
         lang = qt.QLocale().name()
         if lang in opts:
             return opts[lang]
-        majorl = lang.split('_')[0]
+        majorl = lang.split("_")[0]
         if majorl in opts:
             return opts[majorl]
-        if 'default' in opts:
-            return opts['default']
-        return utils.latexEscape('NOLANG:%s' % str(lang))
+        if "default" in opts:
+            return opts["default"]
+        return utils.latexEscape("NOLANG:%s" % str(lang))
 
-    def evalDatasetExpression(self, expr, part='data', datatype='numeric',
-                              dimensions=1):
+    def evalDatasetExpression(
+        self, expr, part="data", datatype="numeric", dimensions=1
+    ):
         """Return dataset after evaluating a dataset expression.
         part is 'data', 'serr', 'perr' or 'nerr' - these are the
         dataset parts which are evaluated by the expression
@@ -411,7 +413,8 @@ class Evaluate:
             return self.exprdscache[key]
 
         self.exprdscache[key] = ds = datasets.evalDatasetExpression(
-            self.doc, expr, part=part, datatype=datatype, dimensions=dimensions)
+            self.doc, expr, part=part, datatype=datatype, dimensions=dimensions
+        )
         return ds
 
     def _checkImportsSafe(self):
@@ -426,7 +429,7 @@ class Evaluate:
 
     def getColormap(self, name, invert):
         """Get colormap with name given (returning grey if does not exist)."""
-        cmap = self.colormaps.get(name, self.colormaps['grey'])
+        cmap = self.colormaps.get(name, self.colormaps["grey"])
         if invert:
             if cmap[0][0] >= 0:
                 return cmap[::-1]
@@ -438,20 +441,19 @@ class Evaluate:
     def saveCustomDefinitions(self, fileobj):
         """Save custom constants and functions."""
         for ctype, defns in (
-                ('import', self.def_imports),
-                ('definition', self.def_definitions),
-                ('color', self.def_colors),
-                ('colormap', self.def_colormaps)):
-
+            ("import", self.def_imports),
+            ("definition", self.def_definitions),
+            ("color", self.def_colors),
+            ("colormap", self.def_colormaps),
+        ):
             for val in defns:
                 fileobj.write(
-                    'AddCustom(%s, %s, %s)\n' % (
-                        utils.rrepr(ctype),
-                        utils.rrepr(val[0]),
-                        utils.rrepr(val[1])))
+                    "AddCustom(%s, %s, %s)\n"
+                    % (utils.rrepr(ctype), utils.rrepr(val[0]), utils.rrepr(val[1]))
+                )
 
     def saveCustomFile(self, fileobj):
         """Export the custom settings to a file."""
 
-        self.doc._writeFileHeader(fileobj, 'custom definitions')
+        self.doc._writeFileHeader(fileobj, "custom definitions")
         self.saveCustomDefinitions(fileobj)

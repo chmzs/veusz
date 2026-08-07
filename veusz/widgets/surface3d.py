@@ -30,81 +30,104 @@ from ..helpers import threed
 
 from . import plotters3d
 
-def _(text, disambiguation=None, context='Surface3D'):
+
+def _(text, disambiguation=None, context="Surface3D"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class Surface3D(plotters3d.GenericPlotter3D):
     """Plotting surface in 3D."""
 
-    typename = 'surface3d'
-    description = _('3D surface')
-    allowusercreation=True
+    typename = "surface3d"
+    description = _("3D surface")
+    allowusercreation = True
 
     # list of modes allowed
     modes = (
-        'x(y,z)', 'x(z,y)',
-        'y(x,z)', 'y(z,x)',
-        'z(x,y)', 'z(y,x)',
+        "x(y,z)",
+        "x(z,y)",
+        "y(x,z)",
+        "y(z,x)",
+        "z(x,y)",
+        "z(y,x)",
     )
     # above, in numeric form
     mode_idxs = {
-        'x(y,z)': (0,1,2), 'x(z,y)': (0,2,1),
-        'y(x,z)': (1,0,2), 'y(z,x)': (1,2,0),
-        'z(x,y)': (2,0,1), 'z(y,x)': (2,1,0),
+        "x(y,z)": (0, 1, 2),
+        "x(z,y)": (0, 2, 1),
+        "y(x,z)": (1, 0, 2),
+        "y(z,x)": (1, 2, 0),
+        "z(x,y)": (2, 0, 1),
+        "z(y,x)": (2, 1, 0),
     }
 
     @classmethod
     def addSettings(klass, s):
         plotters3d.GenericPlotter3D.addSettings(s)
 
-        s.add(setting.Choice(
-            'mode', klass.modes,
-            'z(x,y)',
-            descr=_('Axes of plot surface'),
-            usertext=_('Mode')), 0)
-        s.add(setting.DatasetExtended(
-            'data', '',
-            dimensions=2,
-            descr=_('Dataset to plot'),
-            usertext=_('Dataset')), 1)
-        s.add(setting.DataColor(
-            'DataColor', dimensions=2), 2)
+        s.add(
+            setting.Choice(
+                "mode",
+                klass.modes,
+                "z(x,y)",
+                descr=_("Axes of plot surface"),
+                usertext=_("Mode"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "data",
+                "",
+                dimensions=2,
+                descr=_("Dataset to plot"),
+                usertext=_("Dataset"),
+            ),
+            1,
+        )
+        s.add(setting.DataColor("DataColor", dimensions=2), 2)
 
-        s.add(setting.Bool(
-            'highres', False,
-            descr=_('High resolution surface (accurate bin centres)'),
-            usertext=_('High res.'),
-            formatting=True) )
+        s.add(
+            setting.Bool(
+                "highres",
+                False,
+                descr=_("High resolution surface (accurate bin centres)"),
+                usertext=_("High res."),
+                formatting=True,
+            )
+        )
 
-        s.add(setting.LineGrid3D(
-            'Line',
-            descr=_('Grid line settings'),
-            usertext=_('Grid line')),
-            pixmap='settings_gridline' )
-        s.add(setting.Surface3DWColorMap(
-            'Surface',
-            descr=_('Surface fill settings'),
-            usertext=_('Surface')),
-            pixmap='settings_bgfill')
+        s.add(
+            setting.LineGrid3D(
+                "Line", descr=_("Grid line settings"), usertext=_("Grid line")
+            ),
+            pixmap="settings_gridline",
+        )
+        s.add(
+            setting.Surface3DWColorMap(
+                "Surface", descr=_("Surface fill settings"), usertext=_("Surface")
+            ),
+            pixmap="settings_bgfill",
+        )
 
     def affectsAxisRange(self):
         """Which axes this widget affects."""
         s = self.settings
-        return ((s.xAxis, 'sx'), (s.yAxis, 'sy'), (s.zAxis, 'sz'))
+        return ((s.xAxis, "sx"), (s.yAxis, "sy"), (s.zAxis, "sz"))
 
     def getRange(self, axis, depname, axrange):
         """Update axis range from data."""
 
         s = self.settings
         # get real dataset
-        data = s.get('data').getData(self.document)
+        data = s.get("data").getData(self.document)
         if data is None or data.dimensions != 2:
             return
 
         # convert axis dependency into an index (0,1,2) which
         # specifies whether to get value range, or 2d range
-        axidx = {'sx': 0, 'sy': 1, 'sz': 2}[depname]
+        axidx = {"sx": 0, "sy": 1, "sz": 2}[depname]
         idx = self.mode_idxs[s.mode].index(axidx)
 
         rng = None
@@ -138,34 +161,42 @@ class Surface3D(plotters3d.GenericPlotter3D):
         idxs = self.mode_idxs[self.settings.mode]
 
         # convert to logical coordinates
-        data = axes[idxs[0]].dataToLogicalCoords(
-            N.ravel(N.transpose(dataset.data)))
+        data = axes[idxs[0]].dataToLogicalCoords(N.ravel(N.transpose(dataset.data)))
         e = dataset.getPixelEdges()
         edges1 = axes[idxs[1]].dataToLogicalCoords(e[0])
         edges2 = axes[idxs[2]].dataToLogicalCoords(e[1])
 
         # compute colors, if set
-        colordata = s.DataColor.get('points').getData(self.document)
+        colordata = s.DataColor.get("points").getData(self.document)
         if surfprop is not None and colordata is not None:
             cmap = self.document.evaluate.getColormap(
-                s.Surface.colorMap, s.Surface.colorMapInvert)
+                s.Surface.colorMap, s.Surface.colorMapInvert
+            )
             cdata = N.transpose(colordata.data)
             cdata = cdata.reshape((1, cdata.size))
             colorimg = utils.applyColorMap(
-                cmap, s.DataColor.scaling,
+                cmap,
+                s.DataColor.scaling,
                 cdata,
-                s.DataColor.min, s.DataColor.max,
-                s.Surface.transparency)
+                s.DataColor.min,
+                s.DataColor.max,
+                s.Surface.transparency,
+            )
             surfprop.setRGBs(colorimg)
 
         mesh = threed.DataMesh(
             threed.ValVector(edges1),
             threed.ValVector(edges2),
             threed.ValVector(data),
-            idxs[0], idxs[1], idxs[2],
+            idxs[0],
+            idxs[1],
+            idxs[2],
             highres,
-            lineprop, surfprop,
-            s.Line.hidehorz, s.Line.hidevert)
+            lineprop,
+            surfprop,
+            s.Line.hidehorz,
+            s.Line.hidevert,
+        )
         container.addObject(mesh)
 
     def dataDrawToObject(self, painter, axes):
@@ -179,7 +210,7 @@ class Surface3D(plotters3d.GenericPlotter3D):
             return
 
         s = self.settings
-        data = s.get('data').getData(self.document)
+        data = s.get("data").getData(self.document)
         if s.hide or data is None or data.dimensions != 2:
             return
 
@@ -188,5 +219,6 @@ class Surface3D(plotters3d.GenericPlotter3D):
 
         clipcontainer.assignWidgetId(id(self))
         return clipcontainer
+
 
 document.thefactory.register(Surface3D)

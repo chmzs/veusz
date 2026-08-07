@@ -34,32 +34,36 @@ try:
         from astropy.io import samp
 
 except ImportError:
+
     def setup():
-        print('SAMP: sampy module not available')
+        print("SAMP: sampy module not available")
 
 else:
+
     def setup():
         _setup()
+
 
 def _setup():
     global sampcl
 
     try:
-        icon = 'file:///' + '/'.join(
-            [resourceDirectory, 'icons', 'veusz_16.png'])
+        icon = "file:///" + "/".join([resourceDirectory, "icons", "veusz_16.png"])
 
         sampcl = samp.SAMPIntegratedClient(
-            metadata={'samp.name': 'Veusz', 'samp.icon.url': icon})
+            metadata={"samp.name": "Veusz", "samp.icon.url": icon}
+        )
         sampcl.connect()
 
         atexit.register(close)
         try:
-            sampcl.bindReceiveCall('table.load.votable', load_votable)
+            sampcl.bindReceiveCall("table.load.votable", load_votable)
         except AttributeError:
-            sampcl.bind_receive_call('table.load.votable', load_votable)
+            sampcl.bind_receive_call("table.load.votable", load_votable)
 
     except samp.SAMPHubError:
-        print('SAMP: could not connect to hub')
+        print("SAMP: could not connect to hub")
+
 
 def close():
     global sampcl
@@ -68,13 +72,14 @@ def close():
         sampcl.disconnect()
         sampcl = None
 
+
 def load_votable(private_key, sender_id, msg_id, mtype, params, extra):
     global sampcl
 
     try:
-        url = params['url']
-        name = params['name']
-        #table_id = params['table-id']
+        url = params["url"]
+        name = params["name"]
+        # table_id = params['table-id']
 
         # For now, load into the first window which is still open.
         ci = None
@@ -84,12 +89,15 @@ def load_votable(private_key, sender_id, msg_id, mtype, params, extra):
                 break
 
         if ci is not None:
-            ci.ImportFilePlugin('VO table import', name, url=url)
+            ci.ImportFilePlugin("VO table import", name, url=url)
 
         sampcl.ereply(msg_id, samp.SAMP_STATUS_OK, result={})
 
     except KeyError:
-        print('SAMP: parameter missing from table.load.votable call')
+        print("SAMP: parameter missing from table.load.votable call")
         sampcl.ereply(
-            msg_id, samp.SAMP_STATUS_ERROR, result={},
-            error={'samp.errortxt': 'Missing parameter'})
+            msg_id,
+            samp.SAMP_STATUS_ERROR,
+            result={},
+            error={"samp.errortxt": "Missing parameter"},
+        )

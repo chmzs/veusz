@@ -33,6 +33,7 @@ from . import setting
 # embed.py module checks this is the same as its version number
 API_VERSION = 2
 
+
 class EmbeddedClient:
     """An object for each instance of embedded window with document."""
 
@@ -47,26 +48,26 @@ class EmbeddedClient:
         # use time based checking by default
         self.plot.setTimeout(250)
         self.ci = document.CommandInterpreter(self.document)
-        self.ci.addCommand('Close', self.cmdClose)
-        self.ci.addCommand('Zoom', self.cmdZoom)
-        self.ci.addCommand('EnableToolbar', self.cmdEnableToolbar)
-        self.ci.addCommand('ForceUpdate', self.cmdForceUpdate)
-        self.ci.addCommand('GetClick', self.cmdGetClick)
-        self.ci.addCommand('ResizeWindow', self.cmdResizeWindow)
-        self.ci.addCommand('SetUpdateInterval', self.cmdSetUpdateInterval)
-        self.ci.addCommand('MoveToPage', self.cmdMoveToPage)
-        self.ci.addCommand('IsClosed', self.cmdIsClosed)
-        self.ci.addCommand('SetAntiAliasing', self.cmdSetAntiAliasing)
-        self.ci.addCommand('Wipe', self.cmdWipe)
-        self.ci.addCommand('_apiVersion', self.cmd_apiVersion)
+        self.ci.addCommand("Close", self.cmdClose)
+        self.ci.addCommand("Zoom", self.cmdZoom)
+        self.ci.addCommand("EnableToolbar", self.cmdEnableToolbar)
+        self.ci.addCommand("ForceUpdate", self.cmdForceUpdate)
+        self.ci.addCommand("GetClick", self.cmdGetClick)
+        self.ci.addCommand("ResizeWindow", self.cmdResizeWindow)
+        self.ci.addCommand("SetUpdateInterval", self.cmdSetUpdateInterval)
+        self.ci.addCommand("MoveToPage", self.cmdMoveToPage)
+        self.ci.addCommand("IsClosed", self.cmdIsClosed)
+        self.ci.addCommand("SetAntiAliasing", self.cmdSetAntiAliasing)
+        self.ci.addCommand("Wipe", self.cmdWipe)
+        self.ci.addCommand("_apiVersion", self.cmd_apiVersion)
 
-        setting.transient_settings['unsafe_mode'] = True
+        setting.transient_settings["unsafe_mode"] = True
 
         self.document.sigLog.connect(self.logEmitted)
 
     def logEmitted(self, msg):
         """Write anything logged to stderr."""
-        sys.stderr.write(msg + '\n')
+        sys.stderr.write(msg + "\n")
 
     def cmdClose(self):
         """Close()
@@ -159,11 +160,12 @@ class EmbeddedClient:
 
         Tell window to show specified pagenumber (starting from 1).
         """
-        self.plot.setPageNumber(pagenum-1)
+        self.plot.setPageNumber(pagenum - 1)
 
     def cmdWipe(self):
         """Wipe the current document."""
         self.document.wipe()
+
 
 class EmbedApplication(qt.QApplication):
     """Application to run remote end of embed connection.
@@ -172,7 +174,7 @@ class EmbedApplication(qt.QApplication):
     """
 
     # lengths of lengths sent to application
-    cmdlenlen = struct.calcsize('<I')
+    cmdlenlen = struct.calcsize("<I")
 
     def __init__(self, thesocket, args):
         qt.QApplication.__init__(self, args)
@@ -180,7 +182,8 @@ class EmbedApplication(qt.QApplication):
 
         # listen to commands on the socket
         self.notifier = qt.QSocketNotifier(
-            self.socket.fileno(), qt.QSocketNotifier.Type.Read)
+            self.socket.fileno(), qt.QSocketNotifier.Type.Read
+        )
         self.notifier.activated.connect(self.slotDataToRead)
         self.notifier.setEnabled(True)
 
@@ -191,9 +194,9 @@ class EmbedApplication(qt.QApplication):
     @staticmethod
     def readLenFromSocket(thesocket, length):
         """Read length bytes from socket."""
-        s = b''
+        s = b""
         while len(s) < length:
-            s += thesocket.recv(length-len(s))
+            s += thesocket.recv(length - len(s))
         return s
 
     @staticmethod
@@ -206,8 +209,10 @@ class EmbedApplication(qt.QApplication):
     @staticmethod
     def readCommand(thesocket):
         # get length of packet
-        length = struct.unpack('<I', EmbedApplication.readLenFromSocket(
-                thesocket, EmbedApplication.cmdlenlen))[0]
+        length = struct.unpack(
+            "<I",
+            EmbedApplication.readLenFromSocket(thesocket, EmbedApplication.cmdlenlen),
+        )[0]
         # unpickle command and arguments
         temp = EmbedApplication.readLenFromSocket(thesocket, length)
         return pickle.loads(temp)
@@ -219,7 +224,7 @@ class EmbedApplication(qt.QApplication):
         # return new number and list of commands and docstrings
         retfuncs = []
         for name, cmd in client.ci.cmds.items():
-            retfuncs.append( (name, cmd.__doc__) )
+            retfuncs.append((name, cmd.__doc__))
 
         retval = self.clientcounter, retfuncs
         self.clientcounter += 1
@@ -231,8 +236,8 @@ class EmbedApplication(qt.QApplication):
         outstr = pickle.dumps(output)
 
         # send return data to stdout
-        self.writeToSocket( self.socket, struct.pack('<I', len(outstr)) )
-        self.writeToSocket( self.socket, outstr )
+        self.writeToSocket(self.socket, struct.pack("<I", len(outstr)))
+        self.writeToSocket(self.socket, outstr)
 
     def finishRemote(self):
         """Clean up on exit."""
@@ -259,18 +264,16 @@ class EmbedApplication(qt.QApplication):
         # unpickle command and arguments
         window, cmd, args, argsv = self.readCommand(self.socket)
 
-        if cmd == '_NewWindow':
-            retval = self.makeNewClient(args[0], hidden=argsv['hidden'])
-        elif cmd == '_Quit':
+        if cmd == "_NewWindow":
+            retval = self.makeNewClient(args[0], hidden=argsv["hidden"])
+        elif cmd == "_Quit":
             # exit client
             retval = None
-        elif cmd == '_NewWindowCopy':
+        elif cmd == "_NewWindowCopy":
             # sets the document of this window to be the same as the
             # one specified
             retval = self.makeNewClient(
-                args[0],
-                doc=self.clients[args[1]].document,
-                hidden=argsv['hidden']
+                args[0], doc=self.clients[args[1]].document, hidden=argsv["hidden"]
             )
         else:
             interpreter = self.clients[window].ci
@@ -287,35 +290,31 @@ class EmbedApplication(qt.QApplication):
         self.writeOutput(retval)
 
         # do quit after if requested
-        if cmd == '_Quit':
+        if cmd == "_Quit":
             self.finishRemote()
             return
 
         self.socket.setblocking(0)
         self.notifier.setEnabled(True)
 
+
 def runremote():
     """Run remote end of embedding module."""
     # get connection parameters
     params = sys.stdin.readline().split()
 
-    if params[0] == 'unix':
+    if params[0] == "unix":
         # talk to existing unix domain socket
-        listensocket = socket.fromfd(
-            int(params[1]),
-            socket.AF_UNIX,
-            socket.SOCK_STREAM
-        )
+        listensocket = socket.fromfd(int(params[1]), socket.AF_UNIX, socket.SOCK_STREAM)
 
-    elif params[0] == 'internet':
+    elif params[0] == "internet":
         # talk to internet port
-        listensocket = socket.socket(
-            socket.AF_INET, socket.SOCK_STREAM)
-        listensocket.connect( (params[1], int(params[2])) )
+        listensocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listensocket.connect((params[1], int(params[2])))
 
     # get secret from stdin and send back to socket
     # this is a security check
-    secret = sys.stdin.readline().encode('ascii')
+    secret = sys.stdin.readline().encode("ascii")
     EmbedApplication.writeToSocket(listensocket, secret)
 
     # finally start listening application

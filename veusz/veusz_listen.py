@@ -34,6 +34,7 @@ from . import qtall as qt
 from .windows.simplewindow import SimpleWindow
 from . import document
 
+
 class ReadingThread(qt.QThread):
     """Stdin reading thread. Emits newline signals with new data.
 
@@ -47,9 +48,10 @@ class ReadingThread(qt.QThread):
         """Emit lines read from stdin."""
         while True:
             line = sys.stdin.readline()
-            if line == '':
+            if line == "":
                 break
             self.newline.emit(line)
+
 
 class InputListener(qt.QObject):
     """Class reads text from stdin, in order to send commands to a document."""
@@ -66,14 +68,14 @@ class InputListener(qt.QObject):
         self.pickle = False
 
         self.ci = document.CommandInterpreter(self.document)
-        self.ci.addCommand('Quit', self.quitProgram)
-        self.ci.addCommand('Zoom', self.plotZoom)
-        self.ci.addCommand('EnableToolbar', self.enableToolbar)
-        self.ci.addCommand('Pickle', self.enablePickle)
+        self.ci.addCommand("Quit", self.quitProgram)
+        self.ci.addCommand("Zoom", self.plotZoom)
+        self.ci.addCommand("EnableToolbar", self.enableToolbar)
+        self.ci.addCommand("Pickle", self.enablePickle)
 
-        self.ci.addCommand('ResizeWindow', self.resizeWindow)
-        self.ci.addCommand('SetUpdateInterval', self.setUpdateInterval)
-        self.ci.addCommand('MoveToPage', self.moveToPage)
+        self.ci.addCommand("ResizeWindow", self.resizeWindow)
+        self.ci.addCommand("SetUpdateInterval", self.setUpdateInterval)
+        self.ci.addCommand("MoveToPage", self.moveToPage)
 
         # reading is done in a separate thread so as not to block
         self.readthread = ReadingThread(self)
@@ -100,7 +102,7 @@ class InputListener(qt.QObject):
 
         Tell window to show specified pagenumber (starting from 1).
         """
-        self.plot.setPageNumber(pagenum-1)
+        self.plot.setPageNumber(pagenum - 1)
 
     def quitProgram(self):
         """Exit the program."""
@@ -122,36 +124,39 @@ class InputListener(qt.QObject):
         """Process inputted line."""
         if self.pickle:
             # line is repr form of pickled string get get rid of \n
-            retn = self.ci.runPickle( eval(line.strip()) )
-            sys.stdout.write('%s\n' % repr(retn))
+            retn = self.ci.runPickle(eval(line.strip()))
+            sys.stdout.write("%s\n" % repr(retn))
             sys.stdout.flush()
 
         else:
             self.ci.run(line)
 
+
 def openWindow(args, quiet=False):
-    '''Opening listening window.
+    """Opening listening window.
     args is a list of arguments to the program
-    '''
+    """
     global _win
     global _listen
 
     if len(args) > 1:
         name = args[1]
     else:
-        name = 'Veusz output'
+        name = "Veusz output"
 
     _win = SimpleWindow(name)
     if not quiet:
         _win.show()
     _listen = InputListener(_win)
 
+
 def run():
-    '''Actually run the program.'''
+    """Actually run the program."""
     app = qt.QApplication(sys.argv)
     openWindow(sys.argv)
     app.exec()
 
+
 # if ran as a program
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

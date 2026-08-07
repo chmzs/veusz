@@ -23,6 +23,7 @@ import os.path
 from .. import qtall as qt
 from .. import setting
 
+
 def removeBadRecents(itemlist):
     """Remove duplicates from list and bad entries."""
     previous = set()
@@ -38,6 +39,7 @@ def removeBadRecents(itemlist):
 
     # trim list
     del itemlist[10:]
+
 
 class RecentFilesButton(qt.QPushButton):
     """A button for remembering recent files.
@@ -69,9 +71,11 @@ class RecentFilesButton(qt.QPushButton):
 
         for filename in recent:
             if os.path.exists(filename):
-                act = self.menu.addAction( os.path.basename(filename) )
+                act = self.menu.addAction(os.path.basename(filename))
+
                 def loadrecentfile(f):
                     return lambda: self.filechosen.emit(f)
+
                 act.triggered.connect(loadrecentfile(filename))
 
     def addFile(self, filename):

@@ -26,7 +26,8 @@ import numpy as N
 
 # date format: YYYY-MM-DDTHH:MM:SS.mmmmmm
 # date and time part are optional (check we have at least one!)
-date_re = re.compile( r'''
+date_re = re.compile(
+    r"""
 ^
 # match date YYYY-MM-DD
 ([0-9]{4}-[0-9]{1,2}-[0-9]{1,2})?
@@ -34,18 +35,22 @@ date_re = re.compile( r'''
 # match time HH:MM:SS
 ([0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(\.[0-9]+)?)?
 $
-''', re.VERBOSE )
+""",
+    re.VERBOSE,
+)
 
 # we store dates as intervals in sec from this date as a float
 offsetdate = datetime.datetime(2009, 1, 1, 0, 0, 0, 0)
 # this is the numpy version of this
-offsetdate_np = N.datetime64('2009-01-01T00:00')
+offsetdate_np = N.datetime64("2009-01-01T00:00")
+
 
 def isDateTime(datestr):
     """Check date/time string looks valid."""
     match = date_re.match(datestr)
 
     return match and (match.group(1) is not None or match.group(2) is not None)
+
 
 def _isoDataStringToDate(datestr):
     """Convert ISO format date time to a datetime object."""
@@ -56,7 +61,7 @@ def _isoDataStringToDate(datestr):
             dategrp, timegrp = match.group(1), match.group(2)
             if dategrp:
                 # if there is a date part of the string
-                dateval = [int(x) for x in dategrp.split('-')]
+                dateval = [int(x) for x in dategrp.split("-")]
                 if len(dateval) != 3:
                     raise ValueError("Invalid date '%s'" % dategrp)
             else:
@@ -64,17 +69,17 @@ def _isoDataStringToDate(datestr):
 
             if timegrp:
                 # if there is a time part of the string
-                p = timegrp.split(':')
+                p = timegrp.split(":")
                 if len(p) != 3:
                     raise ValueError("Invalid time '%s'" % timegrp)
                 secfrac, sec = math.modf(float(p[2]))
-                timeval = [ int(p[0]), int(p[1]), int(sec), int(secfrac*1e6) ]
+                timeval = [int(p[0]), int(p[1]), int(sec), int(secfrac * 1e6)]
             else:
                 timeval = [0, 0, 0, 0]
 
             # either worked so return a datetime object
             if dategrp or timegrp:
-                val = datetime.datetime( *(dateval+timeval) )
+                val = datetime.datetime(*(dateval + timeval))
 
         except ValueError:
             # conversion failed, return nothing
@@ -82,13 +87,14 @@ def _isoDataStringToDate(datestr):
 
     return val
 
+
 def dateStringToDate(datestr):
     """Interpret a date string and return a Veusz-format date value."""
     dt = _isoDataStringToDate(datestr)
     if dt is None:
         # try local conversions (time, date and variations)
         # if ISO formats don't match
-        for fmt in ('%X %x', '%x %X', '%x', '%X'):
+        for fmt in ("%X %x", "%x %X", "%x", "%X"):
             try:
                 dt = datetime.datetime.strptime(datestr, fmt)
                 break
@@ -97,24 +103,26 @@ def dateStringToDate(datestr):
 
     if dt is not None:
         delta = dt - offsetdate
-        return (delta.days*24*60*60 + delta.seconds +
-                delta.microseconds*1e-6)
+        return delta.days * 24 * 60 * 60 + delta.seconds + delta.microseconds * 1e-6
     else:
         return N.nan
 
+
 def floatUnixToVeusz(f):
     """Convert unix float to veusz float."""
-    delta = datetime.datetime(1970,1,1) - offsetdate
+    delta = datetime.datetime(1970, 1, 1) - offsetdate
     return f + delta.total_seconds()
+
 
 def floatToDateTime(f):
     """Convert float to datetime."""
-    days = int(f/24/60/60)
-    frac, sec = math.modf(f - days*24*60*60)
+    days = int(f / 24 / 60 / 60)
+    frac, sec = math.modf(f - days * 24 * 60 * 60)
     try:
-        return datetime.timedelta(days,  sec,  frac*1e6) + offsetdate
+        return datetime.timedelta(days, sec, frac * 1e6) + offsetdate
     except OverflowError:
         return datetime.datetime(8000, 1, 1)
+
 
 def dateFloatToString(f):
     """Convert date float to string."""
@@ -123,39 +131,40 @@ def dateFloatToString(f):
     else:
         return str(f)
 
+
 def datetimeToTuple(dt):
     """Return tuple (year,month,day,hour,minute,second,microsecond) from
     datetime object."""
-    return (dt.year, dt.month, dt.day, dt.hour, dt.minute,
-            dt.second, dt.microsecond)
+    return (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
+
 
 def datetimeToFloat(dt):
     """Convert datetime to float"""
     delta = dt - offsetdate
     # convert offset into a delta
-    val = (delta.days*24*60*60 + (delta.seconds +
-           delta.microseconds*1e-6))
+    val = delta.days * 24 * 60 * 60 + (delta.seconds + delta.microseconds * 1e-6)
     return val
+
 
 def tupleToFloatTime(t):
     """Convert a tuple interval to a float style datetime"""
     dt = datetime.datetime(*t)
     return datetimeToFloat(dt)
 
+
 def tupleToDateTime(t):
     """Convert a tuple to a datetime"""
     return datetime.datetime(*t)
 
-def addTimeTupleToDateTime(dt,  tt):
+
+def addTimeTupleToDateTime(dt, tt):
     """Add a time tuple in the form (yr,mn,dy,h,m,s,us) to a datetime.
     Returns datetime
     """
 
     # add on most of the time intervals
     dt = dt + datetime.timedelta(
-        days=tt[2], hours=tt[3],
-        minutes=tt[4], seconds=tt[5],
-        microseconds=tt[6]
+        days=tt[2], hours=tt[3], minutes=tt[4], seconds=tt[5], microseconds=tt[6]
     )
 
     # add on years
@@ -181,27 +190,29 @@ def addTimeTupleToDateTime(dt,  tt):
 
     return dt
 
-def roundDownToTimeTuple(dt,  tt):
+
+def roundDownToTimeTuple(dt, tt):
     """Take a datetime, and round down using the (yr,mn,dy,h,m,s,ms) tuple.
     Returns a tuple."""
 
-    #print "round down",  dt,  tt
+    # print "round down",  dt,  tt
     timein = list(datetimeToTuple(dt))
     i = 6
     while i >= 0 and tt[i] == 0:
-        if i == 1 or i == 2: # month, day
+        if i == 1 or i == 2:  # month, day
             timein[i] = 1
         else:
             timein[i] = 0
         i -= 1
     # round to nearest interval
-    if (i == 1 or i == 2): # month, day
-        timein[i] = ((timein[i]-1) // tt[i])*tt[i] + 1
+    if i == 1 or i == 2:  # month, day
+        timein[i] = ((timein[i] - 1) // tt[i]) * tt[i] + 1
     else:
-        timein[i] = (timein[i] // tt[i])*tt[i]
+        timein[i] = (timein[i] // tt[i]) * tt[i]
 
-    #print "rounded",  timein
+    # print "rounded",  timein
     return tuple(timein)
+
 
 def dateStrToRegularExpression(instr):
     """Convert date-time string to regular expression.
@@ -214,22 +225,22 @@ def dateStrToRegularExpression(instr):
     # back again to the regular expression. This avoids the regular
     # expression being remapped.
     maps = (
-        ('YYYY', '\ue001', r'(?P<YYYY>[0-9]{4})'),
-        ('YY',   '\ue002', r'(?P<YY>[0-9]{2})'),
-        ('MM',   '\ue003', r'(?P<MM>[0-9]{2})'),
-        ('M',    '\ue004', r'(?P<MM>[0-9]{1,2})'),
-        ('DD',   '\ue005', r'(?P<DD>[0-9]{2})'),
-        ('D',    '\ue006', r'(?P<DD>[0-9]{1,2})'),
-        ('hh',   '\ue007', r'(?P<hh>[0-9]{2})'),
-        ('h',    '\ue008', r'(?P<hh>[0-9]{1,2})'),
-        ('mm',   '\ue009', r'(?P<mm>[0-9]{2})'),
-        ('m',    '\ue00a', r'(?P<mm>[0-9]{1,2})'),
-        ('ss',   '\ue00b', r'(?P<ss>[0-9]{2}(\.[0-9]*)?)'),
-        ('s',    '\ue00c', r'(?P<ss>[0-9]{1,2}(\.[0-9]*)?)'),
+        ("YYYY", "\ue001", r"(?P<YYYY>[0-9]{4})"),
+        ("YY", "\ue002", r"(?P<YY>[0-9]{2})"),
+        ("MM", "\ue003", r"(?P<MM>[0-9]{2})"),
+        ("M", "\ue004", r"(?P<MM>[0-9]{1,2})"),
+        ("DD", "\ue005", r"(?P<DD>[0-9]{2})"),
+        ("D", "\ue006", r"(?P<DD>[0-9]{1,2})"),
+        ("hh", "\ue007", r"(?P<hh>[0-9]{2})"),
+        ("h", "\ue008", r"(?P<hh>[0-9]{1,2})"),
+        ("mm", "\ue009", r"(?P<mm>[0-9]{2})"),
+        ("m", "\ue00a", r"(?P<mm>[0-9]{1,2})"),
+        ("ss", "\ue00b", r"(?P<ss>[0-9]{2}(\.[0-9]*)?)"),
+        ("s", "\ue00c", r"(?P<ss>[0-9]{1,2}(\.[0-9]*)?)"),
     )
 
     out = []
-    for p in instr.split('|'):
+    for p in instr.split("|"):
         # escape special characters (non alpha-num)
         p = re.escape(p)
 
@@ -241,10 +252,11 @@ def dateStrToRegularExpression(instr):
             p = p.replace(char, repl, 1)
 
         # save as an optional group
-        out.append( '(?:%s)?' % p )
+        out.append("(?:%s)?" % p)
 
     # return final expression
-    return r'^\s*%s\s*$' % (''.join(out))
+    return r"^\s*%s\s*$" % ("".join(out))
+
 
 def dateREMatchToDate(match):
     """Take match object for above regular expression,
@@ -273,30 +285,29 @@ def dateREMatchToDate(match):
     omicrosec = offsetdate.microsecond
 
     # now convert each element from the re
-    if 'YYYY' in grps:
-        oyear = int(grps['YYYY'])
-    if 'YY' in grps:
-        y = int(grps['YY'])
+    if "YYYY" in grps:
+        oyear = int(grps["YYYY"])
+    if "YY" in grps:
+        y = int(grps["YY"])
         if y >= 70:
-            oyear = int('19' + grps['YY'])
+            oyear = int("19" + grps["YY"])
         else:
-            oyear = int('20' + grps['YY'])
-    if 'MM' in grps:
-        omon = int(grps['MM'])
-    if 'DD' in grps:
-        oday = int(grps['DD'])
-    if 'hh' in grps:
-        ohour = int(grps['hh'])
-    if 'mm' in grps:
-        omin = int(grps['mm'])
-    if 'ss' in grps:
-        s = float(grps['ss'])
+            oyear = int("20" + grps["YY"])
+    if "MM" in grps:
+        omon = int(grps["MM"])
+    if "DD" in grps:
+        oday = int(grps["DD"])
+    if "hh" in grps:
+        ohour = int(grps["hh"])
+    if "mm" in grps:
+        omin = int(grps["mm"])
+    if "ss" in grps:
+        s = float(grps["ss"])
         osec = int(s)
-        omicrosec = int(1e6*(s-osec))
+        omicrosec = int(1e6 * (s - osec))
 
     # convert to python datetime object
-    d = datetime.datetime(
-        oyear, omon, oday, ohour, omin, osec, omicrosec)
+    d = datetime.datetime(oyear, omon, oday, ohour, omin, osec, omicrosec)
 
     # return to veusz float time
     return datetimeToFloat(d)

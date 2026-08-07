@@ -33,19 +33,23 @@ from .. import utils
 from .lineeditwithclear import LineEditWithClear
 from ..utils.treemodel import TMNode, TreeModel
 
+
 def _(text, disambiguation=None, context="DatasetBrowser"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 def datasetLinkFile(ds):
     """Get a linked filename from a dataset."""
     return "/" if ds.linked is None else ds.linked.filename
+
 
 def wrap(text, width):
     """Wrap text at columns. This needs to be split and rejoined."""
     lines = text.split("\n\n")
     out = [textwrap.fill(l, width).strip() for l in lines]
     return "\n\n".join(out)
+
 
 class DatasetNode(TMNode):
     """Node for a dataset."""
@@ -56,15 +60,15 @@ class DatasetNode(TMNode):
         assert cols[0] == "name"
         for c in cols:
             if c == "name":
-                data.append( dsname )
+                data.append(dsname)
             elif c == "size":
-                data.append( ds.userSize() )
+                data.append(ds.userSize())
             elif c == "type":
-                data.append( ds.dstype )
+                data.append(ds.dstype)
             elif c == "linkfile":
-                data.append( os.path.basename(datasetLinkFile(ds)) )
+                data.append(os.path.basename(datasetLinkFile(ds)))
             elif c == "check":
-                data.append( dsname in model.checked_datasets )
+                data.append(dsname in model.checked_datasets)
 
         TMNode.__init__(self, tuple(data), parent)
         self.model = model
@@ -87,26 +91,26 @@ class DatasetNode(TMNode):
             if len(ds.data) < size[1]:
                 y = ds.data
             else:
-                intvl = len(ds.data)//size[1]+1
+                intvl = len(ds.data) // size[1] + 1
                 y = ds.data[::intvl]
             x = N.arange(len(y))
 
             # plot data points on image
             minval, maxval = N.nanmin(y), N.nanmax(y)
-            y = (y-minval) / (maxval-minval) * size[1]
+            y = (y - minval) / (maxval - minval) * size[1]
             finite = N.isfinite(y)
             x, y = x[finite], y[finite]
-            x = x * (1./len(x)) * size[0]
+            x = x * (1.0 / len(x)) * size[0]
 
             poly = qt.QPolygonF()
-            utils.addNumpyToPolygonF(poly, x, size[1]-y)
-            p.setPen( qt.QPen(qt.Qt.GlobalColor.blue) )
+            utils.addNumpyToPolygonF(poly, x, size[1] - y)
+            p.setPen(qt.QPen(qt.Qt.GlobalColor.blue))
             p.drawPolyline(poly)
 
             # draw x axis if span 0
-            p.setPen( qt.QPen(qt.Qt.GlobalColor.black) )
+            p.setPen(qt.QPen(qt.Qt.GlobalColor.black))
             if minval <= 0 and maxval > 0:
-                y0 = size[1] - (0-minval)/(maxval-minval)*size[1]
+                y0 = size[1] - (0 - minval) / (maxval - minval) * size[1]
                 p.drawLine(qt.QLineF(x[0], y0, x[-1], y0))
             else:
                 p.drawLine(qt.QLineF(x[0], size[1], x[-1], size[1]))
@@ -129,13 +133,13 @@ class DatasetNode(TMNode):
 
         c = self.cols[column]
         if c == "name":
-            text = '%s: %s' % (self.data[0], ds.description())
+            text = "%s: %s" % (self.data[0], ds.description())
             if ds.linked:
-                text += '\n\n' + _('Linked to %s') % ds.linked.filename
+                text += "\n\n" + _("Linked to %s") % ds.linked.filename
             if ds.tags:
-                text += '\n\n' + _('Tags: %s') % (' '.join(sorted(ds.tags)))
+                text += "\n\n" + _("Tags: %s") % (" ".join(sorted(ds.tags)))
             return wrap(text, 40)
-        elif c == "size" or (c == 'type' and 'size' not in self.cols):
+        elif c == "size" or (c == "type" and "size" not in self.cols):
             text = ds.userPreview()
             # add preview of dataset if possible
             pix = self.getPreviewPixmap(ds)
@@ -160,8 +164,8 @@ class DatasetNode(TMNode):
 
     def cloneTo(self, newroot):
         """Make a clone of self at the root given."""
-        return self.__class__(
-            self.model, self.dsname, self.cols, newroot)
+        return self.__class__(self.model, self.dsname, self.cols, newroot)
+
 
 class FilenameNode(TMNode):
     """A special node for holding filenames of files."""
@@ -185,18 +189,27 @@ class FilenameNode(TMNode):
             return self.data[0]
         return None
 
+
 def treeFromList(nodelist, rootdata):
     """Construct a tree from a list of nodes."""
-    tree = TMNode( rootdata, None )
+    tree = TMNode(rootdata, None)
     for node in nodelist:
         tree.insertChildSorted(node)
     return tree
 
+
 class DatasetRelationModel(TreeModel):
     """A model to show how the datasets are related to each file."""
-    def __init__(self, doc, grouping="filename", readonly=False,
-                 filterdims=None, filterdtype=None,
-                 checkable=False):
+
+    def __init__(
+        self,
+        doc,
+        grouping="filename",
+        readonly=False,
+        filterdims=None,
+        filterdtype=None,
+        checkable=False,
+    ):
         """Model parameters:
         doc: document
         group: how to group datasets
@@ -227,20 +240,19 @@ class DatasetRelationModel(TreeModel):
         keep = True
         if self.filter != "":
             keep = False
-            if any([t.find(self.filter) >= 0 for t in ds.tags
-                    if isinstance(t, str)]):
+            if any([t.find(self.filter) >= 0 for t in ds.tags if isinstance(t, str)]):
                 keep = True
-            if any([t.find(self.filter) >= 0 for t in node.data
-                    if isinstance(t, str)]):
+            if any([t.find(self.filter) >= 0 for t in node.data if isinstance(t, str)]):
                 keep = True
         # check dimensions haven't been filtered
-        if ( self.filterdims is not None and
-             ds.dimensions not in self.filterdims ):
+        if self.filterdims is not None and ds.dimensions not in self.filterdims:
             filterout = True
         # check type hasn't been filtered
-        if ( self.filterdtype is not None and
-             ds.datatype not in self.filterdtype and
-             'all' not in self.filterdtype):
+        if (
+            self.filterdtype is not None
+            and ds.datatype not in self.filterdtype
+            and "all" not in self.filterdtype
+        ):
             filterout = True
 
         if filterout:
@@ -253,10 +265,10 @@ class DatasetRelationModel(TreeModel):
         heads = [_("Dataset"), _("Size"), _("Type"), _("File")]
         cols = ["name", "size", "type", "linkfile"]
         if self.checkable:
-            heads += [_('Select')]
-            cols += [_('check')]
+            heads += [_("Select")]
+            cols += [_("check")]
 
-        tree = TMNode(heads , None)
+        tree = TMNode(heads, None)
         for name, ds in self.doc.data.items():
             child = DatasetNode(self, name, cols, None)
 
@@ -274,8 +286,8 @@ class DatasetRelationModel(TreeModel):
         """
 
         if self.checkable:
-            coltitles = coltitles + [_('Select')]
-            colitems = colitems + [_('check')]
+            coltitles = coltitles + [_("Select")]
+            colitems = colitems + [_("check")]
 
         grpnodes = {}
         for name, ds in self.doc.data.items():
@@ -287,7 +299,7 @@ class DatasetRelationModel(TreeModel):
                 grps = grouper(ds)
                 for grp in grps:
                     if grp not in grpnodes:
-                        grpnodes[grp] = GrpNodeClass( (grp,), None )
+                        grpnodes[grp] = GrpNodeClass((grp,), None)
                     # add to group
                     grpnodes[grp].insertChildSorted(child)
 
@@ -299,7 +311,7 @@ class DatasetRelationModel(TreeModel):
             [_("Dataset"), _("Size"), _("Type")],
             ["name", "size", "type"],
             lambda ds: (datasetLinkFile(ds),),
-            FilenameNode
+            FilenameNode,
         )
 
     def makeGrpTreeSize(self):
@@ -308,7 +320,7 @@ class DatasetRelationModel(TreeModel):
             [_("Dataset"), _("Type"), _("Filename")],
             ["name", "type", "linkfile"],
             lambda ds: (ds.userSize(),),
-            TMNode
+            TMNode,
         )
 
     def makeGrpTreeType(self):
@@ -317,7 +329,7 @@ class DatasetRelationModel(TreeModel):
             [_("Dataset"), _("Size"), _("Filename")],
             ["name", "size", "linkfile"],
             lambda ds: (ds.dstype,),
-            TMNode
+            TMNode,
         )
 
     def makeGrpTreeTags(self):
@@ -333,7 +345,7 @@ class DatasetRelationModel(TreeModel):
             [_("Dataset"), _("Size"), _("Type"), _("Filename")],
             ["name", "size", "type", "linkfile"],
             getgrp,
-            TMNode
+            TMNode,
         )
 
     def flags(self, idx):
@@ -357,12 +369,12 @@ class DatasetRelationModel(TreeModel):
         name = dsnode.cols[idx.column()]
 
         if name == "name":
-            if( not utils.validateDatasetName(val) or
-                val in self.doc.data ):
+            if not utils.validateDatasetName(val) or val in self.doc.data:
                 return False
 
             self.doc.applyOperation(
-                document.OperationDatasetRename(dsnode.data[0], val))
+                document.OperationDatasetRename(dsnode.data[0], val)
+            )
             self.dataChanged.emit(idx, idx)
             return True
 
@@ -391,15 +403,24 @@ class DatasetRelationModel(TreeModel):
 
         self.syncTree(tree)
 
+
 class DatasetsNavigatorTree(qt.QTreeView):
     """Tree view for dataset names."""
 
     updateitem = qt.pyqtSignal()
     selecteddatasets = qt.pyqtSignal(list)
 
-    def __init__(self, doc, mainwin, grouping, parent,
-                 readonly=False, filterdims=None, filterdtype=None,
-                 checkable=False):
+    def __init__(
+        self,
+        doc,
+        mainwin,
+        grouping,
+        parent,
+        readonly=False,
+        filterdims=None,
+        filterdtype=None,
+        checkable=False,
+    ):
         """Initialise the dataset tree view.
         doc: veusz document
         mainwin: veusz main window (or None if readonly)
@@ -414,10 +435,13 @@ class DatasetsNavigatorTree(qt.QTreeView):
         self.doc = doc
         self.mainwindow = mainwin
         self.model = DatasetRelationModel(
-            doc, grouping, readonly=readonly,
+            doc,
+            grouping,
+            readonly=readonly,
             filterdims=filterdims,
             filterdtype=filterdtype,
-            checkable=checkable)
+            checkable=checkable,
+        )
 
         self.setModel(self.model)
         self.setSelectionMode(qt.QTreeView.SelectionMode.ExtendedSelection)
@@ -463,18 +487,20 @@ class DatasetsNavigatorTree(qt.QTreeView):
 
         matches = self.model.match(
             self.model.index(0, 0, qt.QModelIndex()),
-            qt.Qt.ItemDataRole.DisplayRole, dsname, -1,
-            qt.Qt.MatchFlag.MatchFixedString |
-            qt.Qt.MatchFlag.MatchCaseSensitive |
-            qt.Qt.MatchFlag.MatchRecursive,
+            qt.Qt.ItemDataRole.DisplayRole,
+            dsname,
+            -1,
+            qt.Qt.MatchFlag.MatchFixedString
+            | qt.Qt.MatchFlag.MatchCaseSensitive
+            | qt.Qt.MatchFlag.MatchRecursive,
         )
         for idx in matches:
             if isinstance(self.model.objFromIndex(idx), DatasetNode):
                 self.selectionModel().setCurrentIndex(
                     idx,
-                    qt.QItemSelectionModel.SelectionFlag.SelectCurrent |
-                    qt.QItemSelectionModel.SelectionFlag.Clear |
-                    qt.QItemSelectionModel.SelectionFlag.Rows,
+                    qt.QItemSelectionModel.SelectionFlag.SelectCurrent
+                    | qt.QItemSelectionModel.SelectionFlag.Clear
+                    | qt.QItemSelectionModel.SelectionFlag.Rows,
                 )
 
     def showContextMenu(self, pt):
@@ -482,11 +508,10 @@ class DatasetsNavigatorTree(qt.QTreeView):
 
         # get selected nodes
         idxs = self.selectionModel().selection().indexes()
-        nodes = [ self.model.objFromIndex(i)
-                  for i in idxs if i.column() == 0 ]
+        nodes = [self.model.objFromIndex(i) for i in idxs if i.column() == 0]
 
         # unique list of types of nodes
-        types = set([ type(n) for n in nodes ])
+        types = set([type(n) for n in nodes])
 
         menu = qt.QMenu()
         # put contexts onto submenus if multiple types selected
@@ -495,15 +520,15 @@ class DatasetsNavigatorTree(qt.QTreeView):
             if len(types) > 1:
                 thismenu = menu.addMenu(_("Datasets"))
             self.datasetContextMenu(
-                [n for n in nodes if isinstance(n, DatasetNode)],
-                thismenu)
+                [n for n in nodes if isinstance(n, DatasetNode)], thismenu
+            )
         elif FilenameNode in types:
             thismenu = menu
             if len(types) > 1:
                 thismenu = menu.addMenu(_("Files"))
             self.filenameContextMenu(
-                [n for n in nodes if isinstance(n, FilenameNode)],
-                thismenu)
+                [n for n in nodes if isinstance(n, FilenameNode)], thismenu
+            )
 
         def _paste():
             """Paste dataset(s)."""
@@ -515,7 +540,7 @@ class DatasetsNavigatorTree(qt.QTreeView):
         if document.isClipboardDataMime():
             menu.addAction(_("Paste"), _paste)
 
-        if len( menu.actions() ) != 0:
+        if len(menu.actions()) != 0:
             menu.exec(self.mapToGlobal(pt))
 
     def datasetContextMenu(self, dsnodes, menu):
@@ -530,42 +555,57 @@ class DatasetsNavigatorTree(qt.QTreeView):
             for dataset, dsname in zip(datasets, dsnames):
                 if type(dataset) in dataeditdialog.recreate_register:
                     dataeditdialog.recreate_register[type(dataset)](
-                        self.mainwindow, self.doc, dataset, dsname)
+                        self.mainwindow, self.doc, dataset, dsname
+                    )
+
         def _edit_data():
             """Open up data edit dialog."""
             for dataset, dsname in zip(datasets, dsnames):
                 if type(dataset) not in dataeditdialog.recreate_register:
                     self.mainwindow.slotDataEdit(editdataset=dsname)
+
         def _delete():
             """Simply delete dataset."""
             self.doc.applyOperation(
                 document.OperationMultiple(
                     [document.OperationDatasetDelete(n) for n in dsnames],
-                    descr=_('delete datasets')))
+                    descr=_("delete datasets"),
+                )
+            )
+
         def _unlink_file():
             """Unlink dataset from file."""
             self.doc.applyOperation(
                 document.OperationMultiple(
-                    [document.OperationDatasetUnlinkFile(n)
-                     for d,n in zip(datasets,dsnames)
-                     if d.canUnlink() and d.linked],
-                    descr=_('unlink datasets')))
+                    [
+                        document.OperationDatasetUnlinkFile(n)
+                        for d, n in zip(datasets, dsnames)
+                        if d.canUnlink() and d.linked
+                    ],
+                    descr=_("unlink datasets"),
+                )
+            )
+
         def _unlink_relation():
             """Unlink dataset from relation."""
             self.doc.applyOperation(
                 document.OperationMultiple(
-                    [document.OperationDatasetUnlinkRelation(n)
-                     for d,n in zip(datasets,dsnames)
-                     if d.canUnlink() and not d.linked],
-                    descr=_('unlink datasets')))
+                    [
+                        document.OperationDatasetUnlinkRelation(n)
+                        for d, n in zip(datasets, dsnames)
+                        if d.canUnlink() and not d.linked
+                    ],
+                    descr=_("unlink datasets"),
+                )
+            )
+
         def _copy():
             """Copy data to clipboard."""
             mime = document.generateDatasetsMime(dsnames, self.doc)
             qt.QApplication.clipboard().setMimeData(mime)
 
         # editing
-        recreate = [type(d) in dataeditdialog.recreate_register
-                    for d in datasets]
+        recreate = [type(d) in dataeditdialog.recreate_register for d in datasets]
         if any(recreate):
             menu.addAction(_("Edit"), _edit)
         if not all(recreate):
@@ -585,6 +625,7 @@ class DatasetsNavigatorTree(qt.QTreeView):
         # tagging submenu
         tagmenu = menu.addMenu(_("Tags"))
         for tag in self.doc.datasetTags():
+
             def toggle(tag=tag):
                 state = [tag in d.tags for d in datasets]
                 if all(state):
@@ -596,16 +637,15 @@ class DatasetsNavigatorTree(qt.QTreeView):
             a = tagmenu.addAction(tag, toggle)
             a.setCheckable(True)
             state = [tag in d.tags for d in datasets]
-            a.setChecked( all(state) )
+            a.setChecked(all(state))
 
         def addtag():
-            tag, ok = qt.QInputDialog.getText(
-                self, _("New tag"), _("Enter new tag"))
+            tag, ok = qt.QInputDialog.getText(self, _("New tag"), _("Enter new tag"))
             if ok:
-                tag = tag.strip().replace(' ', '')
+                tag = tag.strip().replace(" ", "")
                 if tag:
-                    self.doc.applyOperation( document.OperationDataTag(
-                        tag, dsnames) )
+                    self.doc.applyOperation(document.OperationDataTag(tag, dsnames))
+
         tagmenu.addAction(_("Add…"), addtag)
 
         # copy
@@ -620,7 +660,7 @@ class DatasetsNavigatorTree(qt.QTreeView):
 
         from ..dialogs.reloaddata import ReloadData
 
-        filenames = [n.filename() for n in nodes if n.filename() != '/']
+        filenames = [n.filename() for n in nodes if n.filename() != "/"]
         if not filenames:
             return
 
@@ -628,18 +668,24 @@ class DatasetsNavigatorTree(qt.QTreeView):
             """Reload data in this file."""
             d = ReloadData(self.doc, self.mainwindow, filenames=set(filenames))
             self.mainwindow.showDialog(d)
+
         def _unlink_all():
             """Unlink all datasets associated with file."""
             self.doc.applyOperation(
                 document.OperationMultiple(
                     [document.OperationDatasetUnlinkByFile(f) for f in filenames],
-                    descr=_('unlink by file')))
+                    descr=_("unlink by file"),
+                )
+            )
+
         def _delete_all():
             """Delete all datasets associated with file."""
             self.doc.applyOperation(
                 document.OperationMultiple(
                     [document.OperationDatasetDeleteByFile(f) for f in filenames],
-                    descr=_('delete by file')))
+                    descr=_("delete by file"),
+                )
+            )
 
         menu.addAction(_("Reload"), _reload)
         menu.addAction(_("Unlink all"), _unlink_all)
@@ -651,13 +697,15 @@ class DatasetsNavigatorTree(qt.QTreeView):
         def addifdatasetsetting(path, setn):
             def _setdataset():
                 self.doc.applyOperation(
-                    document.OperationSettingSet(
-                        path, self.doc.datasetName(dataset)) )
+                    document.OperationSettingSet(path, self.doc.datasetName(dataset))
+                )
 
-            if ( isinstance(setn, setting.Dataset) and
-                 setn.dimensions == dataset.dimensions and
-                 setn.datatype == dataset.datatype and
-                 path[:12] != "/StyleSheet/" ):
+            if (
+                isinstance(setn, setting.Dataset)
+                and setn.dimensions == dataset.dimensions
+                and setn.datatype == dataset.datatype
+                and path[:12] != "/StyleSheet/"
+            ):
                 menu.addAction(path, _setdataset)
 
         self.doc.walkNodes(addifdatasetsetting, nodetypes=("setting",))
@@ -711,6 +759,7 @@ class DatasetsNavigatorTree(qt.QTreeView):
         self.model.checked_datasets.clear()
         self.model.refresh()
 
+
 class DatasetBrowser(qt.QWidget):
     """Widget which shows the document's datasets."""
 
@@ -724,8 +773,16 @@ class DatasetBrowser(qt.QWidget):
         "tags": _("Tags"),
     }
 
-    def __init__(self, thedocument, mainwin, parent, readonly=False,
-                 filterdims=None, filterdtype=None, checkable=False):
+    def __init__(
+        self,
+        thedocument,
+        mainwin,
+        parent,
+        readonly=False,
+        filterdims=None,
+        filterdtype=None,
+        checkable=False,
+    ):
         """Initialise widget:
         thedocument: document to show
         mainwin: main window of application (or None if readonly)
@@ -769,7 +826,7 @@ class DatasetBrowser(qt.QWidget):
 
         # filtering by entering text
         searchlabel = qt.QLabel()
-        searchlabel.setPixmap(utils.getIcon('kde-search-jss').pixmap(18,18))
+        searchlabel.setPixmap(utils.getIcon("kde-search-jss").pixmap(18, 18))
         self.optslayout.addWidget(searchlabel)
         self.filteredit = LineEditWithClear()
         self.filteredit.setToolTip(_("Search for dataset names"))
@@ -780,9 +837,15 @@ class DatasetBrowser(qt.QWidget):
 
         # the actual widget tree
         self.navtree = DatasetsNavigatorTree(
-            thedocument, mainwin, self.grouping, None,
-            readonly=readonly, filterdims=filterdims, filterdtype=filterdtype,
-            checkable=checkable)
+            thedocument,
+            mainwin,
+            self.grouping,
+            None,
+            readonly=readonly,
+            filterdims=filterdims,
+            filterdtype=filterdtype,
+            checkable=checkable,
+        )
         self.layout.addWidget(self.navtree)
 
     def slotGrpChanged(self, action):
@@ -811,6 +874,7 @@ class DatasetBrowser(qt.QWidget):
         self.navtree.resetChecks()
         self.filteredit.clear()
 
+
 class DatasetBrowserPopup(DatasetBrowser):
     """Popup window for dataset browser for selecting datasets.
     This is used by setting.controls.Dataset
@@ -820,8 +884,7 @@ class DatasetBrowserPopup(DatasetBrowser):
     newdataset = qt.pyqtSignal(str)
     newdatasets = qt.pyqtSignal(list)
 
-    def __init__(self, document, dsname, parent,
-                 filterdims=None, filterdtype=None):
+    def __init__(self, document, dsname, parent, filterdims=None, filterdtype=None):
         """Open popup window for document
         dsname: dataset name
         parent: window parent
@@ -830,9 +893,15 @@ class DatasetBrowserPopup(DatasetBrowser):
         """
 
         DatasetBrowser.__init__(
-            self, document, None, parent, readonly=True,
-            filterdims=filterdims, filterdtype=filterdtype)
-        
+            self,
+            document,
+            None,
+            parent,
+            readonly=True,
+            filterdims=filterdims,
+            filterdtype=filterdtype,
+        )
+
         self.applybutton = qt.QPushButton(_("Apply"))
         self.applybutton.clicked.connect(self.slotUpdateItem)
         buttonwidth = self.fontMetrics().horizontalAdvance(_("Apply")) + 20
@@ -858,8 +927,10 @@ class DatasetBrowserPopup(DatasetBrowser):
 
     def eventFilter(self, node, event):
         """Grab clicks outside this window to close it."""
-        if ( isinstance(event, qt.QMouseEvent) and
-             event.buttons() != qt.Qt.MouseButton.NoButton ):
+        if (
+            isinstance(event, qt.QMouseEvent)
+            and event.buttons() != qt.Qt.MouseButton.NoButton
+        ):
             frame = qt.QRect(0, 0, self.width(), self.height())
             if not frame.contains(event.pos()):
                 self.close()
@@ -868,7 +939,7 @@ class DatasetBrowserPopup(DatasetBrowser):
 
     def sizeHint(self):
         """A reasonable size for the text editor."""
-        return qt.QSize(self.spacing*30, self.spacing*20)
+        return qt.QSize(self.spacing * 30, self.spacing * 20)
 
     def closeEvent(self, event):
         """Tell the calling widget that we are closing."""

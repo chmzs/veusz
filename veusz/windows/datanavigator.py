@@ -21,9 +21,11 @@
 from .. import qtall as qt
 from ..qtwidgets.datasetbrowser import DatasetBrowser
 
+
 def _(text, disambiguation=None, context="DataNavigator"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class DataNavigatorWindow(qt.QDockWidget):
     """A dock window containing a dataset browsing widget."""

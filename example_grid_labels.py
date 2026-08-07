@@ -31,9 +31,7 @@ def main():
     root = doc.basewidget
 
     # 1. Build page > grid (2x2) > 4 graphs
-    page = doc.applyOperation(
-        operations.OperationWidgetAdd(root, "page", autoadd=True)
-    )
+    page = doc.applyOperation(operations.OperationWidgetAdd(root, "page", autoadd=True))
     grid = doc.applyOperation(
         operations.OperationWidgetAdd(page, "grid", autoadd=True, name="grid1")
     )
@@ -50,15 +48,15 @@ def main():
     # 2. Run the GridGraphLabels plugin (same fields the dialog produces)
     plugin = GridGraphLabels()
     fields = {
-        "grid": grid.path,          # path to the Grid widget
+        "grid": grid.path,  # path to the Grid widget
         "label_type": "lowercase",  # lowercase | uppercase | numbers
-        "prefix": "(",              # text before the label
-        "suffix": ")",              # text after the label
-        "x_pos": 0.1,               # x fraction of each graph area (0-1)
-        "y_pos": 0.9,               # y fraction of each graph area (0-1)
-        "halign": "left",           # left | centre | right
-        "valign": "top",            # bottom | centre | top
-        "offset": "4pt",            # margin from graph edge
+        "prefix": "(",  # text before the label
+        "suffix": ")",  # text after the label
+        "x_pos": 0.1,  # x fraction of each graph area (0-1)
+        "y_pos": 0.9,  # y fraction of each graph area (0-1)
+        "halign": "left",  # left | centre | right
+        "valign": "top",  # bottom | centre | top
+        "offset": "4pt",  # margin from graph edge
     }
     doc.applyOperation(operations.OperationToolsPlugin(plugin, fields))
 

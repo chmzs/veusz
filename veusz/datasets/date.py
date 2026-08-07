@@ -27,17 +27,18 @@ from .. import utils
 from .commonfn import _, convertNumpy, datasetNameToDescriptorName
 from .oned import Dataset1DBase
 
+
 class DatasetDateTimeBase(Dataset1DBase):
     """Dataset holding dates and times."""
 
-    columns = ('data',)
-    column_descriptions = (_('Data'),)
+    columns = ("data",)
+    column_descriptions = (_("Data"),)
 
-    dstype = _('Date')
-    displaytype = 'date'
+    dstype = _("Date")
+    displaytype = "date"
 
     def description(self):
-        return _('Date/time (length %i)') % len(self.data)
+        return _("Date/time (length %i)") % len(self.data)
 
     def returnCopy(self):
         """Returns version of dataset with no linking."""
@@ -50,7 +51,7 @@ class DatasetDateTimeBase(Dataset1DBase):
     def uiConvertToDataItem(self, val):
         """Return a value cast to this dataset data type."""
         if isinstance(val, str):
-            v = utils.dateStringToDate( str(val) )
+            v = utils.dateStringToDate(str(val))
             if not N.isfinite(v):
                 try:
                     v = float(val)
@@ -66,9 +67,10 @@ class DatasetDateTimeBase(Dataset1DBase):
 
     def datasetAsText(self, fmt=None, join=None):
         """Return data as text."""
-        lines = [ utils.dateFloatToString(val) for val in self.data ]
-        lines.append('')
-        return '\n'.join(lines)
+        lines = [utils.dateFloatToString(val) for val in self.data]
+        lines.append("")
+        return "\n".join(lines)
+
 
 class DatasetDateTime(DatasetDateTimeBase):
     """Standard date/time class for use by humans."""
@@ -82,30 +84,29 @@ class DatasetDateTime(DatasetDateTimeBase):
         self.perr = self.nerr = self.serr = None
 
     def saveDataDumpToText(self, fileobj, name):
-        '''Save data to file.
-        '''
-        descriptor = datasetNameToDescriptorName(name) + '(date)'
-        fileobj.write( "ImportString(%s,'''\n" % repr(descriptor) )
-        fileobj.write( self.datasetAsText() )
-        fileobj.write( "''')\n" )
+        """Save data to file."""
+        descriptor = datasetNameToDescriptorName(name) + "(date)"
+        fileobj.write("ImportString(%s,'''\n" % repr(descriptor))
+        fileobj.write(self.datasetAsText())
+        fileobj.write("''')\n")
 
     def saveDataDumpToHDF5(self, group, name):
         """Save date data to hdf5 file."""
         dgrp = group.create_group(utils.escapeHDFDataName(name))
-        dgrp.attrs['vsz_datatype'] = 'date'
-        dgrp['data'] = self.data
-        data = dgrp['data']
-        data.attrs['vsz_convert_datetime'] = 1
-        data.attrs['vsz_name'] = name.encode('utf-8')
+        dgrp.attrs["vsz_datatype"] = "date"
+        dgrp["data"] = self.data
+        data = dgrp["data"]
+        data.attrs["vsz_convert_datetime"] = 1
+        data.attrs["vsz_name"] = name.encode("utf-8")
 
     def deleteRows(self, row, numrows):
         """Delete numrows rows starting from row.
         Returns deleted rows as a dict of {column:data, ...}
         """
         retn = {
-            'data': self.data[row:row+numrows],
+            "data": self.data[row : row + numrows],
         }
-        self.data = N.delete(self.data, N.s_[row:row+numrows])
+        self.data = N.delete(self.data, N.s_[row : row + numrows])
         self.document.modifiedData(self)
         return retn
 
@@ -114,9 +115,9 @@ class DatasetDateTime(DatasetDateTimeBase):
         rowdata is a dict of {column: data}.
         """
         data = N.zeros(numrows)
-        if 'data' in rowdata:
-            data[:len(rowdata['data'])] = N.array(rowdata['data'])
-        self.data =  N.insert(self.data, [row]*numrows, data)
+        if "data" in rowdata:
+            data[: len(rowdata["data"])] = N.array(rowdata["data"])
+        self.data = N.insert(self.data, [row] * numrows, data)
         self.document.modifiedData(self)
 
     def changeValues(self, thetype, vals):
@@ -124,8 +125,8 @@ class DatasetDateTime(DatasetDateTimeBase):
 
         thetype == data
         """
-        if thetype != 'data':
-            raise ValueError('invalid column %s' % thetype)
+        if thetype != "data":
+            raise ValueError("invalid column %s" % thetype)
 
         self.data = N.array(vals)
 

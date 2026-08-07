@@ -21,9 +21,9 @@
 from .. import qtall as qt
 from .. import setting
 
+
 class HistoryCheck(qt.QCheckBox):
-    """Checkbox remembers its setting between calls
-    """
+    """Checkbox remembers its setting between calls"""
 
     def __init__(self, *args, **argsv):
         qt.QCheckBox.__init__(self, *args, **argsv)
@@ -37,8 +37,7 @@ class HistoryCheck(qt.QCheckBox):
             dialog = dialog.parent()
 
         # combine dialog and object names to make setting
-        return '%s_%s_HistoryCheck'  % (
-            dialog.objectName(), self.objectName() )
+        return "%s_%s_HistoryCheck" % (dialog.objectName(), self.objectName())
 
     def loadHistory(self):
         """Load contents of HistoryCheck from settings."""
@@ -62,4 +61,3 @@ class HistoryCheck(qt.QCheckBox):
         """Save history as widget is hidden."""
         qt.QCheckBox.hideEvent(self, event)
         self.saveHistory()
-

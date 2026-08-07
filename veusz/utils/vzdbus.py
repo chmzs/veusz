@@ -41,11 +41,10 @@ try:
             DBusQtMainLoop(set_as_default=True)
 
             sessionbus = dbus.SessionBus()
-            busname = dbus.service.BusName(
-                'org.veusz.pid%i' % os.getpid(), sessionbus)
+            busname = dbus.service.BusName("org.veusz.pid%i" % os.getpid(), sessionbus)
 
         except dbus.exceptions.DBusException:
-            sys.stderr.write('Exception when connecting to DBus')
+            sys.stderr.write("Exception when connecting to DBus")
             sessionbus = None
             busname = None
 
@@ -58,6 +57,7 @@ except ImportError:
     def method(**argsv):
         def donothing(m):
             return m
+
         return donothing
 
     class Object:

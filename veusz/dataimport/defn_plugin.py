@@ -23,8 +23,10 @@ from .. import plugins
 from .. import qtall as qt
 from . import base
 
+
 def _(text, disambiguation=None, context="Import_Plugin"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportParamsPlugin(base.ImportParamsBase):
     """Parameters for import plugins.
@@ -35,8 +37,8 @@ class ImportParamsPlugin(base.ImportParamsBase):
     Plugins have their own parameters."""
 
     defaults = {
-        'plugin': None,
-        }
+        "plugin": None,
+    }
     defaults.update(base.ImportParamsBase.defaults)
 
     def __init__(self, **argsv):
@@ -53,7 +55,8 @@ class ImportParamsPlugin(base.ImportParamsBase):
 
         base.ImportParamsBase.__init__(self, **upvars)
         self.pluginpars = pluginpars
-        self._extras.append('pluginpars')
+        self._extras.append("pluginpars")
+
 
 class LinkedFilePlugin(base.LinkedFileBase):
     """Represent a file linked using an import plugin."""
@@ -66,22 +69,23 @@ class LinkedFilePlugin(base.LinkedFileBase):
         """Save the link to the vsz document file."""
         self._saveHelper(
             fileobj,
-            'ImportFilePlugin',
-            ('plugin', 'filename'),
+            "ImportFilePlugin",
+            ("plugin", "filename"),
             relpath=relpath,
-            extraargs=self.params.pluginpars)
+            extraargs=self.params.pluginpars,
+        )
+
 
 class OperationDataImportPlugin(base.OperationDataImportBase):
     """Import data using a plugin."""
 
-    descr = _('import using plugin')
+    descr = _("import using plugin")
 
     def doImport(self):
         """Do import."""
 
         pluginnames = [p.name for p in plugins.importpluginregistry]
-        plugin = plugins.importpluginregistry[
-            pluginnames.index(self.params.plugin)]
+        plugin = plugins.importpluginregistry[pluginnames.index(self.params.plugin)]
 
         # if the plugin is a class, make an instance
         # the old API is for the plugin to be instances
@@ -98,8 +102,7 @@ class OperationDataImportPlugin(base.OperationDataImportBase):
                 pparams[field.name] = field.default
 
         # stick back together the plugin parameter object
-        plugparams = plugins.ImportPluginParams(
-            p.filename, p.encoding, pparams)
+        plugparams = plugins.ImportPluginParams(p.filename, p.encoding, pparams)
         results = plugin.doImport(plugparams)
 
         # make link for file
@@ -109,7 +112,6 @@ class OperationDataImportPlugin(base.OperationDataImportBase):
 
         # convert results to real datasets
         for pluginds in results:
-
             # get list of custom definitions to add to results
             self.outcustoms += pluginds._customs()
 
@@ -124,6 +126,7 @@ class OperationDataImportPlugin(base.OperationDataImportBase):
 
                 # actually make dataset
                 self.outdatasets[name] = ds
+
 
 def ImportFilePlugin(comm, plugin, filename, **args):
     """Import file using a plugin.
@@ -140,12 +143,11 @@ def ImportFilePlugin(comm, plugin, filename, **args):
     """
 
     realfilename = comm.findFileOnImportPath(filename)
-    params = ImportParamsPlugin(
-        plugin=plugin, filename=realfilename, **args)
+    params = ImportParamsPlugin(plugin=plugin, filename=realfilename, **args)
 
     op = OperationDataImportPlugin(params)
     comm.document.applyOperation(op)
     return op.outnames, op.outcustoms
 
-document.registerImportCommand(
-    'ImportFilePlugin', ImportFilePlugin, filenamearg=1)
+
+document.registerImportCommand("ImportFilePlugin", ImportFilePlugin, filenamearg=1)

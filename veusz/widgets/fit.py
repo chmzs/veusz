@@ -44,14 +44,16 @@ except ImportError:
 
 # Check whether iminuit version is old (1.x)
 if minuit is not None:
-    if minuit.__version__[0:1] == '1':
+    if minuit.__version__[0:1] == "1":
         isiminuit1 = True
     else:
         isiminuit1 = False
 
-def _(text, disambiguation=None, context='Fit'):
+
+def _(text, disambiguation=None, context="Fit"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def minuitFit(evalfunc, params, names, values, xvals, yvals, yserr):
     """Do fitting with minuit (if installed)."""
@@ -59,22 +61,22 @@ def minuitFit(evalfunc, params, names, values, xvals, yvals, yserr):
     def chi2(params):
         """generate a lambda function to impedance-match between PyMinuit's
         use of multiple parameters versus our use of a single numpy vector."""
-        c = ((evalfunc(params, xvals) - yvals)**2 / yserr**2).sum()
+        c = ((evalfunc(params, xvals) - yvals) ** 2 / yserr**2).sum()
         if chi2.runningFit:
             chi2.iters += 1
             p = [chi2.iters, c] + params.tolist()
-            str = ("%5i " + "%8g " * (len(params)+1)) % tuple(p)
+            str = ("%5i " + "%8g " * (len(params) + 1)) % tuple(p)
             print(str)
 
         return c
 
-    namestr = ', '.join(names)
-    fnstr = 'lambda %s: chi2(N.array([%s]))' % (namestr, namestr)
+    namestr = ", ".join(names)
+    fnstr = "lambda %s: chi2(N.array([%s]))" % (namestr, namestr)
 
     # this is safe because the only user-controlled variable is len(names)
-    fn = eval(fnstr, {'chi2' : chi2, 'N' : N})
+    fn = eval(fnstr, {"chi2": chi2, "N": N})
 
-    print(_('Fitting via Minuit:'))
+    print(_("Fitting via Minuit:"))
     m = minuit.Minuit(fn, **values)
 
     # set errordef explicitly (least-squares: 1.0 or log-likelihood: 0.5)
@@ -95,7 +97,7 @@ def minuitFit(evalfunc, params, names, values, xvals, yvals, yserr):
         have_err = True
     except Exception as e:
         print(e)
-        if str(e).startswith('Discovered a new minimum'):
+        if str(e).startswith("Discovered a new minimum"):
             # the initial fit really failed
             raise
 
@@ -106,123 +108,205 @@ def minuitFit(evalfunc, params, names, values, xvals, yvals, yserr):
 
     if have_err:
         if isiminuit1:
-            results = ["    %s = %g \u00b1 %g (+%g / %g)" % (
-                n, m.values[n], m.errors[n], m.merrors[(n, 1.0)],
-                m.merrors[(n, -1.0)]) for n in names]
+            results = [
+                "    %s = %g \u00b1 %g (+%g / %g)"
+                % (
+                    n,
+                    m.values[n],
+                    m.errors[n],
+                    m.merrors[(n, 1.0)],
+                    m.merrors[(n, -1.0)],
+                )
+                for n in names
+            ]
         else:
-            results = ["    %s = %g \u00b1 %g (+%g / %g)" % (
-                n, m.values[n], m.errors[n], m.merrors[n].upper,
-                m.merrors[n].lower) for n in names]
-        print(_('Fit results:\n') + "\n".join(results))
+            results = [
+                "    %s = %g \u00b1 %g (+%g / %g)"
+                % (n, m.values[n], m.errors[n], m.merrors[n].upper, m.merrors[n].lower)
+                for n in names
+            ]
+        print(_("Fit results:\n") + "\n".join(results))
     elif have_symerr:
-        print(_('Fit results:\n') + "\n".join([
-            "    %s = %g \u00b1 %g" % (n, m.values[n], m.errors[n])
-            for n in names]))
-        print(_('MINOS error estimate not available.'))
+        print(
+            _("Fit results:\n")
+            + "\n".join(
+                ["    %s = %g \u00b1 %g" % (n, m.values[n], m.errors[n]) for n in names]
+            )
+        )
+        print(_("MINOS error estimate not available."))
     else:
-        print(_('Fit results:\n') + "\n".join([
-            '    %s = %g' % (n, m.values[n]) for n in names]))
-        print(_('No error analysis available: fit quality uncertain'))
+        print(
+            _("Fit results:\n")
+            + "\n".join(["    %s = %g" % (n, m.values[n]) for n in names])
+        )
+        print(_("No error analysis available: fit quality uncertain"))
 
     print("chi^2 = %g, dof = %i, reduced-chi^2 = %g" % (retchi2, dof, redchi2))
 
-    vals = {name:m.values[name] for name in names}
+    vals = {name: m.values[name] for name in names}
     return vals, retchi2, dof
+
 
 class Fit(FunctionPlotter):
     """A plotter to fit a function to data."""
 
-    typename='fit'
-    allowusercreation=True
-    description=_('Fit a function to data')
+    typename = "fit"
+    allowusercreation = True
+    description = _("Fit a function to data")
 
     def __init__(self, parent, name=None):
         FunctionPlotter.__init__(self, parent, name=name)
 
-        self.addAction( widget.Action(
-            'fit', self.actionFit,
-            descr=_('Fit function'),
-            usertext=_('Fit function')) )
+        self.addAction(
+            widget.Action(
+                "fit",
+                self.actionFit,
+                descr=_("Fit function"),
+                usertext=_("Fit function"),
+            )
+        )
 
     @classmethod
     def addSettings(klass, s):
         """Construct list of settings."""
         FunctionPlotter.addSettings(s)
 
-        s.add( setting.DatasetExtended(
-            'xData', 'x',
-            descr=_('X data to fit (dataset name, list of values or expression)'),
-            usertext=_('X data')), 0 )
-        s.add( setting.DatasetExtended(
-            'yData', 'y',
-            descr=_('Y data to fit (dataset name, list of values or expression)'),
-            usertext=_('Y data')), 1 )
-        s.add( setting.FloatDict(
-            'values',
-            {'a': 0.0, 'b': 1.0},
-            descr=_('Variables and fit values'),
-            usertext=_('Parameters')), 3 )
-        s.add( setting.Choice(
-            'defErrType', ['absolute', 'relative'], 'absolute',
-            descr=_('Default error type'),
-            usertext=_('Def. error type')) )
-        s.add( setting.Float(
-            'defErr', 0.05,
-            descr = 'Default absolute/relative error value for data',
-            usertext=_('Default error')))
-        s.add(setting.FloatOrAuto(
-            'fitMin', 'Auto',
-            descr=_('Minimum value at which to fit function'),
-            usertext=_('Min. fit range')))
-        s.add(setting.FloatOrAuto(
-            'fitMax', 'Auto',
-            descr=_('Maximum value at which to fit function'),
-            usertext=_('Max. fit range')))
+        s.add(
+            setting.DatasetExtended(
+                "xData",
+                "x",
+                descr=_("X data to fit (dataset name, list of values or expression)"),
+                usertext=_("X data"),
+            ),
+            0,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "yData",
+                "y",
+                descr=_("Y data to fit (dataset name, list of values or expression)"),
+                usertext=_("Y data"),
+            ),
+            1,
+        )
+        s.add(
+            setting.FloatDict(
+                "values",
+                {"a": 0.0, "b": 1.0},
+                descr=_("Variables and fit values"),
+                usertext=_("Parameters"),
+            ),
+            3,
+        )
+        s.add(
+            setting.Choice(
+                "defErrType",
+                ["absolute", "relative"],
+                "absolute",
+                descr=_("Default error type"),
+                usertext=_("Def. error type"),
+            )
+        )
+        s.add(
+            setting.Float(
+                "defErr",
+                0.05,
+                descr="Default absolute/relative error value for data",
+                usertext=_("Default error"),
+            )
+        )
+        s.add(
+            setting.FloatOrAuto(
+                "fitMin",
+                "Auto",
+                descr=_("Minimum value at which to fit function"),
+                usertext=_("Min. fit range"),
+            )
+        )
+        s.add(
+            setting.FloatOrAuto(
+                "fitMax",
+                "Auto",
+                descr=_("Maximum value at which to fit function"),
+                usertext=_("Max. fit range"),
+            )
+        )
 
-        s.add( setting.Bool(
-            'fitRange', False,
-            descr=_(
-                'Fit only the data between the minimum and maximum '
-                'of the axis for the function variable'),
-            usertext=_('Fit only range')), 4 )
-        s.add( setting.WidgetChoice(
-            'outLabel', '',
-            descr=_('Write best fit parameters to this text label after fitting'),
-            widgettypes=('label',),
-            usertext=_('Output label')), 5 )
-        s.add( setting.Str(
-            'outExpr', '',
-            descr=_('Output best fitting expression'),
-            usertext=_('Output expression')),
-            6, readonly=True )
-        s.add( setting.Float(
-            'chi2', -1,
-            descr='Output chi^2 from fitting',
-            usertext=_('Fit &chi;<sup>2</sup>')),
-            7, readonly=True )
-        s.add( setting.Int(
-            'dof', -1,
-            descr=_('Output degrees of freedom from fitting'),
-            usertext=_('Fit d.o.f.')),
-            8, readonly=True )
-        s.add( setting.Float(
-            'redchi2', -1,
-            descr=_('Output reduced-chi-squared from fitting'),
-            usertext=_('Fit reduced &chi;<sup>2</sup>')),
-            9, readonly=True )
+        s.add(
+            setting.Bool(
+                "fitRange",
+                False,
+                descr=_(
+                    "Fit only the data between the minimum and maximum "
+                    "of the axis for the function variable"
+                ),
+                usertext=_("Fit only range"),
+            ),
+            4,
+        )
+        s.add(
+            setting.WidgetChoice(
+                "outLabel",
+                "",
+                descr=_("Write best fit parameters to this text label after fitting"),
+                widgettypes=("label",),
+                usertext=_("Output label"),
+            ),
+            5,
+        )
+        s.add(
+            setting.Str(
+                "outExpr",
+                "",
+                descr=_("Output best fitting expression"),
+                usertext=_("Output expression"),
+            ),
+            6,
+            readonly=True,
+        )
+        s.add(
+            setting.Float(
+                "chi2",
+                -1,
+                descr="Output chi^2 from fitting",
+                usertext=_("Fit &chi;<sup>2</sup>"),
+            ),
+            7,
+            readonly=True,
+        )
+        s.add(
+            setting.Int(
+                "dof",
+                -1,
+                descr=_("Output degrees of freedom from fitting"),
+                usertext=_("Fit d.o.f."),
+            ),
+            8,
+            readonly=True,
+        )
+        s.add(
+            setting.Float(
+                "redchi2",
+                -1,
+                descr=_("Output reduced-chi-squared from fitting"),
+                usertext=_("Fit reduced &chi;<sup>2</sup>"),
+            ),
+            9,
+            readonly=True,
+        )
 
-        f = s.get('function')
-        f.newDefault('a + b*x')
-        f.descr = _('Function to fit')
+        f = s.get("function")
+        f.newDefault("a + b*x")
+        f.descr = _("Function to fit")
 
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
         s = self.settings
-        return ( (s.xAxis, 'sx'), (s.yAxis, 'sy') )
+        return ((s.xAxis, "sx"), (s.yAxis, "sy"))
 
     def getRange(self, axis, depname, axrange):
         """Update range with range of data."""
-        dataname = {'sx': 'xData', 'sy': 'yData'}[depname]
+        dataname = {"sx": "xData", "sy": "yData"}[depname]
         data = self.settings.get(dataname).getData(self.document)
         if data:
             drange = data.getRange()
@@ -233,31 +317,36 @@ class Fit(FunctionPlotter):
     def initEnviron(self):
         """Copy data into environment."""
         env = self.document.evaluate.context.copy()
-        env.update( self.settings.values )
+        env.update(self.settings.values)
         return env
 
     def updateOutputLabel(self, ops, vals, chi2, dof):
         """Use best fit parameters to update text label."""
         s = self.settings
-        labelwidget = s.get('outLabel').findWidget()
+        labelwidget = s.get("outLabel").findWidget()
 
         if labelwidget is not None:
             # build up a set of X=Y values
             loc = self.document.locale
             txt = []
             for l, v in sorted(vals.items()):
-                val = utils.formatNumber(v, '%.4Vg', locale=loc)
-                txt.append( '%s = %s' % (l, val) )
+                val = utils.formatNumber(v, "%.4Vg", locale=loc)
+                txt.append("%s = %s" % (l, val))
             # add chi2 output
-            txt.append( r'\chi^{2}_{\nu} = %s/%i = %s' % (
-                utils.formatNumber(chi2, '%.4Vg', locale=loc),
-                dof,
-                utils.formatNumber(chi2/dof, '%.4Vg', locale=loc) ))
+            txt.append(
+                r"\chi^{2}_{\nu} = %s/%i = %s"
+                % (
+                    utils.formatNumber(chi2, "%.4Vg", locale=loc),
+                    dof,
+                    utils.formatNumber(chi2 / dof, "%.4Vg", locale=loc),
+                )
+            )
 
             # update label with text
-            text = r'\\'.join(txt)
-            ops.append( document.OperationSettingSet(
-                labelwidget.settings.get('label') , text ) )
+            text = r"\\".join(txt)
+            ops.append(
+                document.OperationSettingSet(labelwidget.settings.get("label"), text)
+            )
 
     def actionFit(self):
         """Fit the data."""
@@ -271,18 +360,18 @@ class Fit(FunctionPlotter):
 
         # populate the input parameters
         paramnames = sorted(s.values)
-        params = N.array( [s.values[p] for p in paramnames] )
+        params = N.array([s.values[p] for p in paramnames])
 
         # FIXME: loads of error handling!!
         d = self.document
 
         # choose dataset depending on fit variable
-        if s.variable == 'x':
-            xvals = s.get('xData').getData(d).data
-            ydata = s.get('yData').getData(d)
+        if s.variable == "x":
+            xvals = s.get("xData").getData(d).data
+            ydata = s.get("yData").getData(d)
         else:
-            xvals = s.get('yData').getData(d).data
-            ydata = s.get('xData').getData(d)
+            xvals = s.get("yData").getData(d).data
+            ydata = s.get("xData").getData(d)
         yvals = ydata.data
         yserr = ydata.serr
 
@@ -290,70 +379,72 @@ class Fit(FunctionPlotter):
         if yserr is None:
             if ydata.perr is not None and ydata.nerr is not None:
                 print("Warning: Symmeterising positive and negative errors")
-                yserr = N.sqrt( 0.5*(ydata.perr**2 + ydata.nerr**2) )
+                yserr = N.sqrt(0.5 * (ydata.perr**2 + ydata.nerr**2))
             else:
                 err = s.defErr
-                if s.defErrType == 'absolute':
-                    print(f"Warning: No errors on values. Assuming absolute {err} errors.")
-                    yserr = err + yvals*0
-                else: # relative
-                    print(f"Warning: No errors on values. Assuming fractional {err} errors.")
-                    yserr = yvals*err
+                if s.defErrType == "absolute":
+                    print(
+                        f"Warning: No errors on values. Assuming absolute {err} errors."
+                    )
+                    yserr = err + yvals * 0
+                else:  # relative
+                    print(
+                        f"Warning: No errors on values. Assuming fractional {err} errors."
+                    )
+                    yserr = yvals * err
                     yserr[yserr < 1e-8] = 1e-8
 
         # if the fitRange parameter is on, we chop out data outside the
         # range of the axis
         if s.fitRange:
             # get ranges for axes
-            if s.variable == 'x':
+            if s.variable == "x":
                 drange = self.parent.getAxes((s.xAxis,))[0].getPlottedRange()
                 mask = N.logical_and(xvals >= drange[0], xvals <= drange[1])
             else:
                 drange = self.parent.getAxes((s.yAxis,))[0].getPlottedRange()
                 mask = N.logical_and(yvals >= drange[0], yvals <= drange[1])
             xvals, yvals, yserr = xvals[mask], yvals[mask], yserr[mask]
-            print("Fitting %s from %g to %g" % (
-                s.variable, drange[0], drange[1]))
+            print("Fitting %s from %g to %g" % (s.variable, drange[0], drange[1]))
 
         evalenv = self.initEnviron()
+
         def evalfunc(params, xvals):
             # update environment with variable and parameters
             evalenv[self.settings.variable] = xvals
-            evalenv.update( zip(paramnames, params) )
+            evalenv.update(zip(paramnames, params))
 
             try:
-                return eval(compiled, evalenv) + xvals*0.
+                return eval(compiled, evalenv) + xvals * 0.0
             except Exception as e:
                 self.document.log(str(e))
                 return N.nan
 
         # minimum set for fitting
-        if s.fitMin != 'Auto':
-            if s.variable == 'x':
+        if s.fitMin != "Auto":
+            if s.variable == "x":
                 mask = xvals >= s.fitMin
             else:
                 mask = yvals >= s.fitMin
             xvals, yvals, yserr = xvals[mask], yvals[mask], yserr[mask]
 
         # maximum set for fitting
-        if s.fitMax != 'Auto':
-            if s.variable == 'x':
+        if s.fitMax != "Auto":
+            if s.variable == "x":
                 mask = xvals <= s.fitMax
             else:
                 mask = yvals <= s.fitMax
             xvals, yvals, yserr = xvals[mask], yvals[mask], yserr[mask]
 
-        if s.fitMin != 'Auto' or s.fitMax != 'Auto':
-            print(
-                "Fitting %s between %s and %s"
-                % (s.variable, s.fitMin, s.fitMax))
+        if s.fitMin != "Auto" or s.fitMax != "Auto":
+            print("Fitting %s between %s and %s" % (s.variable, s.fitMin, s.fitMax))
 
         # various error checks
         if len(xvals) != len(yvals) or len(xvals) != len(yserr):
-            sys.stderr.write(_('Fit data not equal in length. Not fitting.\n'))
+            sys.stderr.write(_("Fit data not equal in length. Not fitting.\n"))
             return
         if len(params) > len(xvals):
-            sys.stderr.write(_('No degrees of freedom for fit. Not fitting\n'))
+            sys.stderr.write(_("No degrees of freedom for fit. Not fitting\n"))
             return
 
         # actually do the fit, either via Minuit or our own LM fitter
@@ -368,17 +459,16 @@ class Fit(FunctionPlotter):
 
         # check length after excluding non-finite values
         if len(xvals) == 0:
-            sys.stderr.write(_('No data values. Not fitting.\n'))
+            sys.stderr.write(_("No data values. Not fitting.\n"))
             return
 
         if minuit is not None:
             vals, chi2, dof = minuitFit(
-                evalfunc, params, paramnames, s.values,
-                xvals, yvals, yserr)
+                evalfunc, params, paramnames, s.values, xvals, yvals, yserr
+            )
         else:
-            print(_('Minuit not available, falling back to simple L-M fitting:'))
-            retn, chi2, dof = utils.fitLM(
-                evalfunc, params, xvals, yvals, yserr)
+            print(_("Minuit not available, falling back to simple L-M fitting:"))
+            retn, chi2, dof = utils.fitLM(evalfunc, params, xvals, yvals, yserr)
             vals = {}
             for i, v in zip(paramnames, retn):
                 vals[i] = float(v)
@@ -387,27 +477,26 @@ class Fit(FunctionPlotter):
         operations = []
 
         # populate the return parameters
-        operations.append( document.OperationSettingSet(s.get('values'), vals) )
+        operations.append(document.OperationSettingSet(s.get("values"), vals))
 
         # populate the read-only fit quality params
-        operations.append( document.OperationSettingSet(s.get('chi2'), float(chi2)) )
-        operations.append( document.OperationSettingSet(s.get('dof'), int(dof)) )
+        operations.append(document.OperationSettingSet(s.get("chi2"), float(chi2)))
+        operations.append(document.OperationSettingSet(s.get("dof"), int(dof)))
         if dof <= 0:
-            print(_('No degrees of freedom in fit.\n'))
-            redchi2 = -1.
+            print(_("No degrees of freedom in fit.\n"))
+            redchi2 = -1.0
         else:
-            redchi2 = float(chi2/dof)
-        operations.append( document.OperationSettingSet(s.get('redchi2'), redchi2) )
+            redchi2 = float(chi2 / dof)
+        operations.append(document.OperationSettingSet(s.get("redchi2"), redchi2))
 
         # expression for fit
         expr = self.generateOutputExpr(vals)
-        operations.append( document.OperationSettingSet(s.get('outExpr'), expr) )
+        operations.append(document.OperationSettingSet(s.get("outExpr"), expr))
 
         self.updateOutputLabel(operations, vals, chi2, dof)
 
         # actually change all the settings
-        d.applyOperation(
-            document.OperationMultiple(operations, descr=_('fit')) )
+        d.applyOperation(document.OperationMultiple(operations, descr=_("fit")))
 
     def generateOutputExpr(self, vals):
         """Try to generate text form of output expression.
@@ -420,21 +509,22 @@ class Fit(FunctionPlotter):
         s = self.settings
 
         # also substitute in data name for variable
-        if s.variable == 'x':
-            paramvals['x'] = s.xData
+        if s.variable == "x":
+            paramvals["x"] = s.xData
         else:
-            paramvals['y'] = s.yData
+            paramvals["y"] = s.yData
 
         # split expression up into parts of text and nums, separated
         # by non-text/nums
-        parts = re.split('([^A-Za-z0-9.])', s.function)
+        parts = re.split("([^A-Za-z0-9.])", s.function)
 
         # replace part by things in paramvals, if they exist
         for i, p in enumerate(parts):
             if p in paramvals:
                 parts[i] = str(paramvals[p])
 
-        return ''.join(parts)
+        return "".join(parts)
+
 
 # allow the factory to instantiate an x,y plotter
 document.thefactory.register(Fit)

@@ -25,8 +25,10 @@ from .. import document
 from . import readcsv
 from . import base
 
+
 def _(text, disambiguation=None, context="Import_CSV"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class ImportParamsCSV(base.ImportParamsBase):
     """CSV import parameters.
@@ -45,28 +47,29 @@ class ImportParamsCSV(base.ImportParamsBase):
     """
 
     defaults = {
-        'readrows': False,
-        'delimiter': ',',
-        'skipwhitespace' : False,
-        'textdelimiter': '"',
-        'headerignore': 0,
-        'rowsignore': 0,
-        'blanksaredata': False,
-        'numericlocale': 'en_US',
-        'dateformat': 'YYYY-MM-DD|T|hh:mm:ss',
-        'headermode': 'multi',
+        "readrows": False,
+        "delimiter": ",",
+        "skipwhitespace": False,
+        "textdelimiter": '"',
+        "headerignore": 0,
+        "rowsignore": 0,
+        "blanksaredata": False,
+        "numericlocale": "en_US",
+        "dateformat": "YYYY-MM-DD|T|hh:mm:ss",
+        "headermode": "multi",
     }
     defaults.update(base.ImportParamsBase.defaults)
 
     def __init__(self, **argsv):
         base.ImportParamsBase.__init__(self, **argsv)
-        if self.headermode not in ('multi', '1st', 'none'):
+        if self.headermode not in ("multi", "1st", "none"):
             raise ValueError("Invalid headermode")
+
 
 class OperationDataImportCSV(base.OperationDataImportBase):
     """Import data from a CSV file."""
 
-    descr = _('import CSV data')
+    descr = _("import CSV data")
 
     def doImport(self):
         """Do the data import."""
@@ -75,7 +78,7 @@ class OperationDataImportCSV(base.OperationDataImportBase):
             csvr = readcsv.ReadCSV(self.params)
         except re.error:
             # invalid date RE
-            raise base.ImportingError(_('Invalid date regular expression'))
+            raise base.ImportingError(_("Invalid date regular expression"))
 
         csvr.readData()
 
@@ -85,6 +88,7 @@ class OperationDataImportCSV(base.OperationDataImportBase):
 
         # set the data in the output structure
         csvr.setData(self.outdatasets, linkedfile=LF)
+
 
 class LinkedFileCSV(base.LinkedFileBase):
     """A CSV file linked to datasets."""
@@ -97,23 +101,33 @@ class LinkedFileCSV(base.LinkedFileBase):
         """Save the link to the document file."""
         self._saveHelper(
             fileobj,
-            'ImportFileCSV',
-            ('filename',),
-            renameparams={'prefix': 'dsprefix', 'suffix': 'dssuffix'},
-            relpath=relpath)
+            "ImportFileCSV",
+            ("filename",),
+            renameparams={"prefix": "dsprefix", "suffix": "dssuffix"},
+            relpath=relpath,
+        )
 
-def ImportFileCSV(comm, filename,
-                  readrows=False,
-                  delimiter=',', skipwhitespace=False, textdelimiter='"',
-                  encoding='utf_8',
-                  headerignore=0, rowsignore=0,
-                  blanksaredata=False,
-                  numericlocale='en_US',
-                  dateformat='YYYY-MM-DD|T|hh:mm:ss',
-                  headermode='multi',
-                  dsprefix='', dssuffix='', prefix=None,
-                  renames=None,
-                  linked=False):
+
+def ImportFileCSV(
+    comm,
+    filename,
+    readrows=False,
+    delimiter=",",
+    skipwhitespace=False,
+    textdelimiter='"',
+    encoding="utf_8",
+    headerignore=0,
+    rowsignore=0,
+    blanksaredata=False,
+    numericlocale="en_US",
+    dateformat="YYYY-MM-DD|T|hh:mm:ss",
+    headermode="multi",
+    dsprefix="",
+    dssuffix="",
+    prefix=None,
+    renames=None,
+    linked=False,
+):
     """Read data from a comma separated file (CSV).
 
     Data are read from filename
@@ -146,21 +160,26 @@ def ImportFileCSV(comm, filename,
 
     # backward compatibility
     if prefix:
-        dsprefix = prefix + '_'
+        dsprefix = prefix + "_"
 
     # lookup filename
     realfilename = comm.findFileOnImportPath(filename)
 
     params = ImportParamsCSV(
-        filename=realfilename, readrows=readrows,
-        delimiter=delimiter, skipwhitespace=skipwhitespace,
+        filename=realfilename,
+        readrows=readrows,
+        delimiter=delimiter,
+        skipwhitespace=skipwhitespace,
         textdelimiter=textdelimiter,
         encoding=encoding,
-        headerignore=headerignore, rowsignore=rowsignore,
+        headerignore=headerignore,
+        rowsignore=rowsignore,
         blanksaredata=blanksaredata,
-        numericlocale=numericlocale, dateformat=dateformat,
+        numericlocale=numericlocale,
+        dateformat=dateformat,
         headermode=headermode,
-        prefix=dsprefix, suffix=dssuffix,
+        prefix=dsprefix,
+        suffix=dssuffix,
         renames=renames,
         linked=linked,
     )
@@ -168,7 +187,8 @@ def ImportFileCSV(comm, filename,
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ' '.join(op.outnames))
+        print("Imported datasets %s" % " ".join(op.outnames))
     return op.outnames
 
-document.registerImportCommand('ImportFileCSV', ImportFileCSV)
+
+document.registerImportCommand("ImportFileCSV", ImportFileCSV)

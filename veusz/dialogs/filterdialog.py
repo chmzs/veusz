@@ -25,9 +25,11 @@ from .. import document
 from ..qtwidgets.datasetbrowser import DatasetBrowser
 from .veuszdialog import VeuszDialog
 
+
 def _(text, disambiguation=None, context="FilterDialog"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class FilterDialog(VeuszDialog):
     """Preferences dialog."""
@@ -43,9 +45,11 @@ class FilterDialog(VeuszDialog):
         self.filtergroup.setLayout(grplayout)
 
         self.buttonBox.button(qt.QDialogButtonBox.StandardButton.Apply).clicked.connect(
-            self.applyClicked)
+            self.applyClicked
+        )
         self.buttonBox.button(qt.QDialogButtonBox.StandardButton.Reset).clicked.connect(
-            self.resetClicked)
+            self.resetClicked
+        )
 
     def updateStatus(self, text):
         """Show message in dialog."""
@@ -77,9 +81,11 @@ class FilterDialog(VeuszDialog):
         op = document.OperationDatasetsFilter(
             expr,
             tofilter,
-            prefix=prefix, suffix=suffix,
+            prefix=prefix,
+            suffix=suffix,
             invert=invert,
-            replaceblanks=replaceblanks)
+            replaceblanks=replaceblanks,
+        )
 
         ok, log = op.check(self.document)
         if not ok:
@@ -108,11 +114,9 @@ class FilterDialog(VeuszDialog):
         self.invertcheck.setChecked(gen.invert)
         self.replaceblankscheck.setChecked(gen.replaceblanks)
 
-        datasets = [
-            d for d in gen.indatasets
-            if d in self.document.data
-        ]
+        datasets = [d for d in gen.indatasets if d in self.document.data]
         self.dsbrowser.setCheckedDatasets(datasets)
+
 
 def recreateDataset(mainwindow, document, dataset, datasetname):
     """Open dialog to recreate filter."""

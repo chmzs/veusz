@@ -21,6 +21,7 @@
 from .. import qtall as qt
 from .. import setting
 
+
 class HistorySpinBox(qt.QSpinBox):
     """A SpinBox which remembers its setting between calls."""
 
@@ -36,8 +37,7 @@ class HistorySpinBox(qt.QSpinBox):
             dialog = dialog.parent()
 
         # combine dialog and object names to make setting
-        return "%s_%s_HistorySpinBox" % (
-            dialog.objectName(), self.objectName() )
+        return "%s_%s_HistorySpinBox" % (dialog.objectName(), self.objectName())
 
     def loadHistory(self):
         """Load contents of HistorySpinBox from settings."""

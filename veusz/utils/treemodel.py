@@ -24,6 +24,7 @@ import bisect
 
 from .. import qtall as qt
 
+
 class TMNode:
     """Object to represent nodes in TreeModel.
 
@@ -45,9 +46,9 @@ class TMNode:
 
     def doPrint(self, indent=0):
         """Print out tree for debugging."""
-        print(" "*indent, self.data, self)
+        print(" " * indent, self.data, self)
         for c in self.childnodes:
-            c.doPrint(indent=indent+1)
+            c.doPrint(indent=indent + 1)
 
     def deleteFromParent(self):
         """Delete this node from its parent."""
@@ -77,6 +78,7 @@ class TMNode:
     def cloneTo(self, newroot):
         """Make a clone of self at the root given."""
         return self.__class__(self.data, newroot)
+
 
 class TreeModel(qt.QAbstractItemModel):
     """A Qt model for storing Python nodes in a tree.
@@ -127,7 +129,10 @@ class TreeModel(qt.QAbstractItemModel):
 
     def headerData(self, section, orientation, role):
         """Use root node to get headers."""
-        if orientation == qt.Qt.Orientation.Horizontal and role == qt.Qt.ItemDataRole.DisplayRole:
+        if (
+            orientation == qt.Qt.Orientation.Horizontal
+            and role == qt.Qt.ItemDataRole.DisplayRole
+        ):
             return self.root.nodeData(section)
         return None
 
@@ -255,7 +260,8 @@ class TreeModel(qt.QAbstractItemModel):
 
                     self.dataChanged.emit(
                         self.index(i, 0, parentidx),
-                        self.index(i, len(c[i].data)-1, parentidx))
+                        self.index(i, len(c[i].data) - 1, parentidx),
+                    )
 
             # now recurse to update any subnodes
             newindex = self.index(i, 0, parentidx)
@@ -271,7 +277,7 @@ class TreeModel(qt.QAbstractItemModel):
             # header changed, so do reset
             self.beginResetModel()
 
-        self._syncbranch( qt.QModelIndex(), self.root, newroot )
+        self._syncbranch(qt.QModelIndex(), self.root, newroot)
         if toreset:
             self.root.data = newroot.data
             self.endResetModel()

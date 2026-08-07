@@ -29,10 +29,14 @@ from .. import utils
 from . import base
 from . import fits_hdf5_helpers
 
+
 def _(text, disambiguation=None, context="Import_HDF5"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 h5py = None
+
+
 def inith5py():
     global h5py
     try:
@@ -40,7 +44,9 @@ def inith5py():
     except ImportError:
         raise RuntimeError(
             "Cannot load Python h5py module. "
-            "Please install before loading documents using HDF5 data.")
+            "Please install before loading documents using HDF5 data."
+        )
+
 
 def bconv(s):
     """Hack for h5py byte problem with python3.
@@ -49,8 +55,9 @@ def bconv(s):
     Byte string attributes are not converted to normal strings."""
 
     if isinstance(s, bytes):
-        return s.decode('utf-8', 'replace')
+        return s.decode("utf-8", "replace")
     return s
+
 
 def auto_deref_attr(attr, attrs, grp):
     """Automatic dereference any attributes which are references."""
@@ -59,13 +66,14 @@ def auto_deref_attr(attr, attrs, grp):
     if isinstance(val, h5py.Reference):
         # have to find root to dereference reference
         root = grp
-        while root.name != '/':
+        while root.name != "/":
             root = root.parent
         val = root[val]
     # convert dataset to an array
     if isinstance(val, h5py.Dataset):
         val = N.array(val)
     return bconv(val)
+
 
 class ImportParamsHDF5(base.ImportParamsBase):
     """HDF5 file import parameters.
@@ -80,14 +88,15 @@ class ImportParamsHDF5(base.ImportParamsBase):
     """
 
     defaults = {
-        'items': None,
-        'namemap': None,
-        'slices': None,
-        'twodranges': None,
-        'twod_as_oned': None,
-        'convert_datetime': None,
+        "items": None,
+        "namemap": None,
+        "slices": None,
+        "twodranges": None,
+        "twod_as_oned": None,
+        "convert_datetime": None,
     }
     defaults.update(base.ImportParamsBase.defaults)
+
 
 class LinkedFileHDF5(base.LinkedFileBase):
     """Links a HDF5 file to the data."""
@@ -99,10 +108,9 @@ class LinkedFileHDF5(base.LinkedFileBase):
     def saveToFile(self, fileobj, relpath=None):
         """Save the link to the document file."""
         self._saveHelper(
-            fileobj,
-            'ImportFileHDF5',
-            ('filename', 'items'),
-            relpath=relpath)
+            fileobj, "ImportFileHDF5", ("filename", "items"), relpath=relpath
+        )
+
 
 class _DataRead:
     """Data read from file during import.
@@ -110,10 +118,12 @@ class _DataRead:
     This is so we can store the original name and options stored in
     attributes from the file.
     """
+
     def __init__(self, origname, data, options):
         self.origname = origname
         self.data = data
         self.options = options
+
 
 class OperationDataImportHDF5(base.OperationDataImportBase):
     """Import 1d, 2d, text or nd data from a HDF5 file."""
@@ -132,16 +142,15 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
         for a in dsattrs:
             if a[:4] == "vsz_":
                 options[a] = auto_deref_attr(a, dsattrs, dataset)
-            elif a in ('_FillValue', 'missing_data'):
+            elif a in ("_FillValue", "missing_data"):
                 # NetCDF support
                 try:
-                    options['__MissingData__'] = float(dsattrs[a])
+                    options["__MissingData__"] = float(dsattrs[a])
                 except (TypeError, ValueError):
                     pass
 
         # find name for dataset
-        if (self.params.namemap is not None and
-            dsname in self.params.namemap ):
+        if self.params.namemap is not None and dsname in self.params.namemap:
             name = self.params.namemap[dsname]
         else:
             if "vsz_name" in options:
@@ -159,18 +168,20 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
             aslice = None
             if "vsz_slice" in options:
                 s = fits_hdf5_helpers.convertTextToSlice(
-                    options["vsz_slice"], len(dataset.shape))
+                    options["vsz_slice"], len(dataset.shape)
+                )
                 if s != -1:
                     aslice = s
             if self.params.slices and dsname in self.params.slices:
                 aslice = self.params.slices[dsname]
 
             # for NetCDF
-            fill_value = options.get('__MissingData__')
+            fill_value = options.get("__MissingData__")
 
             # return dataset
             objdata = fits_hdf5_helpers.convertDatasetToObject(
-                dataset, aslice, fill_value=fill_value)
+                dataset, aslice, fill_value=fill_value
+            )
 
             dsread[name] = _DataRead(dsname, objdata, options)
 
@@ -190,15 +201,14 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
                 # not supported by h5py
                 return
 
-            if dtype.kind == 'V':
+            if dtype.kind == "V":
                 # compound dataset - walk columns
                 if not names:
                     names = item.dtype.names
 
                 for name in names:
                     attrs = fits_hdf5_helpers.filterAttrsByName(item.attrs, name)
-                    self.readDataset(
-                        item[name], attrs, item.name+"/"+name, dsread)
+                    self.readDataset(item[name], attrs, item.name + "/" + name, dsread)
             else:
                 self.readDataset(item, item.attrs, item.name, dsread)
 
@@ -242,7 +252,8 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
         # separate out datasets with error bars
         # this a defaultdict of defaultdict with None as default
         errordatasets = collections.defaultdict(
-            lambda: collections.defaultdict(lambda: None))
+            lambda: collections.defaultdict(lambda: None)
+        )
         for name in list(dsread):
             dr = dsread[name]
             ds = dr.data
@@ -250,9 +261,9 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
                 # skip non-numeric or 2d datasets
                 continue
 
-            for err in ('+', '-', '+-'):
-                ln = len(err)+3
-                if name[-ln:] == (' (%s)' % err):
+            for err in ("+", "-", "+-"):
+                ln = len(err) + 3
+                if name[-ln:] == (" (%s)" % err):
                     refname = name[:-ln].strip()
                     if refname in dsread:
                         errordatasets[refname][err] = ds
@@ -268,16 +279,16 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
 
         ds = None
         if data.ndim == 1:
-            if ( (self.params.convert_datetime and
-                  dread.origname in self.params.convert_datetime) or
-                 "vsz_convert_datetime" in dread.options ):
-
+            if (
+                self.params.convert_datetime
+                and dread.origname in self.params.convert_datetime
+            ) or "vsz_convert_datetime" in dread.options:
                 try:
                     mode = self.params.convert_datetime[dread.origname]
                 except (TypeError, KeyError):
                     mode = dread.options["vsz_convert_datetime"]
 
-                if mode == 'unix':
+                if mode == "unix":
                     data = utils.floatUnixToVeusz(data)
                 ds = datasets.DatasetDateTime(data)
 
@@ -285,15 +296,14 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
                 # Standard 1D Import
                 # handle any possible error bars
                 args = {
-                    'data': data,
-                    'serr': errordatasets[name]['+-'],
-                    'nerr': errordatasets[name]['-'],
-                    'perr': errordatasets[name]['+']
+                    "data": data,
+                    "serr": errordatasets[name]["+-"],
+                    "nerr": errordatasets[name]["-"],
+                    "perr": errordatasets[name]["+"],
                 }
 
                 # find minimum length and cut down if necessary
-                minlen = min(
-                    [len(d) for d in args.values() if d is not None])
+                minlen = min([len(d) for d in args.values() if d is not None])
                 for a in list(args):
                     if args[a] is not None and len(args[a]) > minlen:
                         args[a] = args[a][:minlen]
@@ -302,16 +312,20 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
 
         elif data.ndim == 2:
             # 2D dataset
-            if ( ((self.params.twod_as_oned and
-                   dread.origname in self.params.twod_as_oned) or
-                  dread.options.get("vsz_twod_as_oned") ) and
-                 data.shape[1] in (2,3) ):
+            if (
+                (
+                    self.params.twod_as_oned
+                    and dread.origname in self.params.twod_as_oned
+                )
+                or dread.options.get("vsz_twod_as_oned")
+            ) and data.shape[1] in (2, 3):
                 # actually a 1D dataset in disguise
                 if data.shape[1] == 2:
-                    ds = datasets.Dataset(data=data[:,0], serr=data[:,1])
+                    ds = datasets.Dataset(data=data[:, 0], serr=data[:, 1])
                 else:
                     ds = datasets.Dataset(
-                        data=data[:,0], perr=data[:,1], nerr=data[:,2])
+                        data=data[:, 0], perr=data[:, 1], nerr=data[:, 2]
+                    )
             else:
                 # this really is a 2D dataset
 
@@ -321,14 +335,11 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
                     r = dread.options["vsz_range"]
                     attrs["xrange"] = (r[0], r[2])
                     attrs["yrange"] = (r[1], r[3])
-                for attr in (
-                        "xrange", "yrange", "xcent", "ycent",
-                        "xedge", "yedge"):
-                    if "vsz_"+attr in dread.options:
-                        attrs[attr] = dread.options.get("vsz_"+attr)
+                for attr in ("xrange", "yrange", "xcent", "ycent", "xedge", "yedge"):
+                    if "vsz_" + attr in dread.options:
+                        attrs[attr] = dread.options.get("vsz_" + attr)
 
-                if ( self.params.twodranges and
-                     dread.origname in self.params.twodranges ):
+                if self.params.twodranges and dread.origname in self.params.twodranges:
                     r = self.params.twodranges[dread.origname]
                     attrs["xrange"] = (r[0], r[2])
                     attrs["yrange"] = (r[1], r[3])
@@ -347,23 +358,24 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
 
         data = dread.data
 
-        if ( (self.params.convert_datetime and
-              dread.origname in self.params.convert_datetime) or
-             "vsz_convert_datetime" in dread.options ):
-
+        if (
+            self.params.convert_datetime
+            and dread.origname in self.params.convert_datetime
+        ) or "vsz_convert_datetime" in dread.options:
             try:
                 fmt = self.params.convert_datetime[dread.origname]
             except (TypeError, KeyError):
                 fmt = dread.options["vsz_convert_datetime"]
 
-            if fmt.strip() == 'iso':
-                fmt = 'YYYY-MM-DD|T|hh:mm:ss'
+            if fmt.strip() == "iso":
+                fmt = "YYYY-MM-DD|T|hh:mm:ss"
 
             try:
                 datere = re.compile(utils.dateStrToRegularExpression(fmt))
             except Exception:
                 raise base.ImportingError(
-                    _("Could not interpret date-time syntax '%s'") % fmt)
+                    _("Could not interpret date-time syntax '%s'") % fmt
+                )
 
             dout = N.empty(len(data), dtype=N.float64)
             for i, ditem in enumerate(data):
@@ -421,16 +433,21 @@ class OperationDataImportHDF5(base.OperationDataImportBase):
             fullname = par.prefix + name + par.suffix
             self.outdatasets[fullname] = ds
 
-def ImportFileHDF5(comm, filename,
-                   items,
-                   namemap=None,
-                   slices=None,
-                   twodranges=None,
-                   twod_as_oned=None,
-                   convert_datetime=None,
-                   prefix='', suffix='',
-                   renames=None,
-                   linked=False):
+
+def ImportFileHDF5(
+    comm,
+    filename,
+    items,
+    namemap=None,
+    slices=None,
+    twodranges=None,
+    twod_as_oned=None,
+    convert_datetime=None,
+    prefix="",
+    suffix="",
+    renames=None,
+    linked=False,
+):
     """Import data from a HDF5 file
 
     items is a list of groups and datasets which can be imported.
@@ -502,14 +519,17 @@ def ImportFileHDF5(comm, filename,
         twodranges=twodranges,
         twod_as_oned=twod_as_oned,
         convert_datetime=convert_datetime,
-        prefix=prefix, suffix=suffix,
+        prefix=prefix,
+        suffix=suffix,
         renames=renames,
-        linked=linked)
+        linked=linked,
+    )
     op = OperationDataImportHDF5(params)
     comm.document.applyOperation(op)
 
     if comm.verbose:
-        print("Imported datasets %s" % ', '.join(op.outnames))
+        print("Imported datasets %s" % ", ".join(op.outnames))
     return op.outnames
+
 
 document.registerImportCommand("ImportFileHDF5", ImportFileHDF5)

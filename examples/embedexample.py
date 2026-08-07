@@ -30,26 +30,26 @@ import veusz.embed as veusz
 
 # construct a Veusz embedded window
 # many of these can be opened at any time
-g = veusz.Embedded('window title', compatlevel=-1)
+g = veusz.Embedded("window title", compatlevel=-1)
 g.EnableToolbar()
 
 # construct the plot
-g.To( g.Add('page') )
-g.To( g.Add('graph') )
-g.Add('xy', marker='tiehorz', MarkerFill__color='green')
+g.To(g.Add("page"))
+g.To(g.Add("graph"))
+g.Add("xy", marker="tiehorz", MarkerFill__color="green")
 
 # this stops intelligent axis extending
-g.Set('x/autoRange', 'exact')
+g.Set("x/autoRange", "exact")
 
 # zoom out
 g.Zoom(0.8)
 
 # loop, changing the values of the x and y datasets
 for i in range(10):
-    x = numpy.arange(0+i/2., 7.+i/2., 0.05)
+    x = numpy.arange(0 + i / 2.0, 7.0 + i / 2.0, 0.05)
     y = numpy.sin(x)
-    g.SetData('x', x)
-    g.SetData('y', y)
+    g.SetData("x", x)
+    g.SetData("y", y)
 
     # wait to animate the graph
     time.sleep(2)

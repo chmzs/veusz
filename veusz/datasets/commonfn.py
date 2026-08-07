@@ -23,9 +23,11 @@ import re
 import numpy as N
 from .. import qtall as qt
 
+
 def _(text, disambiguation=None, context="Datasets"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 def convertNumpy(a, dims=1):
     """Convert to a numpy double if possible.
@@ -48,26 +50,29 @@ def convertNumpy(a, dims=1):
             if dims == 1:
                 a = a.reshape((1,))
             elif dims == 2:
-                a = a.reshape((1,1))
+                a = a.reshape((1, 1))
             else:
                 raise RuntimeError()
         else:
             raise ValueError("Only %i-dimensional arrays or lists allowed" % dims)
     return a
 
+
 def convertNumpyAbs(a):
     """Convert to numpy 64 bit positive values, if possible."""
     if a is None:
         return None
     else:
-        return N.abs( convertNumpy(a) )
+        return N.abs(convertNumpy(a))
+
 
 def convertNumpyNegAbs(a):
     """Convert to numpy 64 bit negative values, if possible."""
     if a is None:
         return None
     else:
-        return -N.abs( convertNumpy(a) )
+        return -N.abs(convertNumpy(a))
+
 
 def copyOrNone(a):
     """Return a copy if not None, or None."""
@@ -78,30 +83,31 @@ def copyOrNone(a):
     elif isinstance(a, list):
         return list(a)
 
+
 def datasetNameToDescriptorName(name):
     """Return descriptor name for dataset."""
-    if re.match('^[0-9A-Za-z_]+$', name):
+    if re.match("^[0-9A-Za-z_]+$", name):
         return name
     else:
-        return '`%s`' % name
+        return "`%s`" % name
+
 
 def dsPreviewHelper(d):
     """Get preview of numpy data d."""
     if d.shape[0] <= 6:
-        line1 = ', '.join( ['%.3g' % x for x in d] )
+        line1 = ", ".join(["%.3g" % x for x in d])
     else:
-        line1 = ', '.join(
-            ['%.3g' % x for x in d[:3]] +
-            [ '…' ] +
-            ['%.3g' % x for x in d[-3:]]
+        line1 = ", ".join(
+            ["%.3g" % x for x in d[:3]] + ["…"] + ["%.3g" % x for x in d[-3:]]
         )
 
     try:
-        line2 = _('mean: %.3g, min: %.3g, max: %.3g') % (
+        line2 = _("mean: %.3g, min: %.3g, max: %.3g") % (
             N.nansum(d) / N.isfinite(d).sum(),
             N.nanmin(d),
-            N.nanmax(d))
+            N.nanmax(d),
+        )
     except (ValueError, ZeroDivisionError):
         # nanXXX returns error if no valid data points
         return line1
-    return line1 + '\n' + line2
+    return line1 + "\n" + line2

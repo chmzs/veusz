@@ -30,19 +30,22 @@ from .. import setting
 
 from . import widget
 
-def _(text, disambiguation=None, context='Plotters'):
+
+def _(text, disambiguation=None, context="Plotters"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class GenericPlotter(widget.Widget):
     """Generic plotter."""
 
-    typename='genericplotter'
+    typename = "genericplotter"
     isplotter = True
 
     @classmethod
     def allowedParentTypes(klass):
         from . import graph
+
         return (graph.Graph,)
 
     @classmethod
@@ -50,23 +53,36 @@ class GenericPlotter(widget.Widget):
         """Construct list of settings."""
         widget.Widget.addSettings(s)
 
-        s.add( setting.Str(
-            'key', '',
-            descr=_('Description of the plotted data to appear in key'),
-            usertext=_('Key text')) )
-        s.add( setting.Axis(
-            'xAxis', 'x', 'horizontal',
-            descr=_('Name of X-axis to use'),
-            usertext=_('X axis')) )
-        s.add( setting.Axis(
-            'yAxis', 'y', 'vertical',
-            descr=_('Name of Y-axis to use'),
-            usertext=_('Y axis')) )
+        s.add(
+            setting.Str(
+                "key",
+                "",
+                descr=_("Description of the plotted data to appear in key"),
+                usertext=_("Key text"),
+            )
+        )
+        s.add(
+            setting.Axis(
+                "xAxis",
+                "x",
+                "horizontal",
+                descr=_("Name of X-axis to use"),
+                usertext=_("X axis"),
+            )
+        )
+        s.add(
+            setting.Axis(
+                "yAxis",
+                "y",
+                "vertical",
+                descr=_("Name of Y-axis to use"),
+                usertext=_("Y axis"),
+            )
+        )
 
     def autoColor(self, painter, dataindex=0):
         """Automatic color for plotting."""
-        return painter.docColorAuto(
-            painter.helper.autoColorIndex((self, dataindex)))
+        return painter.docColorAuto(painter.helper.autoColorIndex((self, dataindex)))
 
     def getAxesNames(self):
         """Returns names of axes used."""
@@ -117,13 +133,15 @@ class GenericPlotter(widget.Widget):
     def fetchAxes(self):
         """Returns the axes for this widget"""
 
-        axes = self.parent.getAxes( (self.settings.xAxis,
-                                     self.settings.yAxis) )
+        axes = self.parent.getAxes((self.settings.xAxis, self.settings.yAxis))
 
         # fail if we don't have good axes
-        if ( axes[0] is None or axes[1] is None or
-             axes[0].settings.direction != 'horizontal' or
-             axes[1].settings.direction != 'vertical' ):
+        if (
+            axes[0] is None
+            or axes[1] is None
+            or axes[0].settings.direction != "horizontal"
+            or axes[1].settings.direction != "vertical"
+        ):
             return None
 
         return axes
@@ -156,7 +174,7 @@ class GenericPlotter(widget.Widget):
         """Update range variable for axis with dependency name given."""
         pass
 
-    def draw(self, parentposn, painthelper, outerbounds = None):
+    def draw(self, parentposn, painthelper, outerbounds=None):
         """Draw for generic plotters."""
 
         posn = self.computeBounds(parentposn, painthelper)
@@ -185,6 +203,7 @@ class GenericPlotter(widget.Widget):
         """Actually plot the data."""
         pass
 
+
 class FreePlotter(widget.Widget):
     """A plotter which can be plotted on the page or in a graph."""
 
@@ -195,6 +214,7 @@ class FreePlotter(widget.Widget):
     @classmethod
     def allowedParentTypes(klass):
         from . import page, graph
+
         return (graph.Graph, page.Page)
 
     @classmethod
@@ -202,32 +222,54 @@ class FreePlotter(widget.Widget):
         """Construct list of settings."""
         widget.Widget.addSettings(s)
 
-        s.add( setting.DatasetExtended(
-            'xPos', [0.5],
-            descr=_('List of fractional X coordinates or dataset'),
-            usertext=_('X positions'),
-            formatting=False) )
-        s.add( setting.DatasetExtended(
-            'yPos', [0.5],
-            descr=_('List of fractional Y coordinates or dataset'),
-            usertext=_('Y positions'),
-            formatting=False) )
-        s.add( setting.Choice(
-            'positioning',
-            ['axes', 'relative'], 'relative',
-            descr=_('Use axes or fractional position to place label'),
-            usertext=_('Position mode'),
-            formatting=False) )
-        s.add( setting.Axis(
-            'xAxis', 'x', 'horizontal',
-            descr=_('Name of X-axis to use'),
-            usertext=_('X axis')) )
-        s.add( setting.Axis(
-            'yAxis', 'y', 'vertical',
-            descr=_('Name of Y-axis to use'),
-            usertext=_('Y axis')) )
+        s.add(
+            setting.DatasetExtended(
+                "xPos",
+                [0.5],
+                descr=_("List of fractional X coordinates or dataset"),
+                usertext=_("X positions"),
+                formatting=False,
+            )
+        )
+        s.add(
+            setting.DatasetExtended(
+                "yPos",
+                [0.5],
+                descr=_("List of fractional Y coordinates or dataset"),
+                usertext=_("Y positions"),
+                formatting=False,
+            )
+        )
+        s.add(
+            setting.Choice(
+                "positioning",
+                ["axes", "relative"],
+                "relative",
+                descr=_("Use axes or fractional position to place label"),
+                usertext=_("Position mode"),
+                formatting=False,
+            )
+        )
+        s.add(
+            setting.Axis(
+                "xAxis",
+                "x",
+                "horizontal",
+                descr=_("Name of X-axis to use"),
+                usertext=_("X axis"),
+            )
+        )
+        s.add(
+            setting.Axis(
+                "yAxis",
+                "y",
+                "vertical",
+                descr=_("Name of Y-axis to use"),
+                usertext=_("Y axis"),
+            )
+        )
 
-    def _getPlotterCoords(self, posn, xsetting='xPos', ysetting='yPos'):
+    def _getPlotterCoords(self, posn, xsetting="xPos", ysetting="yPos"):
         """Calculate coordinates from relative or axis positioning.
 
         xsetting and ysetting are the settings to get data from
@@ -238,10 +280,9 @@ class FreePlotter(widget.Widget):
         ypos = s.get(ysetting).getFloatArray(self.document)
         if xpos is None or ypos is None:
             return None, None
-        if s.positioning == 'axes':
-
-            if hasattr(self.parent, 'getAxes'):
-                axes = self.parent.getAxes( (s.xAxis, s.yAxis) )
+        if s.positioning == "axes":
+            if hasattr(self.parent, "getAxes"):
+                axes = self.parent.getAxes((s.xAxis, s.yAxis))
             else:
                 return None, None
             if axes[0] is None or axes[1] is None:
@@ -250,8 +291,8 @@ class FreePlotter(widget.Widget):
             xpos = axes[0].dataToPlotterCoords(posn, xpos)
             ypos = axes[1].dataToPlotterCoords(posn, ypos)
         else:
-            xpos = posn[0] + (posn[2]-posn[0])*xpos
-            ypos = posn[3] - (posn[3]-posn[1])*ypos
+            xpos = posn[0] + (posn[2] - posn[0]) * xpos
+            ypos = posn[3] - (posn[3] - posn[1]) * ypos
         return xpos, ypos
 
     def _getGraphCoords(self, posn, xplt, yplt):
@@ -260,9 +301,9 @@ class FreePlotter(widget.Widget):
         s = self.settings
         xplt = N.array(xplt)
         yplt = N.array(yplt)
-        if s.positioning == 'axes':
-            if hasattr(self.parent, 'getAxes'):
-                axes = self.parent.getAxes( (s.xAxis, s.yAxis) )
+        if s.positioning == "axes":
+            if hasattr(self.parent, "getAxes"):
+                axes = self.parent.getAxes((s.xAxis, s.yAxis))
             else:
                 return None, None
             if axes[0] is None or axes[1] is None:
@@ -271,6 +312,6 @@ class FreePlotter(widget.Widget):
             xpos = axes[0].plotterToDataCoords(posn, xplt)
             ypos = axes[1].plotterToDataCoords(posn, yplt)
         else:
-            xpos = (xplt - posn[0]) / (posn[2]-posn[0])
-            ypos = (yplt - posn[3]) / (posn[1]-posn[3])
+            xpos = (xplt - posn[0]) / (posn[2] - posn[0])
+            ypos = (yplt - posn[3]) / (posn[1] - posn[3])
         return xpos, ypos

@@ -21,6 +21,7 @@
 from .. import qtall as qt
 from .. import utils
 
+
 class LineEditWithClear(qt.QLineEdit):
     """This is a line edit widget which supplies a clear button
     to delete the text if it is clicked.
@@ -35,9 +36,9 @@ class LineEditWithClear(qt.QLineEdit):
 
         # the clear button itself, with no padding
         self.clearbutton = cb = qt.QToolButton(self)
-        cb.setIcon( utils.getIcon('kde-edit-delete') )
+        cb.setIcon(utils.getIcon("kde-edit-delete"))
         cb.setCursor(qt.Qt.CursorShape.ArrowCursor)
-        cb.setStyleSheet('QToolButton { border: none; padding: 0px; }')
+        cb.setStyleSheet("QToolButton { border: none; padding: 0px; }")
         cb.setToolTip("Clear text")
         cb.hide()
 
@@ -49,11 +50,11 @@ class LineEditWithClear(qt.QLineEdit):
         # positioning of the button
         fw = self.style().pixelMetric(qt.QStyle.PixelMetric.PM_DefaultFrameWidth)
         self.setStyleSheet(
-            "QLineEdit { padding-right: %ipx; } " %
-            (cb.sizeHint().width() + fw + 1))
+            "QLineEdit { padding-right: %ipx; } " % (cb.sizeHint().width() + fw + 1)
+        )
         msz = self.minimumSizeHint()
-        mx =  cb.sizeHint().height()+ fw*2 + 2
-        self.setMinimumSize( max(msz.width(), mx), max(msz.height(), mx) )
+        mx = cb.sizeHint().height() + fw * 2 + 2
+        self.setMinimumSize(max(msz.width(), mx), max(msz.height(), mx))
 
     def resizeEvent(self, evt):
         """Move button if widget resized."""
@@ -61,9 +62,9 @@ class LineEditWithClear(qt.QLineEdit):
         fw = self.style().pixelMetric(qt.QStyle.PixelMetric.PM_DefaultFrameWidth)
         r = self.rect()
         self.clearbutton.move(
-            r.right() - fw - sz.width(),
-            (r.bottom() + 1 - sz.height())//2 )
+            r.right() - fw - sz.width(), (r.bottom() + 1 - sz.height()) // 2
+        )
 
     def updateCloseButton(self, text):
         """Button should only appear if there is text."""
-        self.clearbutton.setVisible(text != '')
+        self.clearbutton.setVisible(text != "")

@@ -18,7 +18,7 @@
 #
 ##############################################################################
 
-'''Non orthogonal function plotting.'''
+"""Non orthogonal function plotting."""
 
 import numpy as N
 
@@ -31,61 +31,82 @@ from . import pickable
 from .nonorthgraph import NonOrthGraph, FillBrush
 from .widget import Widget
 
-def _(text, disambiguation=None, context='NonOrthFunction'):
+
+def _(text, disambiguation=None, context="NonOrthFunction"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
-class NonOrthFunction(Widget):
-    '''Widget for plotting a function on a non-orthogonal plot.'''
 
-    typename = 'nonorthfunc'
+class NonOrthFunction(Widget):
+    """Widget for plotting a function on a non-orthogonal plot."""
+
+    typename = "nonorthfunc"
     allowusercreation = True
-    description = _('Plot a function on graphs with non-orthogonal axes')
+    description = _("Plot a function on graphs with non-orthogonal axes")
 
     @classmethod
     def addSettings(klass, s):
-        '''Settings for widget.'''
+        """Settings for widget."""
         Widget.addSettings(s)
 
-        s.add( setting.Str(
-            'function', 'a',
-            descr=_('Function expression'),
-            usertext=_('Function')) )
-        s.add( setting.Choice(
-            'variable', ['a', 'b'], 'a',
-            descr=_('Variable the function is a function of'),
-            usertext=_('Variable')) )
-        s.add(setting.FloatOrAuto(
-            'min', 'Auto',
-            descr=_('Minimum value at which to plot function'),
-            usertext=_('Min')))
+        s.add(
+            setting.Str(
+                "function", "a", descr=_("Function expression"), usertext=_("Function")
+            )
+        )
+        s.add(
+            setting.Choice(
+                "variable",
+                ["a", "b"],
+                "a",
+                descr=_("Variable the function is a function of"),
+                usertext=_("Variable"),
+            )
+        )
+        s.add(
+            setting.FloatOrAuto(
+                "min",
+                "Auto",
+                descr=_("Minimum value at which to plot function"),
+                usertext=_("Min"),
+            )
+        )
 
-        s.add(setting.FloatOrAuto(
-            'max', 'Auto',
-            descr=_('Maximum value at which to plot function'),
-            usertext=_('Max')))
+        s.add(
+            setting.FloatOrAuto(
+                "max",
+                "Auto",
+                descr=_("Maximum value at which to plot function"),
+                usertext=_("Max"),
+            )
+        )
 
-        s.add( setting.Line(
-            'PlotLine',
-            descr=_('Plot line settings'),
-            usertext=_('Plot line')),
-            pixmap='settings_plotline' )
-        s.get('PlotLine').get('color').newDefault('auto')
-        s.add( FillBrush(
-            'Fill1',
-            descr=_('Fill settings (1)'),
-            usertext=_('Area fill 1')),
-            pixmap='settings_plotfillbelow' )
-        s.add( FillBrush(
-            'Fill2',
-            descr=_('Fill settings (2)'),
-            usertext=_('Area fill 2')),
-            pixmap='settings_plotfillbelow' )
+        s.add(
+            setting.Line(
+                "PlotLine", descr=_("Plot line settings"), usertext=_("Plot line")
+            ),
+            pixmap="settings_plotline",
+        )
+        s.get("PlotLine").get("color").newDefault("auto")
+        s.add(
+            FillBrush("Fill1", descr=_("Fill settings (1)"), usertext=_("Area fill 1")),
+            pixmap="settings_plotfillbelow",
+        )
+        s.add(
+            FillBrush("Fill2", descr=_("Fill settings (2)"), usertext=_("Area fill 2")),
+            pixmap="settings_plotfillbelow",
+        )
 
-        s.add( setting.Int(
-            'steps', 50,
-            descr = _('Number of steps to evaluate the function over'),
-            usertext=_('Steps'), formatting=True), 0 )
+        s.add(
+            setting.Int(
+                "steps",
+                50,
+                descr=_("Number of steps to evaluate the function over"),
+                usertext=_("Steps"),
+                formatting=True,
+            ),
+            0,
+        )
 
     @classmethod
     def allowedParentTypes(klass):
@@ -96,31 +117,33 @@ class NonOrthFunction(Widget):
         return _("function='%s'") % self.settings.function
 
     def initEnviron(self):
-        '''Set up function environment.'''
+        """Set up function environment."""
         return self.document.evaluate.context.copy()
 
     def logEvalError(self, ex):
-        '''Write error message to document log for exception ex.'''
+        """Write error message to document log for exception ex."""
         self.document.log(
-            "Error evaluating expression in function widget '%s': '%s'" % (
-                self.name, str(ex)))
+            "Error evaluating expression in function widget '%s': '%s'"
+            % (self.name, str(ex))
+        )
 
     def getFunctionPoints(self):
-        '''Get points for plotting function.
+        """Get points for plotting function.
         Return (apts, bpts)
-        '''
+        """
         # get range of variable in expression
         s = self.settings
-        crange = self.parent.coordRanges()[ {'a': 0, 'b': 1}[s.variable] ]
-        if s.min != 'Auto':
+        crange = self.parent.coordRanges()[{"a": 0, "b": 1}[s.variable]]
+        if s.min != "Auto":
             crange[0] = s.min
-        if s.max != 'Auto':
+        if s.max != "Auto":
             crange[1] = s.max
 
         steps = max(2, s.steps)
         # input values for function
         invals = (
-            N.arange(steps)*(1./(steps-1))*(crange[1]-crange[0]) + crange[0] )
+            N.arange(steps) * (1.0 / (steps - 1)) * (crange[1] - crange[0]) + crange[0]
+        )
 
         # do evaluation
         env = self.initEnviron()
@@ -129,32 +152,32 @@ class NonOrthFunction(Widget):
         if comp is None:
             return N.array([]), N.array([])
         try:
-            vals = eval(comp, env) + invals*0.
+            vals = eval(comp, env) + invals * 0.0
         except Exception as e:
             self.logEvalError(e)
             vals = invals = N.array([])
 
         # return points
-        if s.variable == 'a':
+        if s.variable == "a":
             return invals, vals
         else:
             return vals, invals
 
     def updateDataRanges(self, inrange):
-        '''Update ranges of data given function.'''
+        """Update ranges of data given function."""
 
     def _pickable(self):
         apts, bpts = self.getFunctionPoints()
         px, py = self.parent.graphToPlotCoords(apts, bpts)
 
-        if self.settings.variable == 'a':
-            labels = ('a', 'b(a)')
+        if self.settings.variable == "a":
+            labels = ("a", "b(a)")
         else:
-            labels = ('a(b)', 'b')
+            labels = ("a(b)", "b")
 
-        return pickable.GenericPickable( self, labels, (apts, bpts), (px, py) )
+        return pickable.GenericPickable(self, labels, (apts, bpts), (px, py))
 
-    def pickPoint(self, x0, y0, bounds, distance='radial'):
+    def pickPoint(self, x0, y0, bounds, distance="radial"):
         return self._pickable().pickPoint(x0, y0, bounds, distance)
 
     def pickIndex(self, oldindex, direction, bounds):
@@ -162,11 +185,10 @@ class NonOrthFunction(Widget):
 
     def autoColor(self, painter, dataindex=0):
         """Automatic color for plotting."""
-        return painter.docColorAuto(
-            painter.helper.autoColorIndex((self, dataindex)))
+        return painter.docColorAuto(painter.helper.autoColorIndex((self, dataindex)))
 
     def draw(self, parentposn, phelper, outerbounds=None):
-        '''Plot the function on a plotter.'''
+        """Plot the function on a plotter."""
 
         posn = self.computeBounds(parentposn, phelper)
         s = self.settings
@@ -179,14 +201,14 @@ class NonOrthFunction(Widget):
         px, py = self.parent.graphToPlotCoords(apts, bpts)
 
         x1, y1, x2, y2 = posn
-        cliprect = qt.QRectF( qt.QPointF(x1, y1), qt.QPointF(x2, y2) )
+        cliprect = qt.QRectF(qt.QPointF(x1, y1), qt.QPointF(x2, y2))
         painter = phelper.painter(self, posn)
         with painter:
             self.parent.setClip(painter, posn)
 
             # plot line
             painter.setBrush(qt.QBrush())
-            painter.setPen( s.PlotLine.makeQPenWHide(painter) )
+            painter.setPen(s.PlotLine.makeQPenWHide(painter))
             for x, y in utils.validLinePoints(px, py):
                 if not s.Fill1.hide:
                     self.parent.drawFillPts(painter, s.Fill1, cliprect, x, y)
@@ -196,7 +218,8 @@ class NonOrthFunction(Widget):
                     p = qt.QPolygonF()
                     utils.addNumpyToPolygonF(p, x, y)
                     painter.setBrush(qt.QBrush())
-                    painter.setPen( s.PlotLine.makeQPen(painter) )
+                    painter.setPen(s.PlotLine.makeQPen(painter))
                     utils.plotClippedPolyline(painter, cliprect, p)
+
 
 document.thefactory.register(NonOrthFunction)

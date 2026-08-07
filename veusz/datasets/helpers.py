@@ -27,10 +27,11 @@ from .oned import Dataset
 from .twod import Dataset2D
 from .text import DatasetText
 
+
 def valsToDataset(vals, datatype, dimensions):
     """Return a dataset given a numpy array of values."""
 
-    if datatype == 'numeric':
+    if datatype == "numeric":
         try:
             nvals = N.array(vals, dtype=N.float64)
 
@@ -42,13 +43,14 @@ def valsToDataset(vals, datatype, dimensions):
         except ValueError:
             pass
 
-    elif datatype == 'text':
+    elif datatype == "text":
         try:
             return DatasetText([str(x) for x in vals])
         except ValueError:
             pass
 
-    raise RuntimeError('Invalid array')
+    raise RuntimeError("Invalid array")
+
 
 def generateValidDatasetParts(datasets, breakds=True):
     """Generator to return array of valid parts of datasets.
@@ -98,13 +100,13 @@ def generateValidDatasetParts(datasets, breakds=True):
                 retn = []
                 for ds in datasets:
                     if ds is not None and (
-                            not isinstance(ds, DatasetBase) or
-                            not ds.empty()):
+                        not isinstance(ds, DatasetBase) or not ds.empty()
+                    ):
                         retn.append(ds[lastindex:index])
                     else:
                         retn.append(None)
                 yield retn
-            lastindex = index+1
+            lastindex = index + 1
 
     else:
         # in this mode we return single datasets where the invalid
@@ -120,7 +122,8 @@ def generateValidDatasetParts(datasets, breakds=True):
             if ds is None or not isinstance(ds, DatasetBase) or ds.empty():
                 retn.append(None)
             else:
-                thisvalid = N.concatenate((
-                    valid, N.zeros(len(ds)-minlen, dtype=bool)))
+                thisvalid = N.concatenate(
+                    (valid, N.zeros(len(ds) - minlen, dtype=bool))
+                )
                 retn.append(ds[thisvalid])
         yield retn

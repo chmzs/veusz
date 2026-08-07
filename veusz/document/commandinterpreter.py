@@ -52,11 +52,12 @@ import pickle
 from .commandinterface import CommandInterface
 from .. import utils
 
+
 class CommandInterpreter:
     """Class for executing commands in the Veusz command line language."""
 
     def __init__(self, document):
-        """ Initialise object with the document it interfaces."""
+        """Initialise object with the document it interfaces."""
         self.document = document
 
         # set up interface to document
@@ -74,7 +75,7 @@ class CommandInterpreter:
         exec("from numpy import *", self.globals)
 
         # define root object
-        self.globals['Root'] = self.interface.Root
+        self.globals["Root"] = self.interface.Root
 
         # shortcut
         ifc = self.interface
@@ -82,14 +83,15 @@ class CommandInterpreter:
         # define commands for interface
         self.cmds = {}
         for cmd in (
-                CommandInterface.safe_commands +
-                CommandInterface.unsafe_commands +
-                CommandInterface.import_commands):
+            CommandInterface.safe_commands
+            + CommandInterface.unsafe_commands
+            + CommandInterface.import_commands
+        ):
             self.cmds[cmd] = getattr(ifc, cmd)
-        self.cmds['GPL'] = self.GPL
-        self.cmds['Load'] = self.Load
+        self.cmds["GPL"] = self.GPL
+        self.cmds["Load"] = self.Load
 
-        self.globals.update( self.cmds )
+        self.globals.update(self.cmds)
 
     def addCommand(self, name, command):
         """Add the given command to the list of available commands."""
@@ -105,28 +107,28 @@ class CommandInterpreter:
     def _pythonise(self, text):
         """Internal routine to convert commands in the form Cmd a b c into Cmd(a,b,c)."""
 
-        out = ''
+        out = ""
         # iterate over lines
-        for line in text.split('\n'):
+        for line in text.split("\n"):
             parts = line.split()
 
             # turn Cmd a b c into Cmd(a,b,c)
             if len(parts) != 0 and parts[0] in self.cmds:
                 line = utils.pythonise(line)
 
-            out += line + '\n'
+            out += line + "\n"
 
         return out
 
-    def run(self, inputcmds, filename = None):
-        """ Run a set of commands inside the preserved environment.
+    def run(self, inputcmds, filename=None):
+        """Run a set of commands inside the preserved environment.
 
         inputcmds: a string with the commands to run
         filename: a filename to report if there are errors
         """
 
         if filename is None:
-            filename = '<string>'
+            filename = "<string>"
 
         # pythonise!
         inputcmds = self._pythonise(inputcmds)
@@ -138,14 +140,17 @@ class CommandInterpreter:
         # preserve output streams
         saved = sys.stdout, sys.stderr, sys.stdin
         sys.stdout, sys.stderr, sys.stdin = (
-            self.write_stdout, self.write_stderr, self.read_stdin)
+            self.write_stdout,
+            self.write_stderr,
+            self.read_stdin,
+        )
 
         # count number of newlines in expression
         # If it's 2, then execute as a single statement (print out result)
-        if inputcmds.count('\n') == 2:
-            stattype = 'single'
+        if inputcmds.count("\n") == 2:
+            stattype = "single"
         else:
-            stattype = 'exec'
+            stattype = "exec"
 
         # first compile the code to check for syntax errors
         try:
@@ -175,25 +180,24 @@ class CommandInterpreter:
     def Load(self, filename):
         """Replace the document with a new one from the filename."""
 
-        with io.open(filename, 'r', encoding='utf8') as f:
+        with io.open(filename, "r", encoding="utf8") as f:
             self.document.wipe()
-            self.interface.To('/')
-            oldfile = self.globals['__file__']
+            self.interface.To("/")
+            oldfile = self.globals["__file__"]
             absfname = os.path.abspath(filename)
-            self.globals['__file__'] = absfname
+            self.globals["__file__"] = absfname
 
-            self.interface.importpath.append(
-                os.path.dirname(os.path.abspath(filename)))
+            self.interface.importpath.append(os.path.dirname(os.path.abspath(filename)))
             self.runFile(f)
             self.interface.importpath.pop()
-            self.globals['__file__'] = oldfile
+            self.globals["__file__"] = oldfile
             self.document.filename = absfname
             self.document.setModified()
             self.document.setModified(False)
             self.document.clearHistory()
 
     def runFile(self, fileobject):
-        """ Run a file in the preserved environment."""
+        """Run a file in the preserved environment."""
 
         # preserve output streams
         temp_stdout = sys.stdout
@@ -244,7 +248,7 @@ class CommandInterpreter:
 
     def GPL(self):
         """Write the GPL to the console window."""
-        sys.stdout.write( utils.getLicense() )
+        sys.stdout.write(utils.getLicense())
 
     def runPickle(self, command):
         """Run a pickled command given as arguments.
@@ -257,17 +261,17 @@ class CommandInterpreter:
         """
 
         name, args, namedargs = pickle.loads(command)
-        self.globals['_tmp_args0'] = args
-        self.globals['_tmp_args1'] = namedargs
+        self.globals["_tmp_args0"] = args
+        self.globals["_tmp_args1"] = namedargs
 
-        #print(name, args, namedargs)
+        # print(name, args, namedargs)
         try:
-            retn = eval('%s(*_tmp_args0, **_tmp_args1)' % name)
+            retn = eval("%s(*_tmp_args0, **_tmp_args1)" % name)
         except Exception as e:
             # return exception picked if exception
             retn = e
 
-        del self.globals['_tmp_args0']
-        del self.globals['_tmp_args1']
+        del self.globals["_tmp_args0"]
+        del self.globals["_tmp_args1"]
 
         return pickle.dumps(retn)

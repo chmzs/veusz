@@ -32,10 +32,11 @@ from .text import DatasetText
 from .. import utils
 
 # split expression on python operators or quoted `DATASET`
-dataexpr_split_re = re.compile(r'(`.*?`|[\.+\-*/\(\)\[\],<>=!|%^~& ])')
+dataexpr_split_re = re.compile(r"(`.*?`|[\.+\-*/\(\)\[\],<>=!|%^~& ])")
 # identify whether string is a quoted identifier
-dataexpr_quote_re = re.compile(r'^`.*`$')
-dataexpr_columns = {'data':True, 'serr':True, 'perr':True, 'nerr':True}
+dataexpr_quote_re = re.compile(r"^`.*`$")
+dataexpr_columns = {"data": True, "serr": True, "perr": True, "nerr": True}
+
 
 def substituteDatasets(datasets, expression, thispart):
     """Substitute the names of datasets with calls to a function which will
@@ -60,17 +61,18 @@ def substituteDatasets(datasets, expression, thispart):
             dslist.append(bit)
 
         else:
-            bitbits = bit.split('_')
+            bitbits = bit.split("_")
             if len(bitbits) > 1:
                 if bitbits[-1] in dataexpr_columns:
                     part = bitbits.pop(-1)
-                bit = '_'.join(bitbits)
+                bit = "_".join(bitbits)
             if bit in datasets:
                 # replace name with a function to call
                 bits[i] = "_DS_(%s, %s)" % (repr(bit), repr(part))
                 dslist.append(bit)
 
-    return ''.join(bits), dslist
+    return "".join(bits), dslist
+
 
 def _evaluateDataset(datasets, dsname, dspart):
     """Return the dataset given.
@@ -79,16 +81,16 @@ def _evaluateDataset(datasets, dsname, dspart):
     dspart is the part to get (e.g. data, serr)
     """
     if dspart not in dataexpr_columns:
-        raise DatasetExpressionException(
-            'Internal error - invalid dataset part')
+        raise DatasetExpressionException("Internal error - invalid dataset part")
     if dsname not in datasets:
-        raise DatasetExpressionException(
-            _("Dataset '%s' is not defined") % (dsname, ))
+        raise DatasetExpressionException(_("Dataset '%s' is not defined") % (dsname,))
     val = getattr(datasets[dsname], dspart)
     if val is None:
         raise DatasetExpressionException(
-            _("Dataset '%s' does not have part '%s'") % (dsname, dspart))
+            _("Dataset '%s' does not have part '%s'") % (dsname, dspart)
+        )
     return val
+
 
 def _returnNumericDataset(doc, vals, dimensions, subdatasets):
     """Used internally to convert a set of values (which needs to be
@@ -102,8 +104,8 @@ def _returnNumericDataset(doc, vals, dimensions, subdatasets):
     # try to convert array to a numpy array
     try:
         vals = N.array(vals, dtype=N.float64)
-    except (ValueError, TypeError) as e:
-        err = _('Could not convert to array')
+    except (ValueError, TypeError):
+        err = _("Could not convert to array")
 
     # if error on first time, try to sanitize input arrays
     if err and dimensions == 1:
@@ -111,7 +113,7 @@ def _returnNumericDataset(doc, vals, dimensions, subdatasets):
             vals = list(vals)
             vals[0] = N.array(vals[0])
             minlen = len(vals[0])
-            if len(vals) in (2,3):
+            if len(vals) in (2, 3):
                 # expand/convert error bars
                 for i in range(1, len(vals)):
                     if N.isscalar(vals[i]):
@@ -144,34 +146,29 @@ def _returnNumericDataset(doc, vals, dimensions, subdatasets):
             elif vals.ndim == 2:
                 # 2d, see whether data are error bars
                 if vals.shape[0] == 2:
-                    return Dataset(
-                        data=vals[0,:], serr=vals[1,:])
+                    return Dataset(data=vals[0, :], serr=vals[1, :])
                 elif vals.shape[0] == 3:
-                    return Dataset(
-                        data=vals[0,:], perr=vals[1,:],
-                        nerr=vals[2,:])
+                    return Dataset(data=vals[0, :], perr=vals[1, :], nerr=vals[2, :])
                 else:
-                    err = _('Expression has wrong dimensions')
+                    err = _("Expression has wrong dimensions")
         elif dimensions == 2 and vals.ndim == 2:
             # try to use dimensions of first-substituted dataset
             dsrange = {}
             for ds in subdatasets:
                 d = doc.data[ds]
                 if d.dimensions == 2:
-                    for p in (
-                            'xrange', 'yrange', 'xedge', 'yedge',
-                            'xcent', 'ycent' ):
+                    for p in ("xrange", "yrange", "xedge", "yedge", "xcent", "ycent"):
                         dsrange[p] = getattr(d, p)
                     break
 
             return Dataset2D(vals, **dsrange)
         else:
-            err = _('Expression has wrong dimensions')
+            err = _("Expression has wrong dimensions")
 
     raise DatasetExpressionException(err)
 
-def evalDatasetExpression(doc, origexpr, datatype='numeric',
-                          dimensions=1, part='data'):
+
+def evalDatasetExpression(doc, origexpr, datatype="numeric", dimensions=1, part="data"):
     """Evaluate expression and return an appropriate Dataset.
 
     part is 'data', 'serr', 'perr' or 'nerr' - these are the
@@ -186,9 +183,7 @@ def evalDatasetExpression(doc, origexpr, datatype='numeric',
 
     d = doc.data.get(origexpr)
 
-    if ( d is not None and
-         d.datatype == datatype and
-         d.dimensions == dimensions ):
+    if d is not None and d.datatype == datatype and d.dimensions == dimensions:
         return d
 
     # support nD datasets by converting to requested shape
@@ -213,9 +208,11 @@ def evalDatasetExpression(doc, origexpr, datatype='numeric',
 
     # set up environment for evaluation
     env = doc.evaluate.context.copy()
+
     def doeval(dsname, dspart):
         return _evaluateDataset(doc.data, dsname, dspart)
-    env['_DS_'] = doeval
+
+    env["_DS_"] = doeval
 
     # do evaluation
     try:
@@ -226,24 +223,24 @@ def evalDatasetExpression(doc, origexpr, datatype='numeric',
 
     # return correct dataset for data type
     try:
-        if datatype == 'numeric':
+        if datatype == "numeric":
             return _returnNumericDataset(doc, evalout, dimensions, subdatasets)
-        elif datatype == 'text':
+        elif datatype == "text":
             return DatasetText([str(x) for x in evalout])
         else:
-            raise RuntimeError('Invalid data type')
+            raise RuntimeError("Invalid data type")
     except DatasetExpressionException as ex:
         doc.log(_("Error evaluating '%s': %s\n") % (origexpr, str(ex)))
 
     return None
 
+
 class DatasetExpression(Dataset1DBase):
     """A dataset which is linked to another dataset by an expression."""
 
-    dstype = _('Expression')
+    dstype = _("Expression")
 
-    def __init__(self, data=None, serr=None, nerr=None, perr=None,
-                 parametric=None):
+    def __init__(self, data=None, serr=None, nerr=None, perr=None, parametric=None):
         """Initialise the dataset with the expressions given.
 
         parametric is option and can be (minval, maxval, steps) or None
@@ -253,10 +250,10 @@ class DatasetExpression(Dataset1DBase):
 
         # store the expressions to use to generate the dataset
         self.expr = {}
-        self.expr['data'] = data
-        self.expr['serr'] = serr
-        self.expr['nerr'] = nerr
-        self.expr['perr'] = perr
+        self.expr["data"] = data
+        self.expr["serr"] = serr
+        self.expr["nerr"] = nerr
+        self.expr["perr"] = perr
         self.parametric = parametric
 
         self.docchangeset = -1
@@ -278,8 +275,7 @@ class DatasetExpression(Dataset1DBase):
         # replace dataset names with calls
         newexpr = substituteDatasets(self.document.data, expr, part)[0]
 
-        comp = self.document.evaluate.compileCheckedExpression(
-            newexpr, origexpr=expr)
+        comp = self.document.evaluate.compileCheckedExpression(newexpr, origexpr=expr)
         if comp is None:
             return False
 
@@ -290,14 +286,14 @@ class DatasetExpression(Dataset1DBase):
         if self.parametric:
             p = self.parametric
             if p[2] >= 2:
-                deltat = (p[1]-p[0]) / (p[2]-1)
-                t = N.arange(p[2])*deltat + p[0]
+                deltat = (p[1] - p[0]) / (p[2] - 1)
+                t = N.arange(p[2]) * deltat + p[0]
             else:
                 t = N.array([p[0]])
-            environment['t'] = t
+            environment["t"] = t
 
         # this fn gets called to return the value of a dataset
-        environment['_DS_'] = self.evaluateDataset
+        environment["_DS_"] = self.evaluateDataset
 
         # actually evaluate the expression
         try:
@@ -307,14 +303,15 @@ class DatasetExpression(Dataset1DBase):
             if len(evalout.shape) > 1:
                 raise RuntimeError("Number of dimensions is not 1")
         except Exception as ex:
-            self.document.log(_(
-                "Error evaluating expression: %s\n"
-                "Error: %s") % (self.expr[part], str(ex)) )
+            self.document.log(
+                _("Error evaluating expression: %s\nError: %s")
+                % (self.expr[part], str(ex))
+            )
             return False
 
         # make evaluated error expression have same shape as data
-        if part != 'data':
-            data = self.evaluated['data']
+        if part != "data":
+            data = self.evaluated["data"]
             if evalout.shape == ():
                 # zero dimensional - expand to data shape
                 evalout = N.resize(evalout, data.shape)
@@ -348,7 +345,7 @@ class DatasetExpression(Dataset1DBase):
             # update all parts
             for part in self.columns:
                 expr = self.expr[part]
-                if expr is not None and expr.strip() != '':
+                if expr is not None and expr.strip() != "":
                     ok = ok and self._evaluatePart(expr, part)
 
         return ok
@@ -360,34 +357,33 @@ class DatasetExpression(Dataset1DBase):
         self.updateEvaluation()
 
         # catch case where error in setting data, need to return "real" data
-        if self.evaluated['data'] is None:
-            self.evaluated['data'] = N.array([])
+        if self.evaluated["data"] is None:
+            self.evaluated["data"] = N.array([])
         return self.evaluated[part]
 
     # expose evaluated data as properties
     # this allows us to recalculate the expressions on the fly
-    data = property(lambda self: self._propValues('data'))
-    serr = property(lambda self: self._propValues('serr'))
-    perr = property(lambda self: self._propValues('perr'))
-    nerr = property(lambda self: self._propValues('nerr'))
+    data = property(lambda self: self._propValues("data"))
+    serr = property(lambda self: self._propValues("serr"))
+    perr = property(lambda self: self._propValues("perr"))
+    nerr = property(lambda self: self._propValues("nerr"))
 
     def saveDataRelationToText(self, fileobj, name):
-        '''Save data to file.
-        '''
+        """Save data to file."""
 
-        parts = [repr(name), repr(self.expr['data'])]
-        if self.expr['serr']:
-            parts.append('symerr=%s' % repr(self.expr['serr']))
-        if self.expr['nerr']:
-            parts.append('negerr=%s' % repr(self.expr['nerr']))
-        if self.expr['perr']:
-            parts.append('poserr=%s' % repr(self.expr['perr']))
+        parts = [repr(name), repr(self.expr["data"])]
+        if self.expr["serr"]:
+            parts.append("symerr=%s" % repr(self.expr["serr"]))
+        if self.expr["nerr"]:
+            parts.append("negerr=%s" % repr(self.expr["nerr"]))
+        if self.expr["perr"]:
+            parts.append("poserr=%s" % repr(self.expr["perr"]))
         if self.parametric is not None:
-            parts.append('parametric=%s' % repr(self.parametric))
+            parts.append("parametric=%s" % repr(self.parametric))
 
-        parts.append('linked=True')
+        parts.append("linked=True")
 
-        s = 'SetDataExpression(%s)\n' % ', '.join(parts)
+        s = "SetDataExpression(%s)\n" % ", ".join(parts)
         fileobj.write(s)
 
     def __getitem__(self, key):
@@ -406,17 +402,18 @@ class DatasetExpression(Dataset1DBase):
         """Return information about linking."""
         text = []
         if self.parametric:
-            text.append(_('Linked parametric dataset'))
+            text.append(_("Linked parametric dataset"))
         else:
-            text.append(_('Linked expression dataset'))
+            text.append(_("Linked expression dataset"))
         for label, part in zip(self.column_descriptions, self.columns):
             if self.expr[part]:
-                text.append('%s: %s' % (label, self.expr[part]))
+                text.append("%s: %s" % (label, self.expr[part]))
 
         if self.parametric:
             text.append(_("where t goes from %g:%g in %i steps") % self.parametric)
 
-        return '\n'.join(text)
+        return "\n".join(text)
+
 
 def getSpacing(data):
     """Given a set of values, get minimum, maximum, step size
@@ -431,19 +428,19 @@ def getSpacing(data):
     try:
         data = N.array(data) + 0
     except ValueError:
-        raise DatasetExpressionException('Expression is not an array')
+        raise DatasetExpressionException("Expression is not an array")
 
     if len(data.shape) != 1:
-        raise DatasetExpressionException('Array is not 1D')
+        raise DatasetExpressionException("Array is not 1D")
     if len(data) < 2:
-        raise DatasetExpressionException('Two values required to convert to 2D')
+        raise DatasetExpressionException("Two values required to convert to 2D")
 
     uniquesorted = N.unique(data)
 
-    sigfactor = (uniquesorted[-1]-uniquesorted[0])*1e-13
+    sigfactor = (uniquesorted[-1] - uniquesorted[0]) * 1e-13
 
     # differences between elements
-    deltas = N.unique( N.ediff1d(uniquesorted) )
+    deltas = N.unique(N.ediff1d(uniquesorted))
 
     mindelta = None
     for delta in deltas:
@@ -451,26 +448,30 @@ def getSpacing(data):
             if mindelta is None:
                 # first delta
                 mindelta = delta
-            elif N.fabs(mindelta-delta) > sigfactor:
+            elif N.fabs(mindelta - delta) > sigfactor:
                 # new delta - check is multiple of old delta
-                ratio = delta/mindelta
-                if N.fabs(int(ratio)-ratio) > 1e-3:
+                ratio = delta / mindelta
+                if N.fabs(int(ratio) - ratio) > 1e-3:
                     raise DatasetExpressionException(
-                        'Variable spacings not yet supported '
-                        'in constructing 2D datasets')
+                        "Variable spacings not yet supported "
+                        "in constructing 2D datasets"
+                    )
 
     if mindelta is None or mindelta == 0:
-        raise DatasetExpressionException('Could not identify delta')
+        raise DatasetExpressionException("Could not identify delta")
 
     return (
-        uniquesorted[0], uniquesorted[-1], mindelta,
-        int((uniquesorted[-1]-uniquesorted[0])/mindelta)+1
+        uniquesorted[0],
+        uniquesorted[-1],
+        mindelta,
+        int((uniquesorted[-1] - uniquesorted[0]) / mindelta) + 1,
     )
 
-class Dataset2DXYZExpression(Dataset2DBase):
-    '''A 2d dataset with expressions for x, y and z.'''
 
-    dstype = _('2D XYZ')
+class Dataset2DXYZExpression(Dataset2DBase):
+    """A 2d dataset with expressions for x, y and z."""
+
+    dstype = _("2D XYZ")
 
     def __init__(self, exprx, expry, exprz):
         """Initialise dataset.
@@ -508,15 +509,16 @@ class Dataset2DXYZExpression(Dataset2DBase):
         evaluated = {}
 
         environment = self.document.evaluate.context.copy()
-        environment['_DS_'] = self.evaluateDataset
+        environment["_DS_"] = self.evaluateDataset
 
         # evaluate the x, y and z expressions
-        for name in ('exprx', 'expry', 'exprz'):
+        for name in ("exprx", "expry", "exprz"):
             origexpr = getattr(self, name)
-            expr = substituteDatasets(self.document.data, origexpr, 'data')[0]
+            expr = substituteDatasets(self.document.data, origexpr, "data")[0]
 
             comp = self.document.evaluate.compileCheckedExpression(
-                expr, origexpr=origexpr)
+                expr, origexpr=origexpr
+            )
             if comp is None:
                 return None
 
@@ -524,29 +526,29 @@ class Dataset2DXYZExpression(Dataset2DBase):
                 evaluated[name] = eval(comp, environment)
             except Exception as e:
                 self.document.log(
-                    _("Error evaluating expression: %s\nError: %s") %
-                    (expr, str(e)) )
+                    _("Error evaluating expression: %s\nError: %s") % (expr, str(e))
+                )
                 return None
 
-        minx, maxx, stepx, stepsx = getSpacing(evaluated['exprx'])
-        miny, maxy, stepy, stepsy = getSpacing(evaluated['expry'])
+        minx, maxx, stepx, stepsx = getSpacing(evaluated["exprx"])
+        miny, maxy, stepy, stepsy = getSpacing(evaluated["expry"])
 
         # update cached x and y ranges
-        self._xrange = (minx-stepx*0.5, maxx+stepx*0.5)
-        self._yrange = (miny-stepy*0.5, maxy+stepy*0.5)
+        self._xrange = (minx - stepx * 0.5, maxx + stepx * 0.5)
+        self._yrange = (miny - stepy * 0.5, maxy + stepy * 0.5)
 
-        self.cacheddata = N.empty( (stepsy, stepsx) )
-        self.cacheddata[:,:] = N.nan
-        xpts = ((1./stepx)*(evaluated['exprx']-minx)).astype('int32')
-        ypts = ((1./stepy)*(evaluated['expry']-miny)).astype('int32')
+        self.cacheddata = N.empty((stepsy, stepsx))
+        self.cacheddata[:, :] = N.nan
+        xpts = ((1.0 / stepx) * (evaluated["exprx"] - minx)).astype("int32")
+        ypts = ((1.0 / stepy) * (evaluated["expry"] - miny)).astype("int32")
 
         # this is ugly - is this really the way to do it?
         try:
-            self.cacheddata.flat [ xpts + ypts*stepsx ] = evaluated['exprz']
+            self.cacheddata.flat[xpts + ypts * stepsx] = evaluated["exprz"]
         except Exception as e:
             self.document.log(
-                _("Shape mismatch when constructing dataset\nError: %s") %
-                str(e) )
+                _("Shape mismatch when constructing dataset\nError: %s") % str(e)
+            )
             return None
 
         return self.cacheddata
@@ -565,7 +567,7 @@ class Dataset2DXYZExpression(Dataset2DBase):
         """Get both ranges of axis."""
         ds = self.evalDataset()
         if ds is None:
-            return ( (0., 1.), (0., 1.) )
+            return ((0.0, 1.0), (0.0, 1.0))
         return (self._xrange, self._yrange)
 
     @property
@@ -573,15 +575,18 @@ class Dataset2DXYZExpression(Dataset2DBase):
         """Get data, or none if error."""
         ds = self.evalDataset()
         if ds is None:
-            return N.array( [[]] )
+            return N.array([[]])
         return ds
 
     def saveDataRelationToText(self, fileobj, name):
-        '''Save expressions to file.
-        '''
+        """Save expressions to file."""
 
-        s = 'SetData2DExpressionXYZ(%s, %s, %s, %s, linked=True)\n' % (
-            repr(name), repr(self.exprx), repr(self.expry), repr(self.exprz) )
+        s = "SetData2DExpressionXYZ(%s, %s, %s, %s, linked=True)\n" % (
+            repr(name),
+            repr(self.exprx),
+            repr(self.expry),
+            repr(self.exprz),
+        )
         fileobj.write(s)
 
     def canUnlink(self):
@@ -590,13 +595,17 @@ class Dataset2DXYZExpression(Dataset2DBase):
 
     def linkedInformation(self):
         """Return linking information."""
-        return _('Linked 2D function: x=%s, y=%s, z=%s') % (
-            self.exprx, self.expry, self.exprz)
+        return _("Linked 2D function: x=%s, y=%s, z=%s") % (
+            self.exprx,
+            self.expry,
+            self.exprz,
+        )
+
 
 class Dataset2DExpression(Dataset2DBase):
     """Evaluate an expression of 2d datasets."""
 
-    dstype = _('2D Expr')
+    dstype = _("2D Expr")
 
     def __init__(self, expr):
         """Create 2d expression dataset."""
@@ -616,13 +625,13 @@ class Dataset2DExpression(Dataset2DBase):
     def xrange(self):
         """Return x range."""
         ds = self.evalDataset()
-        return ds.xrange if ds is not None else [0., 1.]
+        return ds.xrange if ds is not None else [0.0, 1.0]
 
     @property
     def yrange(self):
         """Return y range."""
         ds = self.evalDataset()
-        return ds.yrange if ds is not None else [0., 1.]
+        return ds.yrange if ds is not None else [0.0, 1.0]
 
     @property
     def xedge(self):
@@ -653,9 +662,8 @@ class Dataset2DExpression(Dataset2DBase):
         return evalDatasetExpression(self.document, self.expr, dimensions=2)
 
     def saveDataRelationToText(self, fileobj, name):
-        '''Save expression to file.'''
-        s = 'SetData2DExpression(%s, %s, linked=True)\n' % (
-            repr(name), repr(self.expr) )
+        """Save expression to file."""
+        s = "SetData2DExpression(%s, %s, linked=True)\n" % (repr(name), repr(self.expr))
         fileobj.write(s)
 
     def canUnlink(self):
@@ -664,4 +672,4 @@ class Dataset2DExpression(Dataset2DBase):
 
     def linkedInformation(self):
         """Return linking information."""
-        return _('Linked 2D expression: %s') % self.expr
+        return _("Linked 2D expression: %s") % self.expr

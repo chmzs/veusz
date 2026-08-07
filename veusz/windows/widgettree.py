@@ -24,18 +24,20 @@ from .. import qtall as qt
 from .. import utils
 from .. import document
 
+
 def _(text, disambiguation=None, context="WidgetTree"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class _WidgetNode:
     """Class to represent widgets in WidgetTreeModel.
 
-     parent: parent _WidgetNode
-     widget: document widget node is representing
-     children: child nodes
-     data: tuple of data items, so we can see whether the node should
-           be refreshed
+    parent: parent _WidgetNode
+    widget: document widget node is representing
+    children: child nodes
+    data: tuple of data items, so we can see whether the node should
+          be refreshed
     """
 
     def __init__(self, parent, widget):
@@ -58,6 +60,7 @@ class _WidgetNode:
 
     def __repr__(self):
         return "<_WidgetNode widget:%s>" % repr(self.widget)
+
 
 class WidgetTreeModel(qt.QAbstractItemModel):
     """A model representing the widget tree structure.
@@ -95,8 +98,8 @@ class WidgetTreeModel(qt.QAbstractItemModel):
     def deleteTree(self):
         """Reset tree contents (for loading docs, etc)."""
         self.beginRemoveRows(
-            self.nodeIndex(self.rootnode),
-            0, len(self.rootnode.children))
+            self.nodeIndex(self.rootnode), 0, len(self.rootnode.children)
+        )
         self.rootnode.widget = self.document.basewidget
         del self.rootnode.children[:]
         self.widgetnodemap = {self.rootnode.widget: self.rootnode}
@@ -110,6 +113,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
         """Synchronise tree to document."""
 
         docwidgets = set()
+
         def recursecollect(widget):
             """Recursively collect widgets in document."""
             docwidgets.add(widget)
@@ -126,7 +130,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
         docwidgets: all widgets used in the document
         """
 
-        #print('recurse', widget)
+        # print('recurse', widget)
         node = self.widgetnodemap[widget]
 
         # delete non existent child nodes recursively
@@ -141,16 +145,18 @@ class WidgetTreeModel(qt.QAbstractItemModel):
             add = False
             if c not in self.widgetnodemap:
                 # need to add widget as not in doc
-                #print('add', c, i, node)
+                # print('add', c, i, node)
                 self.beginInsertRows(self.nodeIndex(node), i, i)
                 self.widgetnodemap[c] = cnode = _WidgetNode(node, c)
                 node.children.insert(i, cnode)
                 self.endInsertRows()
                 add = True
 
-            elif (i >= len(node.children) or
-                  c is not node.children[i].widget or
-                  c.parent is not node.children[i].parent.widget):
+            elif (
+                i >= len(node.children)
+                or c is not node.children[i].widget
+                or c.parent is not node.children[i].parent.widget
+            ):
                 # need to move widget
                 cnode = self.widgetnodemap[c]
                 oldparent = cnode.parent
@@ -162,7 +168,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
                 oldidx = self.nodeIndex(oldparent)
                 newidx = oldidx if oldparent is node else self.nodeIndex(node)
 
-                #print('move', oldparent, oldrow, node, i)
+                # print('move', oldparent, oldrow, node, i)
                 self.beginMoveRows(oldidx, oldrow, oldrow, newidx, i)
                 del oldparent.children[oldrow]
                 node.children.insert(i, cnode)
@@ -176,12 +182,12 @@ class WidgetTreeModel(qt.QAbstractItemModel):
                 if cnode.data != data:
                     index = self.nodeIndex(cnode)
                     cnode.data = data
-                    #print('changed', c, data)
+                    # print('changed', c, data)
                     self.dataChanged.emit(index, index)
 
             self._recursiveupdate(c, docwidgets)
 
-        #print('rec retn')
+        # print('rec retn')
 
     def _recursivedelete(self, node):
         """Recursively delete node and its children."""
@@ -189,7 +195,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
             self._recursivedelete(cnode)
         parentnode = node.parent
         if parentnode is not None:
-            #print('delete', node.widget)
+            # print('delete', node.widget)
             row = parentnode.children.index(node)
             self.beginRemoveRows(self.nodeIndex(parentnode), row, row)
             del parentnode.children[row]
@@ -232,7 +238,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
         elif role == qt.Qt.ItemDataRole.DecorationRole:
             # return icon for first column
             if column == 0:
-                filename = 'button_%s' % data[1]
+                filename = "button_%s" % data[1]
                 return utils.getIcon(filename)
 
         elif role == qt.Qt.ItemDataRole.ToolTipRole:
@@ -244,7 +250,8 @@ class WidgetTreeModel(qt.QAbstractItemModel):
             # return brush for hidden widget text, based on disabled text
             if data[3]:
                 return qt.QPalette().brush(
-                    qt.QPalette.ColorGroup.Disabled, qt.QPalette.ColorRole.Text)
+                    qt.QPalette.ColorGroup.Disabled, qt.QPalette.ColorRole.Text
+                )
 
         # return nothing
         return None
@@ -266,8 +273,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
             return False
 
         # actually rename the widget
-        self.document.applyOperation(
-            document.OperationWidgetRename(widget, name))
+        self.document.applyOperation(document.OperationWidgetRename(widget, name))
 
         self.dataChanged.emit(index, index)
         return True
@@ -279,21 +285,26 @@ class WidgetTreeModel(qt.QAbstractItemModel):
             return qt.Qt.ItemFlag.ItemIsEnabled
 
         flags = (
-            qt.Qt.ItemFlag.ItemIsEnabled | qt.Qt.ItemFlag.ItemIsSelectable |
-            qt.Qt.ItemFlag.ItemIsDropEnabled
+            qt.Qt.ItemFlag.ItemIsEnabled
+            | qt.Qt.ItemFlag.ItemIsSelectable
+            | qt.Qt.ItemFlag.ItemIsDropEnabled
         )
-        if ( index.internalPointer().parent is not None and
-             index.column() == 0 ):
+        if index.internalPointer().parent is not None and index.column() == 0:
             # allow items other than root to be edited and dragged
-            flags = flags | qt.Qt.ItemFlag.ItemIsEditable | qt.Qt.ItemFlag.ItemIsDragEnabled
+            flags = (
+                flags | qt.Qt.ItemFlag.ItemIsEditable | qt.Qt.ItemFlag.ItemIsDragEnabled
+            )
 
         return flags
 
     def headerData(self, section, orientation, role):
         """Return the header of the tree."""
 
-        if orientation == qt.Qt.Orientation.Horizontal and role == qt.Qt.ItemDataRole.DisplayRole:
-            val = ('Name', 'Type')[section]
+        if (
+            orientation == qt.Qt.Orientation.Horizontal
+            and role == qt.Qt.ItemDataRole.DisplayRole
+        ):
+            val = ("Name", "Type")[section]
             return val
         return None
 
@@ -360,8 +371,8 @@ class WidgetTreeModel(qt.QAbstractItemModel):
 
         # make an operation to delete the rows
         deleteops = []
-        for w in parent.children[row:row+count]:
-            deleteops.append( document.OperationWidgetDelete(w) )
+        for w in parent.children[row : row + count]:
+            deleteops.append(document.OperationWidgetDelete(w))
         op = document.OperationMultiple(deleteops, descr=_("remove widgets"))
         self.document.applyOperation(op)
         return True
@@ -406,6 +417,7 @@ class WidgetTreeModel(qt.QAbstractItemModel):
         op = document.OperationWidgetPaste(parent, data, index=startrow)
         self.document.applyOperation(op)
         return True
+
 
 class WidgetTreeView(qt.QTreeView):
     """A model view for viewing the widgets."""
@@ -470,13 +482,13 @@ class WidgetTreeView(qt.QTreeView):
                 ops = []
                 r = row
                 for path in widgetpaths:
-                    ops.append(
-                        document.OperationWidgetMove(path, parentpath, r) )
+                    ops.append(document.OperationWidgetMove(path, parentpath, r))
                     if r >= 0:
                         r += 1
 
                 self.model().document.applyOperation(
-                    document.OperationMultiple(ops, descr='move'))
+                    document.OperationMultiple(ops, descr="move")
+                )
                 event.ignore()
 
     def dropEvent(self, e):

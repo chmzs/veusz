@@ -26,16 +26,18 @@ from .. import utils
 
 from . import plotters
 
-def _(text, disambiguation=None, context='Polygon'):
+
+def _(text, disambiguation=None, context="Polygon"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class Polygon(plotters.FreePlotter):
     """For plotting polygons."""
 
-    typename = 'polygon'
+    typename = "polygon"
     allowusercreation = True
-    description = _('Plot a polygon')
+    description = _("Plot a polygon")
 
     def __init__(self, parent, name=None):
         """Initialise object, setting axes."""
@@ -46,16 +48,16 @@ class Polygon(plotters.FreePlotter):
         """Construct list of settings."""
         plotters.FreePlotter.addSettings(s)
 
-        s.add( setting.Line(
-            'Line',
-            descr=_('Line around polygon'),
-            usertext=_('Line')),
-            pixmap='settings_plotline' )
-        s.add( setting.BrushExtended(
-            'Fill',
-            descr=_('Fill within polygon'),
-            usertext=_('Fill')),
-            pixmap='settings_plotfillbelow' )
+        s.add(
+            setting.Line("Line", descr=_("Line around polygon"), usertext=_("Line")),
+            pixmap="settings_plotline",
+        )
+        s.add(
+            setting.BrushExtended(
+                "Fill", descr=_("Fill within polygon"), usertext=_("Fill")
+            ),
+            pixmap="settings_plotfillbelow",
+        )
 
     def draw(self, posn, phelper, outerbounds=None):
         """Plot the data on a plotter."""
@@ -73,19 +75,20 @@ class Polygon(plotters.FreePlotter):
             return
 
         x1, y1, x2, y2 = posn
-        cliprect = qt.QRectF( qt.QPointF(x1, y1), qt.QPointF(x2, y2) )
+        cliprect = qt.QRectF(qt.QPointF(x1, y1), qt.QPointF(x2, y2))
         painter = phelper.painter(self, posn, clip=cliprect)
         with painter:
             pen = s.Line.makeQPenWHide(painter)
-            pw = pen.widthF()*2
+            pw = pen.widthF() * 2
             lineclip = qt.QRectF(
-                qt.QPointF(x1-pw, y1-pw), qt.QPointF(x2+pw, y2+pw))
+                qt.QPointF(x1 - pw, y1 - pw), qt.QPointF(x2 + pw, y2 + pw)
+            )
 
             # this is a hack as we generate temporary fake datasets
             path = qt.QPainterPath()
             for xvals, yvals in datasets.generateValidDatasetParts(
-                [datasets.Dataset(xp), datasets.Dataset(yp)]):
-
+                [datasets.Dataset(xp), datasets.Dataset(yp)]
+            ):
                 path = qt.QPainterPath()
                 poly = qt.QPolygonF()
                 utils.addNumpyToPolygonF(poly, xvals.data, yvals.data)
@@ -95,6 +98,7 @@ class Polygon(plotters.FreePlotter):
                 path.closeSubpath()
 
                 utils.brushExtFillPath(painter, s.Fill, path, stroke=pen)
+
 
 # allow the factory to instantiate this
 document.thefactory.register(Polygon)

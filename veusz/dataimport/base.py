@@ -25,8 +25,10 @@ import copy
 
 from .. import utils
 
+
 class ImportingError(RuntimeError):
     """Common error when import fails."""
+
 
 class ImportParamsBase:
     """Import parameters for the various imports.
@@ -42,18 +44,17 @@ class ImportParamsBase:
     """
 
     defaults = {
-        'filename': None,
-        'linked': False,
-        'encoding': 'utf_8',
-        'prefix': '',
-        'suffix': '',
-        'tags': None,
-        'renames': None,
+        "filename": None,
+        "linked": False,
+        "encoding": "utf_8",
+        "prefix": "",
+        "suffix": "",
+        "tags": None,
+        "renames": None,
     }
 
     def __init__(self, **argsv):
-        """Initialise the reader to import data from filename.
-        """
+        """Initialise the reader to import data from filename."""
 
         #  set defaults
         for k, v in self.defaults.items():
@@ -76,6 +77,7 @@ class ImportParamsBase:
             newp[k] = getattr(self, k)
         return self.__class__(**newp)
 
+
 class LinkedFileBase:
     """A base class for linked files containing common routines."""
 
@@ -92,8 +94,9 @@ class LinkedFileBase:
         """Get filename."""
         return self.params.filename
 
-    def _saveHelper(self, fileobj, cmd, fixedparams,
-                    renameparams={}, relpath=None, extraargs={}):
+    def _saveHelper(
+        self, fileobj, cmd, fixedparams, renameparams={}, relpath=None, extraargs={}
+    ):
         """Helper to write command to reload data.
 
         fileobj: file object to write to
@@ -109,7 +112,7 @@ class LinkedFileBase:
 
         # arguments without names at command start
         for par in fixedparams:
-            if par == 'filename':
+            if par == "filename":
                 v = self._getSaveFilename(relpath)
             else:
                 v = getattr(p, par)
@@ -117,22 +120,22 @@ class LinkedFileBase:
 
         # parameters key, values to put in command line
         plist = sorted(
-            [(par, getattr(p, par)) for par in p.defaults] +
-            list(extraargs.items())
+            [(par, getattr(p, par)) for par in p.defaults] + list(extraargs.items())
         )
 
         for par, val in plist:
-            if ( val and
-                 (par not in p.defaults or p.defaults[par] != val) and
-                 par not in fixedparams and
-                 par != 'tags' ):
-
+            if (
+                val
+                and (par not in p.defaults or p.defaults[par] != val)
+                and par not in fixedparams
+                and par != "tags"
+            ):
                 if par in renameparams:
                     par = renameparams[par]
-                args.append('%s=%s' % (par, utils.rrepr(val)))
+                args.append("%s=%s" % (par, utils.rrepr(val)))
 
         # write command using comma-separated list
-        fileobj.write('%s(%s)\n' % (cmd, ', '.join(args)))
+        fileobj.write("%s(%s)\n" % (cmd, ", ".join(args)))
 
     def saveToFile(self, fileobj, relpath=None):
         """Save the link to the document file."""
@@ -148,8 +151,8 @@ class LinkedFileBase:
             f = self.filename
         # Here we convert backslashes in Windows to forward slashes
         # This is compatible, but also works on Unix/Mac
-        if sys.platform == 'win32':
-            f = f.replace('\\', '/')
+        if sys.platform == "win32":
+            f = f.replace("\\", "/")
         return f
 
     def _deleteLinkedDatasets(self, document):
@@ -199,8 +202,8 @@ class LinkedFileBase:
             # find datasets which are linked using this link object
             # return errors for them
             errors = dict(
-                [(name, 1) for name, ds in document.data.items()
-                 if ds.linked is self])
+                [(name, 1) for name, ds in document.data.items() if ds.linked is self]
+            )
             return ([], errors)
 
         # delete datasets which are linked and imported here
@@ -212,6 +215,7 @@ class LinkedFileBase:
         errors = op.outinvalids
 
         return (read, errors)
+
 
 class OperationDataImportBase:
     """Default useful import class."""
@@ -228,12 +232,12 @@ class OperationDataImportBase:
         """Optionally, add the customs return by plugins to document."""
 
         type_attrs = {
-            'import': 'def_imports',
-            'color': 'def_colors',
-            'colormap': 'def_colormaps',
-            'constant': 'def_definitions',
-            'function': 'def_definitions',
-            'definition': 'def_definitions',
+            "import": "def_imports",
+            "color": "def_colors",
+            "colormap": "def_colormaps",
+            "constant": "def_definitions",
+            "function": "def_definitions",
+            "definition": "def_definitions",
         }
 
         if len(customs) > 0:
@@ -242,7 +246,8 @@ class OperationDataImportBase:
                 copy.deepcopy(doceval.def_imports),
                 copy.deepcopy(doceval.def_definitions),
                 copy.deepcopy(doceval.def_colors),
-                copy.deepcopy(doceval.def_colormaps)]
+                copy.deepcopy(doceval.def_colormaps),
+            ]
 
             # FIXME: inefficient for large number of definitions
             for item in customs:
@@ -288,12 +293,11 @@ class OperationDataImportBase:
                 self.outdatasets[self.params.renames[name]] = ds
 
         # only remember the parts we need
-        self.olddatasets = [
-            (n, document.data.get(n)) for n in self.outdatasets ]
+        self.olddatasets = [(n, document.data.get(n)) for n in self.outdatasets]
 
         self.olddatasets = []
         for name, ds in self.outdatasets.items():
-            self.olddatasets.append( (name, document.data.get(name)) )
+            self.olddatasets.append((name, document.data.get(name)))
             document.setData(name, ds)
 
         self.outnames = sorted(self.outdatasets)

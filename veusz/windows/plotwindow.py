@@ -33,13 +33,16 @@ from .. import document
 from .. import utils
 from .. import widgets
 
-def _(text, disambiguation=None, context='PlotWindow'):
+
+def _(text, disambiguation=None, context="PlotWindow"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
-class PickerCrosshairItem( qt.QGraphicsPathItem ):
+
+class PickerCrosshairItem(qt.QGraphicsPathItem):
     """The picker cross widget: it moves from point to point and curve to curve
-       with the arrow keys, and hides itself when it looses focus"""
+    with the arrow keys, and hides itself when it looses focus"""
+
     def __init__(self, parent=None):
         path = qt.QPainterPath()
         path.addRect(-4, -4, 8, 8)
@@ -55,7 +58,7 @@ class PickerCrosshairItem( qt.QGraphicsPathItem ):
 
     def paint(self, painter, option, widget):
         """Override this to enforce the global antialiasing setting"""
-        aa = setting.settingdb['plot_antialias']
+        aa = setting.settingdb["plot_antialias"]
         painter.save()
         painter.setRenderHint(qt.QPainter.RenderHint.Antialiasing, aa)
         qt.QGraphicsPathItem.paint(self, painter, option, widget)
@@ -65,6 +68,7 @@ class PickerCrosshairItem( qt.QGraphicsPathItem ):
         qt.QGraphicsPathItem.focusOutEvent(self, event)
         self.hide()
 
+
 class RenderControl(qt.QObject):
     """Object for rendering plots in a separate thread."""
 
@@ -72,8 +76,7 @@ class RenderControl(qt.QObject):
     sigQueueChange = qt.pyqtSignal(int)
 
     # when a rendering job is finished
-    signalRenderFinished = qt.pyqtSignal(
-        int, qt.QImage, document.PaintHelper)
+    signalRenderFinished = qt.pyqtSignal(int, qt.QImage, document.PaintHelper)
 
     def __init__(self, plotwindow):
         """Start up numthreads rendering threads."""
@@ -93,7 +96,7 @@ class RenderControl(qt.QObject):
         """Changes the number of rendering threads."""
         if num is None:
             # use number of threads in preference
-            num = setting.settingdb['plot_numthreads']
+            num = setting.settingdb["plot_numthreads"]
 
         if self.threads:
             # delete old ones
@@ -130,9 +133,11 @@ class RenderControl(qt.QObject):
         # don't process jobs which have been superseded
         if lastadded == jobid:
             img = qt.QImage(
-                int(helper.rawpagesize[0]), int(helper.rawpagesize[1]),
-                qt.QImage.Format.Format_ARGB32_Premultiplied)
-            img.fill( setting.settingdb.color('page').rgb() )
+                int(helper.rawpagesize[0]),
+                int(helper.rawpagesize[1]),
+                qt.QImage.Format.Format_ARGB32_Premultiplied,
+            )
+            img.fill(setting.settingdb.color("page").rgb())
 
             painter = qt.QPainter(img)
             aa = self.plotwindow.antialias
@@ -160,7 +165,7 @@ class RenderControl(qt.QObject):
         # add the job to the queue
         self.mutex.lock()
         self.latestaddedjob += 1
-        self.latestjobs.append( (self.latestaddedjob, helper) )
+        self.latestjobs.append((self.latestaddedjob, helper))
         self.mutex.unlock()
 
         if self.threads:
@@ -170,7 +175,8 @@ class RenderControl(qt.QObject):
             # process job in current thread if multithreading disabled
             self.processNextJob()
 
-class RenderThread( qt.QThread ):
+
+class RenderThread(qt.QThread):
     """A thread for processing rendering jobs.
     This is controlled by a RenderControl object
     """
@@ -195,17 +201,22 @@ class RenderThread( qt.QThread ):
                 sys.stderr.write(_("Error in rendering thread\n"))
                 traceback.print_exc(file=sys.stderr)
 
+
 class ControlGraphRoot(qt.QGraphicsItem):
     """Control graph items are connected to this root item.
     We don't use a group here as it would swallow parent events."""
+
     def __init__(self):
         qt.QGraphicsItem.__init__(self)
+
     def paint(self, painter, option, widget=None):
         pass
+
     def boundingRect(self):
         return qt.QRectF()
 
-class PlotWindow( qt.QGraphicsView ):
+
+class PlotWindow(qt.QGraphicsView):
     """Class to show the plot(s) in a scrollable window."""
 
     # emitted when new item on plot queue
@@ -223,15 +234,15 @@ class PlotWindow( qt.QGraphicsView ):
 
     # how often the document can update
     updateintervals = (
-        (0, _('Disable')),
-        (-1, _('On document change')),
-        (100, _('Every 0.1s')),
-        (250, _('Every 0.25s')),
-        (500, _('Every 0.5s')),
-        (1000, _('Every 1s')),
-        (2000, _('Every 2s')),
-        (5000, _('Every 5s')),
-        (10000, _('Every 10s')),
+        (0, _("Disable")),
+        (-1, _("On document change")),
+        (100, _("Every 0.1s")),
+        (250, _("Every 0.25s")),
+        (500, _("Every 0.5s")),
+        (1000, _("Every 1s")),
+        (2000, _("Every 2s")),
+        (5000, _("Every 5s")),
+        (10000, _("Every 10s")),
     )
 
     def __init__(self, document, parent, menu=None):
@@ -262,14 +273,15 @@ class PlotWindow( qt.QGraphicsView ):
 
         # zoom rectangle for zooming into graph (not shown normally)
         self.zoomrect = self.scene.addRect(
-            0, 0, 100, 100, qt.QPen(qt.Qt.PenStyle.DotLine))
-        self.zoomrect.setZValue(2.)
+            0, 0, 100, 100, qt.QPen(qt.Qt.PenStyle.DotLine)
+        )
+        self.zoomrect.setZValue(2.0)
         self.zoomrect.hide()
 
         # picker graphicsitem for marking the picked point
         self.pickeritem = PickerCrosshairItem()
         self.scene.addItem(self.pickeritem)
-        self.pickeritem.setZValue(2.)
+        self.pickeritem.setZValue(2.0)
         self.pickeritem.hide()
 
         # all the widgets that picker key-navigation might cycle through
@@ -288,20 +300,18 @@ class PlotWindow( qt.QGraphicsView ):
         self.painthelper = None
 
         self.lastwidgetsselected = []
-        self.oldzoom = -1.
-        self.zoomfactor = 1.
+        self.oldzoom = -1.0
+        self.zoomfactor = 1.0
         self.pagenumber = 0
         self.ignoreclick = False
 
         # for rendering plots in separate threads
         self.rendercontrol = RenderControl(self)
-        self.rendercontrol.signalRenderFinished.connect(
-            self.slotRenderFinished)
-        self.rendercontrol.sigQueueChange.connect(
-            self.sigQueueChange)
+        self.rendercontrol.signalRenderFinished.connect(self.slotRenderFinished)
+        self.rendercontrol.sigQueueChange.connect(self.sigQueueChange)
 
         # mode for clicking
-        self.clickmode = 'select'
+        self.clickmode = "select"
         self.currentclickmode = None
 
         # wheel zooming/scrolling accumulator
@@ -323,14 +333,14 @@ class PlotWindow( qt.QGraphicsView ):
         #  -1: update on document changes
         #   0: never update automatically
         #  >0: check for updates every x ms
-        self.interval = setting.settingdb['plot_updatepolicy']
+        self.interval = setting.settingdb["plot_updatepolicy"]
 
         # if using a time-based document update checking, start timer
         if self.interval > 0:
             self.timer.start(self.interval)
 
         # load antialias settings
-        self.antialias = setting.settingdb['plot_antialias']
+        self.antialias = setting.settingdb["plot_antialias"]
 
         # allow window to get focus, to allow context menu
         self.setFocusPolicy(qt.Qt.FocusPolicy.StrongFocus)
@@ -362,14 +372,14 @@ class PlotWindow( qt.QGraphicsView ):
         """Make a view toolbar, and optionally update menu."""
 
         self.viewtoolbar = qt.QToolBar(_("View toolbar - Veusz"), parent)
-        self.viewtoolbar.setObjectName('veuszviewtoolbar')
-        iconsize = setting.settingdb['toolbar_size']
+        self.viewtoolbar.setObjectName("veuszviewtoolbar")
+        iconsize = setting.settingdb["toolbar_size"]
         self.viewtoolbar.setIconSize(qt.QSize(iconsize, iconsize))
         self.viewtoolbar.hide()
         if parent:
             parent.addToolBar(qt.Qt.ToolBarArea.TopToolBarArea, self.viewtoolbar)
 
-        if parent and hasattr(parent, 'vzactions'):
+        if parent and hasattr(parent, "vzactions"):
             # share actions with parent if possible
             # as plot windows can be isolated from mainwindows, we need this
             self.vzactions = actions = parent.vzactions
@@ -377,131 +387,206 @@ class PlotWindow( qt.QGraphicsView ):
             self.vzactions = actions = {}
 
         a = utils.makeAction
-        actions.update({
-            'view.zoomin': a(
-                self, _('Zoom into the plot'), _('Zoom &In'),
-                self.slotViewZoomIn,
-                icon='kde-zoom-in', key='Ctrl++'),
-            'view.zoomout': a(
-                self, _('Zoom out of the plot'), _('Zoom &Out'),
-                self.slotViewZoomOut,
-                icon='kde-zoom-out', key='Ctrl+-'),
-            'view.zoom11': a(
-                self, _('Restore plot to natural size'), _('Zoom 1:1'),
-                self.slotViewZoom11,
-                icon='kde-zoom-1-veuszedit', key='Ctrl+1'),
-            'view.zoomwidth': a(
-                self, _('Zoom plot to show whole width'), _('Zoom to width'),
-                self.slotViewZoomWidth,
-                icon='kde-zoom-width-veuszedit'),
-            'view.zoomheight': a(
-                self, _('Zoom plot to show whole height'), _('Zoom to height'),
-                self.slotViewZoomHeight,
-                icon='kde-zoom-height-veuszedit'),
-            'view.zoompage': a(
-                self, _('Zoom plot to show whole page'), _('Zoom to page'),
-                self.slotViewZoomPage,
-                icon='kde-zoom-page-veuszedit', key='Ctrl+0'),
-            'view.zoommenu': a(
-                self, _('Zoom functions menu'), _('Zoom'),
-                None,
-                icon='kde-zoom-veuszedit'),
-            'view.prevpage': a(
-                self, _('Move to the previous page'), _('&Previous page'),
-                self.slotViewPreviousPage,
-                icon='kde-go-previous', key='Ctrl+PgUp'),
-            'view.nextpage': a(
-                self, _('Move to the next page'), _('&Next page'),
-                self.slotViewNextPage,
-                icon='kde-go-next', key='Ctrl+PgDown'),
-            'view.select': a(
-                self, _('Select items from the graph or scroll'),
-                _('Select items or scroll'),
-                None,
-                icon='kde-mouse-pointer'),
-            'view.pick': a(
-                self, _('Read data points on the graph'),
-                _('Read data points'),
-                None,
-                icon='veusz-pick-data'),
-            'view.graphzoom': a(
-                self,
-                _('Click or draw a rectangle to zoom graph axes'),
-                _('Zoom into graph'),
-                None,
-                icon='veusz-zoom-graph'),
-            'view.graphzoomout': a(
-                self,
-                _('Click to zoom out of graph axes'),
-                _('Zoom out of graph'),
-                None,
-                icon='veusz-zoom-graph-out'),
-            'view.graphrecenter': a(
-                self,
-                _('Click to recenter graph axes'),
-                _('Recenter graph'),
-                None,
-                icon='veusz-zoom-graph-recenter'),
-            'view.graphreset': a(
-                self,
-                _('Click to reset graph axes'),
-                _('Reset axes'),
-                None,
-                icon='veusz-zoom-reset'),
-            'view.fullscreen': a(
-                self, _('View plot full screen'), _('Full screen'),
-                self.slotFullScreen,
-                icon='veusz-view-fullscreen', key='Ctrl+F11'),
-        })
+        actions.update(
+            {
+                "view.zoomin": a(
+                    self,
+                    _("Zoom into the plot"),
+                    _("Zoom &In"),
+                    self.slotViewZoomIn,
+                    icon="kde-zoom-in",
+                    key="Ctrl++",
+                ),
+                "view.zoomout": a(
+                    self,
+                    _("Zoom out of the plot"),
+                    _("Zoom &Out"),
+                    self.slotViewZoomOut,
+                    icon="kde-zoom-out",
+                    key="Ctrl+-",
+                ),
+                "view.zoom11": a(
+                    self,
+                    _("Restore plot to natural size"),
+                    _("Zoom 1:1"),
+                    self.slotViewZoom11,
+                    icon="kde-zoom-1-veuszedit",
+                    key="Ctrl+1",
+                ),
+                "view.zoomwidth": a(
+                    self,
+                    _("Zoom plot to show whole width"),
+                    _("Zoom to width"),
+                    self.slotViewZoomWidth,
+                    icon="kde-zoom-width-veuszedit",
+                ),
+                "view.zoomheight": a(
+                    self,
+                    _("Zoom plot to show whole height"),
+                    _("Zoom to height"),
+                    self.slotViewZoomHeight,
+                    icon="kde-zoom-height-veuszedit",
+                ),
+                "view.zoompage": a(
+                    self,
+                    _("Zoom plot to show whole page"),
+                    _("Zoom to page"),
+                    self.slotViewZoomPage,
+                    icon="kde-zoom-page-veuszedit",
+                    key="Ctrl+0",
+                ),
+                "view.zoommenu": a(
+                    self,
+                    _("Zoom functions menu"),
+                    _("Zoom"),
+                    None,
+                    icon="kde-zoom-veuszedit",
+                ),
+                "view.prevpage": a(
+                    self,
+                    _("Move to the previous page"),
+                    _("&Previous page"),
+                    self.slotViewPreviousPage,
+                    icon="kde-go-previous",
+                    key="Ctrl+PgUp",
+                ),
+                "view.nextpage": a(
+                    self,
+                    _("Move to the next page"),
+                    _("&Next page"),
+                    self.slotViewNextPage,
+                    icon="kde-go-next",
+                    key="Ctrl+PgDown",
+                ),
+                "view.select": a(
+                    self,
+                    _("Select items from the graph or scroll"),
+                    _("Select items or scroll"),
+                    None,
+                    icon="kde-mouse-pointer",
+                ),
+                "view.pick": a(
+                    self,
+                    _("Read data points on the graph"),
+                    _("Read data points"),
+                    None,
+                    icon="veusz-pick-data",
+                ),
+                "view.graphzoom": a(
+                    self,
+                    _("Click or draw a rectangle to zoom graph axes"),
+                    _("Zoom into graph"),
+                    None,
+                    icon="veusz-zoom-graph",
+                ),
+                "view.graphzoomout": a(
+                    self,
+                    _("Click to zoom out of graph axes"),
+                    _("Zoom out of graph"),
+                    None,
+                    icon="veusz-zoom-graph-out",
+                ),
+                "view.graphrecenter": a(
+                    self,
+                    _("Click to recenter graph axes"),
+                    _("Recenter graph"),
+                    None,
+                    icon="veusz-zoom-graph-recenter",
+                ),
+                "view.graphreset": a(
+                    self,
+                    _("Click to reset graph axes"),
+                    _("Reset axes"),
+                    None,
+                    icon="veusz-zoom-reset",
+                ),
+                "view.fullscreen": a(
+                    self,
+                    _("View plot full screen"),
+                    _("Full screen"),
+                    self.slotFullScreen,
+                    icon="veusz-view-fullscreen",
+                    key="Ctrl+F11",
+                ),
+            }
+        )
 
         if menu:
             # only construct menu if required
             menuitems = [
-                ('view', '', [
-                    'view.zoomin', 'view.zoomout',
-                    'view.zoom11', 'view.zoomwidth',
-                    'view.zoomheight', 'view.zoompage',
-                    '',
-                    'view.prevpage', 'view.nextpage',
-                    'view.fullscreen',
-                    '',
-                    'view.select', 'view.pick',
-                    'view.graphzoom', 'view.graphzoomout',
-                    'view.graphrecenter', 'view.graphreset',
-                ]),
+                (
+                    "view",
+                    "",
+                    [
+                        "view.zoomin",
+                        "view.zoomout",
+                        "view.zoom11",
+                        "view.zoomwidth",
+                        "view.zoomheight",
+                        "view.zoompage",
+                        "",
+                        "view.prevpage",
+                        "view.nextpage",
+                        "view.fullscreen",
+                        "",
+                        "view.select",
+                        "view.pick",
+                        "view.graphzoom",
+                        "view.graphzoomout",
+                        "view.graphrecenter",
+                        "view.graphreset",
+                    ],
+                ),
             ]
-            utils.constructMenus(menu, {'view': menu}, menuitems,
-                                 actions)
+            utils.constructMenus(menu, {"view": menu}, menuitems, actions)
 
         # populate menu on zoom toolbar icon
         utils.makeMenuGroupSaved(
-            'view.zoommenu', self, actions, (
-                'view.zoomin', 'view.zoomout', 'view.zoom11',
-                'view.zoomwidth', 'view.zoomheight', 'view.zoompage',
-            ))
+            "view.zoommenu",
+            self,
+            actions,
+            (
+                "view.zoomin",
+                "view.zoomout",
+                "view.zoom11",
+                "view.zoomwidth",
+                "view.zoomheight",
+                "view.zoompage",
+            ),
+        )
 
         # add items to toolbar
         utils.addToolbarActions(
-            self.viewtoolbar, actions, (
-                'view.prevpage', 'view.nextpage',
-                'view.fullscreen',
-                'view.select', 'view.pick',
-                'view.graphzoom', 'view.graphzoomout',
-                'view.graphrecenter', 'view.graphreset',
-                'view.zoommenu',
-            ))
+            self.viewtoolbar,
+            actions,
+            (
+                "view.prevpage",
+                "view.nextpage",
+                "view.fullscreen",
+                "view.select",
+                "view.pick",
+                "view.graphzoom",
+                "view.graphzoomout",
+                "view.graphrecenter",
+                "view.graphreset",
+                "view.zoommenu",
+            ),
+        )
 
         # define action group for various different selection models
         grp = self.selectactiongrp = qt.QActionGroup(self)
         grp.setExclusive(True)
         for a in (
-                'view.select', 'view.pick', 'view.graphzoom',
-                'view.graphzoomout', 'view.graphrecenter',
-                'view.graphreset',
+            "view.select",
+            "view.pick",
+            "view.graphzoom",
+            "view.graphzoomout",
+            "view.graphrecenter",
+            "view.graphreset",
         ):
             actions[a].setActionGroup(grp)
             actions[a].setCheckable(True)
-        actions['view.select'].setChecked(True)
+        actions["view.select"].setChecked(True)
         grp.triggered.connect(self.slotSelectMode)
 
         return self.viewtoolbar
@@ -513,8 +598,7 @@ class PlotWindow( qt.QGraphicsView ):
         """
 
         # try to work out in which widget the first point is in
-        widget = self.painthelper.pointInWidgetBounds(
-            pt.x(), pt.y(), widgets.Graph)
+        widget = self.painthelper.pointInWidgetBounds(pt.x(), pt.y(), widgets.Graph)
         if widget is None:
             return
 
@@ -523,8 +607,7 @@ class PlotWindow( qt.QGraphicsView ):
         for c in widget.children:
             if isinstance(c, widgets.GenericPlotter):
                 # get axes associated with plotter
-                caxes = c.parent.getAxes(
-                    (c.settings.xAxis, c.settings.yAxis) )
+                caxes = c.parent.getAxes((c.settings.xAxis, c.settings.yAxis))
                 for a in caxes:
                     if a:
                         axes.add(a)
@@ -553,7 +636,7 @@ class PlotWindow( qt.QGraphicsView ):
 
         # work out whether it's worthwhile to zoom: only zoom if there
         # are >=5 pixels movement
-        if abs((pt2-pt1).x()) < 10 or abs((pt2-pt1).y()) < 10:
+        if abs((pt2 - pt1).x()) < 10 or abs((pt2 - pt1).y()) < 10:
             self.doGraphZoomOnPoint(self.winpos, inverse=True)
             return
 
@@ -567,8 +650,8 @@ class PlotWindow( qt.QGraphicsView ):
 
         # convert points on plotter to points on axis for each axis
         # we also add a neighbouring pixel for the rounding calculation
-        xpts = N.array( [pt1.x(), pt2.x(), pt1.x()+1, pt2.x()-1] )
-        ypts = N.array( [pt1.y(), pt2.y(), pt1.y()+1, pt2.y()-1] )
+        xpts = N.array([pt1.x(), pt2.x(), pt1.x() + 1, pt2.x() - 1])
+        ypts = N.array([pt1.y(), pt2.y(), pt1.y() + 1, pt2.y() - 1])
 
         # build up operation list to do zoom
         operations = []
@@ -576,7 +659,7 @@ class PlotWindow( qt.QGraphicsView ):
         # iterate over each axis, and update the ranges
         for axis in axes:
             s = axis.settings
-            if s.direction == 'horizontal':
+            if s.direction == "horizontal":
                 p = xpts
             else:
                 p = ypts
@@ -584,8 +667,7 @@ class PlotWindow( qt.QGraphicsView ):
             # convert points on plotter to axis coordinates
             # FIXME: Need To Trap Conversion Errors!
             try:
-                r = axis.plotterToGraphCoords(
-                    self.painthelper.widgetBounds(axis), p)
+                r = axis.plotterToGraphCoords(self.painthelper.widgetBounds(axis), p)
             except KeyError:
                 continue
 
@@ -596,18 +678,23 @@ class PlotWindow( qt.QGraphicsView ):
 
             # build up operations to change axis
             if s.min != r[0]:
-                operations.append( document.OperationSettingSet(
-                    s.get('min'),
-                    utils.round2delt(r[0], r[2])) )
+                operations.append(
+                    document.OperationSettingSet(
+                        s.get("min"), utils.round2delt(r[0], r[2])
+                    )
+                )
 
             if s.max != r[1]:
-                operations.append( document.OperationSettingSet(
-                    s.get('max'),
-                    utils.round2delt(r[1], r[3])) )
+                operations.append(
+                    document.OperationSettingSet(
+                        s.get("max"), utils.round2delt(r[1], r[3])
+                    )
+                )
 
         # finally change the axes
         self.document.applyOperation(
-            document.OperationMultiple(operations,descr=_('zoom axes')) )
+            document.OperationMultiple(operations, descr=_("zoom axes"))
+        )
 
     def axesForPoint(self, mousepos):
         """Find all the axes which contain the given mouse position.
@@ -624,13 +711,17 @@ class PlotWindow( qt.QGraphicsView ):
         py = pos.y() / self.painthelper.cgscale
 
         for widget, bounds in self.painthelper.widgetBoundsIterator(
-                widgettype=widgets.Axis):
+            widgettype=widgets.Axis
+        ):
             # if widget is axis, and point lies within bounds
-            if ( px>=bounds[0] and px<=bounds[2] and
-                 py>=bounds[1] and py<=bounds[3] ):
-
+            if (
+                px >= bounds[0]
+                and px <= bounds[2]
+                and py >= bounds[1]
+                and py <= bounds[3]
+            ):
                 # convert correct pointer position
-                if widget.settings.direction == 'horizontal':
+                if widget.settings.direction == "horizontal":
                     val = px
                 else:
                     val = py
@@ -647,7 +738,7 @@ class PlotWindow( qt.QGraphicsView ):
         """
 
         if inverse:
-            factor = 1/factor
+            factor = 1 / factor
 
         axes = self.axesForPoint(mousepos)
         if not axes:
@@ -659,25 +750,29 @@ class PlotWindow( qt.QGraphicsView ):
 
         ops = []
         for axis, val in axes.items():
-            ishorz = axis.settings.direction == 'horizontal'
+            ishorz = axis.settings.direction == "horizontal"
             bounds = self.painthelper.widgetBounds(axis)
             if ishorz:
-                rng = bounds[2]-bounds[0]
+                rng = bounds[2] - bounds[0]
                 b0, b1 = bounds[0], bounds[2]
                 clickpos = px
             else:
-                rng = bounds[3]-bounds[1]
+                rng = bounds[3] - bounds[1]
                 b0, b1 = bounds[1], bounds[3]
                 clickpos = py
 
-            delta = rng/factor/2
+            delta = rng / factor / 2
             coords = axis.plotterToGraphCoords(
-                bounds, N.array([
-                    clickpos-delta,
-                    clickpos+delta,
-                    clickpos-delta+1,
-                    clickpos+delta+1,
-                ]))
+                bounds,
+                N.array(
+                    [
+                        clickpos - delta,
+                        clickpos + delta,
+                        clickpos - delta + 1,
+                        clickpos + delta + 1,
+                    ]
+                ),
+            )
 
             poslo, poshi = [coords[0], coords[1]]
             poslo1, poshi1 = [coords[2], coords[3]]
@@ -685,20 +780,21 @@ class PlotWindow( qt.QGraphicsView ):
                 poshi, poslo = poslo, poshi
                 poshi1, poslo1 = poslo1, poshi1
 
-            ops.append( document.OperationSettingSet(
-                axis.settings.get('min'), float(poslo)) )
-            ops.append( document.OperationSettingSet(
-                axis.settings.get('max'), float(poshi)) )
+            ops.append(
+                document.OperationSettingSet(axis.settings.get("min"), float(poslo))
+            )
+            ops.append(
+                document.OperationSettingSet(axis.settings.get("max"), float(poshi))
+            )
 
         if factor == 1:
-            descr = _('recenter graph')
+            descr = _("recenter graph")
         elif factor < 1:
-            descr = _('zoom into axes')
+            descr = _("zoom into axes")
         else:
-            descr = _('zoom out of axes')
+            descr = _("zoom out of axes")
 
-        self.document.applyOperation(
-            document.OperationMultiple(ops, descr=descr))
+        self.document.applyOperation(document.OperationMultiple(ops, descr=descr))
 
     def doGraphRecenterOnPoint(self, mousepos):
         """Recentre graph on point."""
@@ -712,12 +808,11 @@ class PlotWindow( qt.QGraphicsView ):
             return
         ops = []
         for axis, val in axes.items():
-            ops.append( document.OperationSettingSet(
-                axis.settings.get('min'), 'Auto') )
-            ops.append( document.OperationSettingSet(
-                axis.settings.get('max'), 'Auto') )
+            ops.append(document.OperationSettingSet(axis.settings.get("min"), "Auto"))
+            ops.append(document.OperationSettingSet(axis.settings.get("max"), "Auto"))
         self.document.applyOperation(
-            document.OperationMultiple(ops, descr=_("reset axes")))
+            document.OperationMultiple(ops, descr=_("reset axes"))
+        )
 
     def emitPicked(self, pickinfo):
         """Report that a new point has been picked"""
@@ -725,7 +820,8 @@ class PlotWindow( qt.QGraphicsView ):
         self.pickerinfo = pickinfo
         self.pickeritem.setPos(
             pickinfo.graphpos[0] * self.painthelper.cgscale,
-            pickinfo.graphpos[1] * self.painthelper.cgscale)
+            pickinfo.graphpos[1] * self.painthelper.cgscale,
+        )
         self.sigPointPicked.emit(pickinfo)
 
     def doPick(self, mousepos):
@@ -765,9 +861,11 @@ class PlotWindow( qt.QGraphicsView ):
         """If the click is still down when this timer is reached then
         we turn the click into a scrolling click."""
 
-        if self.currentclickmode == 'select':
-            qt.QApplication.setOverrideCursor(qt.QCursor(qt.Qt.CursorShape.SizeAllCursor))
-            self.currentclickmode = 'scroll'
+        if self.currentclickmode == "select":
+            qt.QApplication.setOverrideCursor(
+                qt.QCursor(qt.Qt.CursorShape.SizeAllCursor)
+            )
+            self.currentclickmode = "scroll"
 
     def mousePressEvent(self, event):
         """Allow user to drag window around."""
@@ -779,37 +877,35 @@ class PlotWindow( qt.QGraphicsView ):
         # work out whether user is clicking on a control point
         items = self.items(event.pos())
         self.ignoreclick = (
-            len(items)==0 or
-            items[0] is not self.pixmapitem or
-            self.painthelper is None
+            len(items) == 0
+            or items[0] is not self.pixmapitem
+            or self.painthelper is None
         )
 
         if event.button() == qt.Qt.MouseButton.LeftButton and not self.ignoreclick:
-
             # need to copy position, otherwise it gets reused!
             self.winpos = qt.QPoint(event.pos())
             self.grabpos = self.mapToScene(self.winpos)
 
-            if self.clickmode == 'select':
+            if self.clickmode == "select":
                 # we set this to true unless the timer runs out (400ms),
                 # then it becomes a scroll click
                 # scroll clicks drag the window around, and selecting clicks
                 # select widgets!
                 self.scrolltimer.start(400)
 
-            elif self.clickmode == 'pick':
+            elif self.clickmode == "pick":
                 self.pickeritem.show()
                 self.pickeritem.setFocus(qt.Qt.FocusReason.MouseFocusReason)
                 self.doPick(event.pos())
 
-            elif self.clickmode == 'scroll':
+            elif self.clickmode == "scroll":
                 qt.QApplication.setOverrideCursor(
-                    qt.QCursor(qt.Qt.CursorShape.SizeAllCursor))
+                    qt.QCursor(qt.Qt.CursorShape.SizeAllCursor)
+                )
 
-            elif self.clickmode == 'graphzoom':
-                self.zoomrect.setRect(
-                    self.grabpos.x(), self.grabpos.y(),
-                    0, 0)
+            elif self.clickmode == "graphzoom":
+                self.zoomrect.setRect(self.grabpos.x(), self.grabpos.y(), 0, 0)
                 self.zoomrect.show()
 
             # record what mode we were clicked in
@@ -822,39 +918,41 @@ class PlotWindow( qt.QGraphicsView ):
         if self.painthelper is None:
             return
 
-        if self.currentclickmode == 'scroll':
+        if self.currentclickmode == "scroll":
             event.accept()
 
             # move scroll bars by amount
             pos = event.pos()
-            dx = self.winpos.x()-pos.x()
+            dx = self.winpos.x() - pos.x()
             scrollx = self.horizontalScrollBar()
-            scrollx.setValue( scrollx.value() + dx )
+            scrollx.setValue(scrollx.value() + dx)
 
-            dy = self.winpos.y()-pos.y()
+            dy = self.winpos.y() - pos.y()
             scrolly = self.verticalScrollBar()
-            scrolly.setValue( scrolly.value() + dy )
+            scrolly.setValue(scrolly.value() + dy)
 
             # need to copy point
             self.winpos = qt.QPoint(event.pos())
 
-        elif self.currentclickmode == 'graphzoom' and self.grabpos is not None:
+        elif self.currentclickmode == "graphzoom" and self.grabpos is not None:
             pos2 = self.mapToScene(event.pos())
-            self.zoomrect.setRect(qt.QRectF(
-                qt.QPointF(
-                    min(self.grabpos.x(), pos2.x()),
-                    min(self.grabpos.y(), pos2.y())),
-                qt.QPointF(
-                    max(self.grabpos.x(), pos2.x()),
-                    max(self.grabpos.y(), pos2.y())),
-                ))
+            self.zoomrect.setRect(
+                qt.QRectF(
+                    qt.QPointF(
+                        min(self.grabpos.x(), pos2.x()), min(self.grabpos.y(), pos2.y())
+                    ),
+                    qt.QPointF(
+                        max(self.grabpos.x(), pos2.x()), max(self.grabpos.y(), pos2.y())
+                    ),
+                )
+            )
 
         # update position of mouse
         axes = self.axesForPoint(event.pos())
         vals = {a.name: v for a, v in axes.items()}
         self.sigAxisValuesFromMouse.emit(vals)
 
-        if self.currentclickmode == 'pick':
+        if self.currentclickmode == "pick":
             # drag the picker around
             self.doPick(event.pos())
 
@@ -869,43 +967,42 @@ class PlotWindow( qt.QGraphicsView ):
         if event.button() == qt.Qt.MouseButton.LeftButton and not self.ignoreclick:
             event.accept()
             self.scrolltimer.stop()
-            if self.currentclickmode == 'select':
+            if self.currentclickmode == "select":
                 # work out where the mouse clicked and choose widget
                 pos = self.mapToScene(event.pos())
                 self.identifyAndClickWidget(pos.x(), pos.y(), event.modifiers())
-            elif self.currentclickmode == 'scroll':
+            elif self.currentclickmode == "scroll":
                 # return the cursor to normal after scrolling
-                self.clickmode = 'select'
+                self.clickmode = "select"
                 self.currentclickmode = None
                 qt.QApplication.restoreOverrideCursor()
-            elif self.currentclickmode == 'graphzoom':
+            elif self.currentclickmode == "graphzoom":
                 self.zoomrect.hide()
                 self.doGraphZoomRect(self.mapToScene(event.pos()))
                 self.grabpos = None
-            elif self.currentclickmode == 'viewgetclick':
-                self.clickmode = 'select'
-            elif self.currentclickmode == 'pick':
+            elif self.currentclickmode == "viewgetclick":
+                self.clickmode = "select"
+            elif self.currentclickmode == "pick":
                 self.currentclickmode = None
-            elif self.currentclickmode == 'graphzoomout':
+            elif self.currentclickmode == "graphzoomout":
                 self.doGraphZoomOnPoint(event.pos())
-            elif self.currentclickmode == 'graphrecenter':
+            elif self.currentclickmode == "graphrecenter":
                 self.doGraphRecenterOnPoint(event.pos())
-            elif self.currentclickmode == 'graphreset':
+            elif self.currentclickmode == "graphreset":
                 self.doGraphReset(event.pos())
 
     def keyPressEvent(self, event):
         """Keypad motion moves the picker if it has focus"""
         if self.pickeritem.hasFocus():
-
             k = event.key()
             if k == qt.Qt.Key.Key_Left or k == qt.Qt.Key.Key_Right:
                 # navigate to the previous or next point on the curve
                 event.accept()
-                dir = 'right' if k == qt.Qt.Key.Key_Right else 'left'
+                dir = "right" if k == qt.Qt.Key.Key_Right else "left"
                 ix = self.pickerinfo.index
                 pickinfo = self.pickerinfo.widget.pickIndex(
-                    ix, dir, self.painthelper.widgetBounds(
-                        self.pickerinfo.widget))
+                    ix, dir, self.painthelper.widgetBounds(self.pickerinfo.widget)
+                )
                 if pickinfo:
                     # more points visible in this direction
                     self.emitPicked(pickinfo)
@@ -919,7 +1016,7 @@ class PlotWindow( qt.QGraphicsView ):
                 oldw = self.pickerinfo.widget
                 pickinfo = widgets.PickInfo()
 
-                dist = float('inf')
+                dist = float("inf")
                 for w in self.pickerwidgets:
                     if w == oldw:
                         continue
@@ -927,9 +1024,11 @@ class PlotWindow( qt.QGraphicsView ):
                     # ask the widgets to pick their point which is closest horizontally
                     # to the last (screen) x value picked
                     pi = w.pickPoint(
-                        self.pickerinfo.graphpos[0], p.y(),
+                        self.pickerinfo.graphpos[0],
+                        p.y(),
                         self.painthelper.widgetBounds(w),
-                        distance='horizontal')
+                        distance="horizontal",
+                    )
                     if not pi:
                         continue
 
@@ -938,8 +1037,9 @@ class PlotWindow( qt.QGraphicsView ):
                     # take the new point which is closest vertically to the current
                     # one and either above or below it as appropriate
                     if abs(dy) < dist and (
-                            (k == qt.Qt.Key.Key_Up and dy > 0) or
-                            (k == qt.Qt.Key.Key_Down and dy < 0) ):
+                        (k == qt.Qt.Key.Key_Up and dy > 0)
+                        or (k == qt.Qt.Key.Key_Down and dy < 0)
+                    ):
                         pickinfo = pi
                         dist = abs(dy)
 
@@ -991,8 +1091,7 @@ class PlotWindow( qt.QGraphicsView ):
         if self.document.getNumberPages() == 0:
             return
 
-        widget = self.painthelper.identifyWidgetAtPoint(
-            x, y, antialias=self.antialias)
+        widget = self.painthelper.identifyWidgetAtPoint(x, y, antialias=self.antialias)
         if widget is None:
             # select page if nothing clicked
             widget = self.document.basewidget.getPage(self.pagenumber)
@@ -1000,11 +1099,11 @@ class PlotWindow( qt.QGraphicsView ):
         # tell connected objects that widget was clicked
         if widget is not None:
             if modifier & qt.Qt.KeyboardModifier.ControlModifier:
-                mode = 'toggle'
+                mode = "toggle"
             elif modifier & qt.Qt.KeyboardModifier.ShiftModifier:
-                mode = 'add'
+                mode = "add"
             else:
-                mode = 'new'
+                mode = "new"
 
             self.sigWidgetClicked.emit(widget, mode)
 
@@ -1012,12 +1111,11 @@ class PlotWindow( qt.QGraphicsView ):
         """Move the the selected page."""
 
         # we don't need to do anything
-        if ( self.pagenumber == pageno and
-             self.document.changeset == self.docchangeset ):
+        if self.pagenumber == pageno and self.document.changeset == self.docchangeset:
             return
 
         # keep within bounds
-        pageno = min(pageno, self.document.getNumberPages()-1)
+        pageno = min(pageno, self.document.getNumberPages() - 1)
         pageno = max(0, pageno)
 
         self.pagenumber = pageno
@@ -1057,32 +1155,36 @@ class PlotWindow( qt.QGraphicsView ):
         # draw data into background pixmap if modified
 
         # is an update required?
-        if ( self.zoomfactor == self.oldzoom and
-             self.document.changeset == self.docchangeset and
-             self.pagenumber == self.oldpagenumber ):
+        if (
+            self.zoomfactor == self.oldzoom
+            and self.document.changeset == self.docchangeset
+            and self.pagenumber == self.oldpagenumber
+        ):
             return
 
         self.pickeritem.hide()
 
         # do we need the following line?
-        self.pagenumber = min(
-            self.document.getNumberPages()-1, self.pagenumber)
+        self.pagenumber = min(self.document.getNumberPages() - 1, self.pagenumber)
         self.oldpagenumber = self.pagenumber
 
         if self.pagenumber >= 0:
             devicepixelratio = self.getDevicePixelRatio()
-            scaling = self.zoomfactor*devicepixelratio
+            scaling = self.zoomfactor * devicepixelratio
             size = self.document.pageSize(
-                self.pagenumber, scaling=scaling, integer=False)
+                self.pagenumber, scaling=scaling, integer=False
+            )
 
             # draw the data into the buffer
             # errors cause an exception window to pop up
             try:
                 phelper = document.PaintHelper(
-                    self.document, size,
+                    self.document,
+                    size,
                     scaling=scaling,
                     dpi=self.dpi,
-                    devicepixelratio=devicepixelratio)
+                    devicepixelratio=devicepixelratio,
+                )
                 self.document.paintTo(phelper, self.pagenumber)
 
             except Exception:
@@ -1099,7 +1201,7 @@ class PlotWindow( qt.QGraphicsView ):
             self.pagenumber = 0
             size = self.document.docSize()
             pixmap = qt.QPixmap(*size)
-            pixmap.fill( setting.settingdb.color('page') )
+            pixmap.fill(setting.settingdb.color("page"))
             self.setSceneRect(0, 0, *size)
             self.pixmapitem.setPixmap(pixmap)
 
@@ -1116,14 +1218,13 @@ class PlotWindow( qt.QGraphicsView ):
         dpr = helper.devicepixelratio
         bufferpixmap = qt.QPixmap.fromImage(img)
         bufferpixmap.setDevicePixelRatio(dpr)
-        self.setSceneRect(
-            0, 0, bufferpixmap.width()/dpr, bufferpixmap.height()/dpr)
+        self.setSceneRect(0, 0, bufferpixmap.width() / dpr, bufferpixmap.height() / dpr)
         self.pixmapitem.setPixmap(bufferpixmap)
 
     def updatePlotSettings(self):
         """Update plot window settings from settings."""
-        self.setTimeout(setting.settingdb['plot_updatepolicy'])
-        self.antialias = setting.settingdb['plot_antialias']
+        self.setTimeout(setting.settingdb["plot_updatepolicy"])
+        self.antialias = setting.settingdb["plot_antialias"]
         self.rendercontrol.updateNumberThreads()
         self.actionForceUpdate()
 
@@ -1133,30 +1234,32 @@ class PlotWindow( qt.QGraphicsView ):
         menu = qt.QMenu(self)
 
         # add some useful entries
-        menu.addAction( self.vzactions['view.zoommenu'] )
+        menu.addAction(self.vzactions["view.zoommenu"])
         menu.addSeparator()
-        menu.addAction( self.vzactions['view.prevpage'] )
-        menu.addAction( self.vzactions['view.nextpage'] )
+        menu.addAction(self.vzactions["view.prevpage"])
+        menu.addAction(self.vzactions["view.nextpage"])
         menu.addSeparator()
 
         # force an update now menu item
-        menu.addAction(_('Force update'), self.actionForceUpdate)
+        menu.addAction(_("Force update"), self.actionForceUpdate)
 
         if self.isfullscreen:
-            menu.addAction(_('Close full screen'), self.slotFullScreen)
+            menu.addAction(_("Close full screen"), self.slotFullScreen)
         else:
-            menu.addAction( self.vzactions['view.fullscreen'] )
+            menu.addAction(self.vzactions["view.fullscreen"])
 
         # Update policy submenu
-        submenu = menu.addMenu(_('Updates'))
+        submenu = menu.addMenu(_("Updates"))
         intgrp = qt.QActionGroup(self)
 
         # bind interval options to actions
         for intv, text in self.updateintervals:
             act = intgrp.addAction(text)
             act.setCheckable(True)
+
             def setfn(interval):
                 return lambda checked: self.actionSetTimeout(interval, checked)
+
             act.triggered.connect(setfn(intv))
             if intv == self.interval:
                 act.setChecked(True)
@@ -1164,7 +1267,7 @@ class PlotWindow( qt.QGraphicsView ):
 
         # antialias
         menu.addSeparator()
-        act = menu.addAction(_('Antialias'), self.actionAntialias)
+        act = menu.addAction(_("Antialias"), self.actionAntialias)
         act.setCheckable(True)
         act.setChecked(self.antialias)
 
@@ -1179,7 +1282,8 @@ class PlotWindow( qt.QGraphicsView ):
         """Show window full screen or not."""
         if not self.isfullscreen:
             self._fullscreenwindow = FullScreenPlotWindow(
-                self.document, self.pagenumber)
+                self.document, self.pagenumber
+            )
         else:
             # cheesy way of closing full screen window
             p = self
@@ -1207,12 +1311,12 @@ class PlotWindow( qt.QGraphicsView ):
         self.setTimeout(interval)
 
         # remember changes for next time
-        setting.settingdb['plot_updatepolicy'] = self.interval
+        setting.settingdb["plot_updatepolicy"] = self.interval
 
     def actionAntialias(self):
         """Toggle antialias."""
         self.antialias = not self.antialias
-        setting.settingdb['plot_antialias'] = self.antialias
+        setting.settingdb["plot_antialias"] = self.antialias
         self.actionForceUpdate()
 
     def setZoomFactor(self, zoomfactor):
@@ -1223,11 +1327,11 @@ class PlotWindow( qt.QGraphicsView ):
 
     def slotViewZoomIn(self):
         """Zoom into the plot."""
-        self.setZoomFactor(self.zoomfactor * N.sqrt(2.))
+        self.setZoomFactor(self.zoomfactor * N.sqrt(2.0))
 
     def slotViewZoomOut(self):
         """Zoom out of the plot."""
-        self.setZoomFactor(self.zoomfactor / N.sqrt(2.))
+        self.setZoomFactor(self.zoomfactor / N.sqrt(2.0))
 
     def slotViewZoomWidth(self):
         """Make the zoom factor so that the plot fills the whole width."""
@@ -1278,15 +1382,15 @@ class PlotWindow( qt.QGraphicsView ):
 
     def slotViewZoom11(self):
         """Restore the zoom to 1:1"""
-        self.setZoomFactor(1.)
+        self.setZoomFactor(1.0)
 
     def slotViewPreviousPage(self):
         """View the previous page."""
-        self.setPageNumber( self.pagenumber - 1 )
+        self.setPageNumber(self.pagenumber - 1)
 
     def slotViewNextPage(self):
         """View the next page."""
-        self.setPageNumber( self.pagenumber + 1 )
+        self.setPageNumber(self.pagenumber + 1)
 
     def updatePageToolbar(self):
         """Update page number when the plot window says so."""
@@ -1294,19 +1398,19 @@ class PlotWindow( qt.QGraphicsView ):
         # disable previous and next page actions
         if self.vzactions is not None:
             np = self.document.getNumberPages()
-            self.vzactions['view.prevpage'].setEnabled(self.pagenumber != 0)
-            self.vzactions['view.nextpage'].setEnabled(self.pagenumber < np-1)
+            self.vzactions["view.prevpage"].setEnabled(self.pagenumber != 0)
+            self.vzactions["view.nextpage"].setEnabled(self.pagenumber < np - 1)
 
     def slotSelectMode(self, action):
         """Called when the selection mode has changed."""
 
         modecnvt = {
-            self.vzactions['view.select'] : 'select',
-            self.vzactions['view.pick'] : 'pick',
-            self.vzactions['view.graphzoom'] : 'graphzoom',
-            self.vzactions['view.graphzoomout'] : 'graphzoomout',
-            self.vzactions['view.graphrecenter'] : 'graphrecenter',
-            self.vzactions['view.graphreset'] : 'graphreset',
+            self.vzactions["view.select"]: "select",
+            self.vzactions["view.pick"]: "pick",
+            self.vzactions["view.graphzoom"]: "graphzoom",
+            self.vzactions["view.graphzoomout"]: "graphzoomout",
+            self.vzactions["view.graphrecenter"]: "graphrecenter",
+            self.vzactions["view.graphreset"]: "graphreset",
         }
 
         # close the current picker
@@ -1316,12 +1420,16 @@ class PlotWindow( qt.QGraphicsView ):
         # convert action into clicking mode
         self.clickmode = modecnvt[action]
 
-        if self.clickmode == 'select':
+        if self.clickmode == "select":
             self.pixmapitem.unsetCursor()
         elif self.clickmode in (
-                'graphzoom', 'graphzoomout', 'graphrecenter', 'graphreset'):
+            "graphzoom",
+            "graphzoomout",
+            "graphrecenter",
+            "graphreset",
+        ):
             self.pixmapitem.setCursor(qt.Qt.CursorShape.CrossCursor)
-        elif self.clickmode == 'pick':
+        elif self.clickmode == "pick":
             self.pixmapitem.setCursor(qt.Qt.CursorShape.CrossCursor)
             self.sigPickerEnabled.emit(True)
 
@@ -1331,8 +1439,8 @@ class PlotWindow( qt.QGraphicsView ):
         # wait for click from user
         qt.QApplication.setOverrideCursor(qt.QCursor(qt.Qt.CursorShape.CrossCursor))
         oldmode = self.clickmode
-        self.clickmode = 'viewgetclick'
-        while self.clickmode == 'viewgetclick':
+        self.clickmode = "viewgetclick"
+        while self.clickmode == "viewgetclick":
             qt.QApplication.instance().processEvents()
         self.clickmode = oldmode
         qt.QApplication.restoreOverrideCursor()
@@ -1341,38 +1449,33 @@ class PlotWindow( qt.QGraphicsView ):
         pt = self.grabpos
 
         # try to work out in which widget the first point is in
-        widget = self.painthelper.pointInWidgetBounds(
-            pt.x(), pt.y(), widgets.Graph)
+        widget = self.painthelper.pointInWidgetBounds(pt.x(), pt.y(), widgets.Graph)
         if widget is None:
             return []
 
         # convert points on plotter to points on axis for each axis
-        xpts = N.array( [pt.x()] )
-        ypts = N.array( [pt.y()] )
+        xpts = N.array([pt.x()])
+        ypts = N.array([pt.y()])
 
         axesretn = []
         # iterate over children, to look for plotters
-        for c in [i for i in widget.children if
-                  isinstance(i, widgets.GenericPlotter)]:
-
+        for c in [i for i in widget.children if isinstance(i, widgets.GenericPlotter)]:
             # get axes associated with plotter
-            axes = c.parent.getAxes( (c.settings.xAxis,
-                                      c.settings.yAxis) )
+            axes = c.parent.getAxes((c.settings.xAxis, c.settings.yAxis))
 
             # iterate over each, and update the ranges
             for axis in [a for a in axes if a is not None]:
                 s = axis.settings
-                if s.direction == 'horizontal':
+                if s.direction == "horizontal":
                     p = xpts
                 else:
                     p = ypts
 
                 # convert point on plotter to axis coordinate
                 # FIXME: Need To Trap Conversion Errors!
-                r = axis.plotterToGraphCoords(
-                    self.painthelper.widgetBounds(axis), p)
+                r = axis.plotterToGraphCoords(self.painthelper.widgetBounds(axis), p)
 
-                axesretn.append( (axis.path, r[0]) )
+                axesretn.append((axis.path, r[0]))
 
         return axesretn
 
@@ -1398,6 +1501,7 @@ class PlotWindow( qt.QGraphicsView ):
                     for control in cgis:
                         control.createGraphicsItem(self.controlgraphroot)
 
+
 class FullScreenPlotWindow(qt.QScrollArea):
     """Window for showing plot in full-screen mode."""
 
@@ -1418,13 +1522,19 @@ class FullScreenPlotWindow(qt.QScrollArea):
 
         self.toolbar = qt.QToolBar(_("Full screen toolbar"), self)
         self.toolbar.addAction(
-            utils.getIcon("kde-window-close"), _("Close"), self.close)
+            utils.getIcon("kde-window-close"), _("Close"), self.close
+        )
         for a in (
-                'view.zoom11', 'view.zoomin', 'view.zoomout',
-                'view.zoomwidth', 'view.zoomheight',
-                'view.zoompage', 'view.prevpage', 'view.nextpage'
+            "view.zoom11",
+            "view.zoomin",
+            "view.zoomout",
+            "view.zoomwidth",
+            "view.zoomheight",
+            "view.zoompage",
+            "view.prevpage",
+            "view.nextpage",
         ):
-            self.toolbar.addAction( pw.vzactions[a] )
+            self.toolbar.addAction(pw.vzactions[a])
         self.toolbar.show()
 
     def resizeEvent(self, event):
@@ -1433,8 +1543,7 @@ class FullScreenPlotWindow(qt.QScrollArea):
         qt.QScrollArea.resizeEvent(self, event)
 
         # size graph to fill screen
-        pagesize = self.document.pageSize(
-            self.plotwin.pagenumber, dpi=self.plotwin.dpi)
+        pagesize = self.document.pageSize(self.plotwin.pagenumber, dpi=self.plotwin.dpi)
         screensize = self.plotwin.size()
 
         aspectw = screensize.width() / pagesize[0]

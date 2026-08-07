@@ -21,6 +21,7 @@
 #
 ##############################################################################
 
+
 class WidgetFactory:
     """Class to help produce any type of widget you want by name."""
 
@@ -32,12 +33,13 @@ class WidgetFactory:
         """Register a class with the factory."""
         self.regwidgets[classobj.typename] = classobj
 
-    def makeWidget(self, widgettype, parent, document, name=None, autoadd=True,
-                   index=-1, **optargs):
+    def makeWidget(
+        self, widgettype, parent, document, name=None, autoadd=True, index=-1, **optargs
+    ):
         """Make a new widget of the appropriate type."""
 
         # check for / in name of widget
-        if name is not None and name.find('/') != -1:
+        if name is not None and name.find("/") != -1:
             raise ValueError('name cannot contain "/"')
 
         w = self.regwidgets[widgettype](parent, name=name)
@@ -50,7 +52,7 @@ class WidgetFactory:
         # set all the passed default settings
         for name, val in optargs.items():
             # allow subsettings to be set using __ -> syntax
-            name = name.replace('__', '/')
+            name = name.replace("__", "/")
 
             document.resolveSettingPath(w, name).set(val)
 
@@ -75,6 +77,7 @@ class WidgetFactory:
     def listWidgetClasses(self):
         """Return list of allowed classes."""
         return list(self.regwidgets.values())
+
 
 # singleton
 thefactory = WidgetFactory()

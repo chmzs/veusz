@@ -29,11 +29,14 @@ from .. import qtall as qt
 from .. import utils
 from . import simpleread
 
+
 def _(text, disambiguation=None, context="Capture"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
+
 class CaptureFinishException(Exception):
     """An exception to say when a stream has been finished."""
+
 
 class CaptureStream(simpleread.Stream):
     """A special stream for capturing data."""
@@ -42,7 +45,7 @@ class CaptureStream(simpleread.Stream):
         """Initialise the stream."""
 
         simpleread.Stream.__init__(self)
-        self.buffer = ''
+        self.buffer = ""
         self.continuousreads = 0
         self.bytesread = 0
         self.linesread = 0
@@ -52,12 +55,11 @@ class CaptureStream(simpleread.Stream):
     def _setTimeout(self, timeout):
         """Setter for setting timeout property."""
         if timeout:
-            self.timer = qt.QTimer.singleShot(
-                timeout*1000, self._timedOut)
+            self.timer = qt.QTimer.singleShot(timeout * 1000, self._timedOut)
 
     timeout = property(
-        None, _setTimeout, None,
-        "Time interval to stop in (seconds) or None")
+        None, _setTimeout, None, "Time interval to stop in (seconds) or None"
+    )
 
     def _timedOut(self):
         self.timedout = True
@@ -65,7 +67,7 @@ class CaptureStream(simpleread.Stream):
     def getMoreData(self):
         """Override this to return more data from the source without
         blocking."""
-        return ''
+        return ""
 
     def readLine(self):
         """Return a new line of data.
@@ -86,11 +88,11 @@ class CaptureStream(simpleread.Stream):
                 self.continuousreads = 0
                 raise StopIteration
 
-            index = self.buffer.find('\n')
+            index = self.buffer.find("\n")
             if index >= 0:
                 # is there a line in the buffer?
                 retn = self.buffer[:index]
-                self.buffer = self.buffer[index+1:]
+                self.buffer = self.buffer[index + 1 :]
                 self.linesread += 1
                 self.continuousreads += 1
                 return retn
@@ -108,6 +110,7 @@ class CaptureStream(simpleread.Stream):
         """Close any allocated object."""
         pass
 
+
 class FileCaptureStream(CaptureStream):
     """Capture from a file or named pipe."""
 
@@ -118,8 +121,7 @@ class FileCaptureStream(CaptureStream):
         self.fileobj = open(filename)
 
         # make new thread to read file
-        self.readerthread = utils.NonBlockingReaderThread(
-            self.fileobj, exiteof=False)
+        self.readerthread = utils.NonBlockingReaderThread(self.fileobj, exiteof=False)
         self.readerthread.start()
 
         self.name = filename
@@ -138,6 +140,7 @@ class FileCaptureStream(CaptureStream):
         """Close file."""
         self.fileobj.close()
 
+
 class CommandCaptureStream(CaptureStream):
     """Capture from an external program."""
 
@@ -147,9 +150,12 @@ class CommandCaptureStream(CaptureStream):
 
         self.name = commandline
         self.popen = subprocess.Popen(
-            commandline, shell=True,
-            bufsize=0, stdout=subprocess.PIPE,
-            universal_newlines=True)
+            commandline,
+            shell=True,
+            bufsize=0,
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+        )
 
         # make new thread to read stdout
         self.readerthread = utils.NonBlockingReaderThread(self.popen.stdout)
@@ -164,8 +170,7 @@ class CommandCaptureStream(CaptureStream):
             poll = self.popen.poll()
             if poll is not None:
                 # process has ended
-                raise CaptureFinishException(
-                    "Process ended (status code %i)" % poll)
+                raise CaptureFinishException("Process ended (status code %i)" % poll)
         return retn
 
     def close(self):
@@ -173,10 +178,10 @@ class CommandCaptureStream(CaptureStream):
 
         if self.popen.poll() is None:
             # need to kill process if it is still running
-            if platform.system() == 'Windows':
+            if platform.system() == "Windows":
                 # awful code (for windows)
                 # use this to not have a ctypes dependency
-                os.system('TASKKILL /PID %i /F' % self.popen.pid)
+                os.system("TASKKILL /PID %i /F" % self.popen.pid)
             else:
                 # unix
                 os.kill(self.popen.pid, signal.SIGTERM)
@@ -187,6 +192,7 @@ class CommandCaptureStream(CaptureStream):
             # problems closing stdout for some reason
             pass
 
+
 class SocketCaptureStream(CaptureStream):
     """Capture from an internet host."""
 
@@ -194,11 +200,10 @@ class SocketCaptureStream(CaptureStream):
         """Connect to host and port specified."""
         CaptureStream.__init__(self)
 
-        self.name = '%s:%i' % (host, port)
+        self.name = "%s:%i" % (host, port)
         try:
-            self.socket = socket.socket(
-                socket.AF_INET, socket.SOCK_STREAM )
-            self.socket.connect( (host, port) )
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.connect((host, port))
         except socket.error as e:
             self._handleSocketError(e)
 
@@ -226,13 +231,14 @@ class SocketCaptureStream(CaptureStream):
                 self._handleSocketError(e)
             if len(retn) == 0:
                 raise CaptureFinishException("Remote socket closed")
-            return retn.decode('utf-8', errors='ignore')
+            return retn.decode("utf-8", errors="ignore")
         else:
-            return ''
+            return ""
 
     def close(self):
         """Close the socket."""
         self.socket.close()
+
 
 class OperationDataCaptureSet:
     """An operation for setting the results from a SimpleRead into the
@@ -241,7 +247,7 @@ class OperationDataCaptureSet:
     This is a bit primative, but it is not obvious how to isolate the capturing
     functionality elsewhere."""
 
-    descr = _('data capture')
+    descr = _("data capture")
 
     def __init__(self, simplereadobject):
         """Takes a simpleread object containing the data to be set."""

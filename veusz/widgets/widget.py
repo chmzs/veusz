@@ -27,9 +27,11 @@ from .. import document
 from .. import setting
 from .. import qtall as qt
 
-def _(text, disambiguation=None, context='Widget'):
+
+def _(text, disambiguation=None, context="Widget"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class Action:
     """A class to wrap functions operating on widgets.
@@ -41,7 +43,7 @@ class Action:
     usertext: name of action to display to user
     """
 
-    def __init__(self, name, function, descr='', usertext=''):
+    def __init__(self, name, function, descr="", usertext=""):
         """Initialise Action
 
         Name of action is name
@@ -54,14 +56,15 @@ class Action:
         self.descr = descr
         self.usertext = usertext
 
+
 class Widget:
-    """ Fundamental plotting widget interface."""
+    """Fundamental plotting widget interface."""
 
     # differentiate widgets, settings and setting
-    nodetype = 'widget'
+    nodetype = "widget"
 
     # text name for widget type
-    typename = 'generic'
+    typename = "generic"
 
     # can the widget type be created directly by a user?
     allowusercreation = False
@@ -101,8 +104,8 @@ class Widget:
 
         # settings for widget
         self.settings = setting.Settings(
-            'Widget_' + self.typename,
-            setnsmode='widgetsettings')
+            "Widget_" + self.typename, setnsmode="widgetsettings"
+        )
         self.settings.parent = self
 
         self.addSettings(self.settings)
@@ -118,11 +121,15 @@ class Widget:
     @classmethod
     def addSettings(klass, s):
         """Add items to settings s."""
-        s.add( setting.Bool(
-            'hide', False,
-            descr=_('Hide object'),
-            usertext=_('Hide'),
-            formatting=True) )
+        s.add(
+            setting.Bool(
+                "hide",
+                False,
+                descr=_("Hide object"),
+                usertext=_("Hide"),
+                formatting=True,
+            )
+        )
 
     @classmethod
     def addSettingsCompatLevel(klass, s, level):
@@ -139,9 +146,9 @@ class Widget:
         """Change name of self."""
 
         if self.parent is None:
-            raise ValueError('Cannot rename root widget')
+            raise ValueError("Cannot rename root widget")
 
-        if name.find('/') != -1:
+        if name.find("/") != -1:
             raise ValueError('Names cannot contain "/"')
 
         # check whether name already exists in siblings
@@ -152,14 +159,14 @@ class Widget:
         self.name = name
 
     def addDefaultSubWidgets(self):
-        '''Add default sub widgets to widget, if any'''
+        """Add default sub widgets to widget, if any"""
         pass
 
     def addAction(self, action):
         """Assign name to operation.
         action is action class above
         """
-        self.actions.append( action )
+        self.actions.append(action)
 
     def getAction(self, name):
         """Get action associated with name."""
@@ -172,7 +179,8 @@ class Widget:
         """Is the parent a suitable type?"""
 
         return parent is None or any(
-            ( isinstance(parent, t) for t in self.allowedParentTypes() ) )
+            (isinstance(parent, t) for t in self.allowedParentTypes())
+        )
 
     @classmethod
     def willAllowParent(cls, parent):
@@ -208,7 +216,7 @@ class Widget:
         """Make a name for widget if not specified."""
 
         if self.parent is None:
-            return '/'
+            return "/"
         else:
             return self.parent.createUniqueName(self.typename)
 
@@ -216,11 +224,11 @@ class Widget:
     def userdescription(self):
         """Return a user-friendly description of what
         this is (e.g. function)."""
-        return ''
+        return ""
 
     def getChild(self, name):
         """Return a child with a name."""
-        #print('getChild', self, name)
+        # print('getChild', self, name)
         for i in self.children:
             if i.name == name:
                 return i
@@ -260,19 +268,19 @@ class Widget:
         """Returns a path for the object, e.g. /plot1/x."""
 
         obj = self
-        build = ''
+        build = ""
         while obj.parent is not None:
-            build = '/' + obj.name + build
+            build = "/" + obj.name + build
             obj = obj.parent
 
         if len(build) == 0:
-            build = '/'
+            build = "/"
 
         return build
 
     def getMargins(self, painthelper):
         """Return margins of widget."""
-        return (0., 0., 0., 0.)
+        return (0.0, 0.0, 0.0, 0.0)
 
     def computeBounds(self, parentposn, painthelper, withmargin=True):
         """Compute a bounds array, giving the bounding box for the widget."""
@@ -280,11 +288,11 @@ class Widget:
         if withmargin:
             x1, y1, x2, y2 = parentposn
             dx1, dy1, dx2, dy2 = self.getMargins(painthelper)
-            return [ x1+dx1, y1+dy1, x2-dx2, y2-dy2 ]
+            return [x1 + dx1, y1 + dy1, x2 - dx2, y2 - dy2]
         else:
             return parentposn
 
-    def draw(self, parentposn, painthelper, outerbounds = None):
+    def draw(self, parentposn, painthelper, outerbounds=None):
         """Draw the widget and its children in posn (a tuple with x1,y1,x2,y2).
 
         painter is the widget.Painter to draw on
@@ -294,7 +302,6 @@ class Widget:
         bounds = self.computeBounds(parentposn, painthelper)
 
         if not self.settings.hide:
-
             # iterate over children in reverse order
             for c in reversed(self.children):
                 c.draw(bounds, painthelper, outerbounds=outerbounds)
@@ -302,7 +309,7 @@ class Widget:
         # return our final bounds
         return bounds
 
-    def getSaveText(self, saveall = False):
+    def getSaveText(self, saveall=False):
         """Return text to restore object
 
         If saveall is true, save everything, including defaults."""
@@ -312,19 +319,12 @@ class Widget:
 
         # now go throught the subwidgets
         for c in self.children:
-            text += (
-                "Add('%s', name=%s, autoadd=False)\n" %
-                (c.typename, repr(c.name))
-            )
+            text += "Add('%s', name=%s, autoadd=False)\n" % (c.typename, repr(c.name))
 
             # if we need to go to the child, go there
             ctext = c.getSaveText(saveall)
-            if ctext != '':
-                text += (
-                    "To(%s)\n"
-                    "%s"
-                    "To('..')\n"
-                ) % (repr(c.name), ctext)
+            if ctext != "":
+                text += ("To(%s)\n%sTo('..')\n") % (repr(c.name), ctext)
 
         return text
 
@@ -346,11 +346,11 @@ class Widget:
         The list consists of (parent, index) tuples
         """
 
-        slots.append( (self, 0) )
+        slots.append((self, 0))
 
         for child, index in zip(self.children, itertools.count(1)):
             child._recursiveBuildSlots(slots)
-            slots.append( (self, index) )
+            slots.append((self, index))
 
     def moveChild(self, w, direction):
         """Move the child widget w up in the hierarchy in the direction.
@@ -383,8 +383,11 @@ class Widget:
         # move up or down the list until we find a suitable parent
         ourindex += direction
 
-        while ( ourindex >= 0 and ourindex < len(slots) and
-                not w.isAllowedParent(slots[ourindex][0]) ):
+        while (
+            ourindex >= 0
+            and ourindex < len(slots)
+            and not w.isAllowedParent(slots[ourindex][0])
+        ):
             ourindex += direction
 
         # we failed to find a new parent
@@ -412,11 +415,12 @@ class Widget:
 
     def autoColor(self, painter, dataindex=0):
         """Return automatic color for plotting."""
-        return 'foreground'
+        return "foreground"
 
     def setupAutoColor(self, painter):
         """Initialise colors for widget automatically."""
         self.autoColor(painter)
+
 
 # allow the factory to instantiate a generic widget
 document.thefactory.register(Widget)

@@ -34,9 +34,11 @@ from . import widget
 from . import controlgraph
 from . import plotters
 
-def _(text, disambiguation=None, context='Shape'):
+
+def _(text, disambiguation=None, context="Shape"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class Shape(plotters.FreePlotter):
     """A shape on a page/graph."""
@@ -49,21 +51,24 @@ class Shape(plotters.FreePlotter):
         """Construct list of settings."""
         plotters.FreePlotter.addSettings(s)
 
-        s.add( setting.ShapeFill(
-            'Fill',
-            descr = _('Shape fill'),
-            usertext=_('Fill')),
-            pixmap = 'settings_bgfill' )
-        s.add( setting.Line(
-            'Border',
-            descr = _('Shape border'),
-            usertext=_('Border')),
-            pixmap = 'settings_border' )
-        s.add( setting.Bool(
-            'clip', False,
-            descr=_('Clip shape to its container'),
-            usertext=_('Clip'),
-            formatting=True) )
+        s.add(
+            setting.ShapeFill("Fill", descr=_("Shape fill"), usertext=_("Fill")),
+            pixmap="settings_bgfill",
+        )
+        s.add(
+            setting.Line("Border", descr=_("Shape border"), usertext=_("Border")),
+            pixmap="settings_border",
+        )
+        s.add(
+            setting.Bool(
+                "clip",
+                False,
+                descr=_("Clip shape to its container"),
+                usertext=_("Clip"),
+                formatting=True,
+            )
+        )
+
 
 class BoxShape(Shape):
     """For drawing box-like shapes."""
@@ -76,26 +81,41 @@ class BoxShape(Shape):
         """Construct list of settings."""
         Shape.addSettings(s)
 
-        s.add( setting.DatasetExtended(
-            'width', [0.1],
-            descr=_('List of fractional widths, dataset or expression'),
-            usertext=_('Widths'),
-            formatting=False), 3 )
-        s.add( setting.DatasetExtended(
-            'height', [0.1],
-            descr=_('List of fractional heights, dataset or expression'),
-            usertext=_('Heights'),
-            formatting=False), 4 )
-        s.add( setting.DatasetExtended(
-            'rotate', [0.],
-            descr=_('Rotation angles of shape, dataset or expression'),
-            usertext=_('Rotate'),
-            formatting=False), 5 )
+        s.add(
+            setting.DatasetExtended(
+                "width",
+                [0.1],
+                descr=_("List of fractional widths, dataset or expression"),
+                usertext=_("Widths"),
+                formatting=False,
+            ),
+            3,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "height",
+                [0.1],
+                descr=_("List of fractional heights, dataset or expression"),
+                usertext=_("Heights"),
+                formatting=False,
+            ),
+            4,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "rotate",
+                [0.0],
+                descr=_("Rotation angles of shape, dataset or expression"),
+                usertext=_("Rotate"),
+                formatting=False,
+            ),
+            5,
+        )
 
     def drawShape(self, painter, rect):
         pass
 
-    def draw(self, posn, phelper, outerbounds = None):
+    def draw(self, posn, phelper, outerbounds=None):
         """Plot the key on a plotter."""
 
         s = self.settings
@@ -104,9 +124,9 @@ class BoxShape(Shape):
             return
 
         # get positions of shapes
-        width = s.get('width').getFloatArray(d)
-        height = s.get('height').getFloatArray(d)
-        rotate = s.get('rotate').getFloatArray(d)
+        width = s.get("width").getFloatArray(d)
+        height = s.get("height").getFloatArray(d)
+        rotate = s.get("rotate").getFloatArray(d)
         if width is None or height is None or rotate is None:
             return
 
@@ -118,46 +138,48 @@ class BoxShape(Shape):
 
         # if a dataset is used, we can't use control items
         isnotdataset = (
-            not s.get('xPos').isDataset(d) and
-            not s.get('yPos').isDataset(d) and
-            not s.get('width').isDataset(d) and
-            not s.get('height').isDataset(d) and
-            not s.get('rotate').isDataset(d)
+            not s.get("xPos").isDataset(d)
+            and not s.get("yPos").isDataset(d)
+            and not s.get("width").isDataset(d)
+            and not s.get("height").isDataset(d)
+            and not s.get("rotate").isDataset(d)
         )
 
         clip = None
         if s.clip:
-            clip = qt.QRectF(
-                qt.QPointF(posn[0], posn[1]), qt.QPointF(posn[2], posn[3]))
+            clip = qt.QRectF(qt.QPointF(posn[0], posn[1]), qt.QPointF(posn[2], posn[3]))
         painter = phelper.painter(self, posn, clip=clip)
         with painter:
             # drawing settings for shape
             if not s.Border.hide:
-                painter.setPen( s.get('Border').makeQPen(painter) )
+                painter.setPen(s.get("Border").makeQPen(painter))
             else:
-                painter.setPen( qt.QPen(qt.Qt.PenStyle.NoPen) )
+                painter.setPen(qt.QPen(qt.Qt.PenStyle.NoPen))
 
             # iterate over positions
             index = 0
-            dx, dy = posn[2]-posn[0], posn[3]-posn[1]
+            dx, dy = posn[2] - posn[0], posn[3] - posn[1]
             x = y = w = h = r = None
             for x, y, w, h, r in zip(
-                    xpos, ypos,
-                    itertools.cycle(width),
-                    itertools.cycle(height),
-                    itertools.cycle(rotate)):
-                wp, hp = dx*w, dy*h
+                xpos,
+                ypos,
+                itertools.cycle(width),
+                itertools.cycle(height),
+                itertools.cycle(rotate),
+            ):
+                wp, hp = dx * w, dy * h
                 painter.save()
                 painter.translate(x, y)
                 if r != 0:
                     painter.rotate(r)
-                self.drawShape(painter, qt.QRectF(-wp*0.5, -hp*0.5, wp, hp))
+                self.drawShape(painter, qt.QRectF(-wp * 0.5, -hp * 0.5, wp, hp))
                 painter.restore()
 
         controlgraphitems = []
         if x is not None and isnotdataset:
             cgi = controlgraph.ControlResizableBox(
-                self, phelper, [x, y], [wp, hp], r, allowrotate=True)
+                self, phelper, [x, y], [wp, hp], r, allowrotate=True
+            )
             cgi.index = index
             cgi.widgetposn = posn
             index += 1
@@ -170,41 +192,43 @@ class BoxShape(Shape):
         s = self.settings
 
         # calculate new position coordinate for item
-        xpos, ypos = self._getGraphCoords(
-            cgi.widgetposn, cgi.posn[0], cgi.posn[1])
+        xpos, ypos = self._getGraphCoords(cgi.widgetposn, cgi.posn[0], cgi.posn[1])
         if xpos is None or ypos is None:
             return
 
-        xw = abs(cgi.dims[0] / (cgi.widgetposn[2]-cgi.widgetposn[0]))
-        yw = abs(cgi.dims[1] / (cgi.widgetposn[1]-cgi.widgetposn[3]))
+        xw = abs(cgi.dims[0] / (cgi.widgetposn[2] - cgi.widgetposn[0]))
+        yw = abs(cgi.dims[1] / (cgi.widgetposn[1] - cgi.widgetposn[3]))
 
         # actually do the adjustment on the document
-        xp = list(s.get('xPos').getFloatArray(self.document))
-        yp = list(s.get('yPos').getFloatArray(self.document))
-        w = list(s.get('width').getFloatArray(self.document))
-        h = list(s.get('height').getFloatArray(self.document))
-        r = list(s.get('rotate').getFloatArray(self.document))
+        xp = list(s.get("xPos").getFloatArray(self.document))
+        yp = list(s.get("yPos").getFloatArray(self.document))
+        w = list(s.get("width").getFloatArray(self.document))
+        h = list(s.get("height").getFloatArray(self.document))
+        r = list(s.get("rotate").getFloatArray(self.document))
 
-        xp[min(cgi.index, len(xp)-1)] = xpos
-        yp[min(cgi.index, len(yp)-1)] = ypos
-        w[min(cgi.index, len(w)-1)] = xw
-        h[min(cgi.index, len(h)-1)] = yw
-        r[min(cgi.index, len(r)-1)] = cgi.angle
+        xp[min(cgi.index, len(xp) - 1)] = xpos
+        yp[min(cgi.index, len(yp) - 1)] = ypos
+        w[min(cgi.index, len(w) - 1)] = xw
+        h[min(cgi.index, len(h) - 1)] = yw
+        r[min(cgi.index, len(r) - 1)] = cgi.angle
 
         operations = (
-            document.OperationSettingSet(s.get('xPos'), xp),
-            document.OperationSettingSet(s.get('yPos'), yp),
-            document.OperationSettingSet(s.get('width'), w),
-            document.OperationSettingSet(s.get('height'), h),
-            document.OperationSettingSet(s.get('rotate'), r)
+            document.OperationSettingSet(s.get("xPos"), xp),
+            document.OperationSettingSet(s.get("yPos"), yp),
+            document.OperationSettingSet(s.get("width"), w),
+            document.OperationSettingSet(s.get("height"), h),
+            document.OperationSettingSet(s.get("rotate"), r),
         )
         self.document.applyOperation(
-            document.OperationMultiple(operations, descr=_('adjust shape')) )
+            document.OperationMultiple(operations, descr=_("adjust shape"))
+        )
+
 
 class Rectangle(BoxShape):
     """Draw a rectangle, or rounded rectangle."""
-    typename = 'rect'
-    description = _('Rectangle')
+
+    typename = "rect"
+    description = _("Rectangle")
     allowusercreation = True
 
     @classmethod
@@ -212,62 +236,95 @@ class Rectangle(BoxShape):
         """Construct list of settings."""
         BoxShape.addSettings(s)
 
-        s.add( setting.Int(
-            'rounding', 0,
-            minval=0, maxval=100,
-            descr=_('Round corners with this percentage'),
-            usertext=_('Rounding corners'),
-            formatting=True) )
+        s.add(
+            setting.Int(
+                "rounding",
+                0,
+                minval=0,
+                maxval=100,
+                descr=_("Round corners with this percentage"),
+                usertext=_("Rounding corners"),
+                formatting=True,
+            )
+        )
 
         # Position mode: 'center' uses xPos/yPos + width/height
         # 'bounds' uses xmin/xmax/ymin/ymax directly
         @staticmethod
         def _rectPosShowfn(val):
             """Show/hide settings based on rectPosition value."""
-            if val == 'bounds':
+            if val == "bounds":
                 # Show: xmin, xmax, ymin, ymax
                 # Hide: xPos, yPos, width, height
-                return (('xmin', 'xmax', 'ymin', 'ymax'),
-                        ('xPos', 'yPos', 'width', 'height'))
+                return (
+                    ("xmin", "xmax", "ymin", "ymax"),
+                    ("xPos", "yPos", "width", "height"),
+                )
             else:
                 # Show: xPos, yPos, width, height
                 # Hide: xmin, xmax, ymin, ymax
-                return (('xPos', 'yPos', 'width', 'height'),
-                        ('xmin', 'xmax', 'ymin', 'ymax'))
+                return (
+                    ("xPos", "yPos", "width", "height"),
+                    ("xmin", "xmax", "ymin", "ymax"),
+                )
 
-        s.add( setting.ChoiceSwitch(
-            'rectPosition',
-            ['center', 'bounds'],
-            'center',
-            showfn=_rectPosShowfn,
-            descr=_('Use center+size or explicit bounds to place rectangle'),
-            usertext=_('Rectangle position'),
-            formatting=False) )
+        s.add(
+            setting.ChoiceSwitch(
+                "rectPosition",
+                ["center", "bounds"],
+                "center",
+                showfn=_rectPosShowfn,
+                descr=_("Use center+size or explicit bounds to place rectangle"),
+                usertext=_("Rectangle position"),
+                formatting=False,
+            )
+        )
 
         # Explicit bounds (used when rectPosition='bounds')
-        s.add( setting.DatasetExtended(
-            'xmin', [],
-            descr=_('List of minimum x values'),
-            usertext=_('X min'),
-            formatting=False), 2 )
-        s.add( setting.DatasetExtended(
-            'xmax', [],
-            descr=_('List of maximum x values'),
-            usertext=_('X max'),
-            formatting=False), 3 )
-        s.add( setting.DatasetExtended(
-            'ymin', [],
-            descr=_('List of minimum y values'),
-            usertext=_('Y min'),
-            formatting=False), 4 )
-        s.add( setting.DatasetExtended(
-            'ymax', [],
-            descr=_('List of maximum y values'),
-            usertext=_('Y max'),
-            formatting=False), 5 )
+        s.add(
+            setting.DatasetExtended(
+                "xmin",
+                [],
+                descr=_("List of minimum x values"),
+                usertext=_("X min"),
+                formatting=False,
+            ),
+            2,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "xmax",
+                [],
+                descr=_("List of maximum x values"),
+                usertext=_("X max"),
+                formatting=False,
+            ),
+            3,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "ymin",
+                [],
+                descr=_("List of minimum y values"),
+                usertext=_("Y min"),
+                formatting=False,
+            ),
+            4,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "ymax",
+                [],
+                descr=_("List of maximum y values"),
+                usertext=_("Y max"),
+                formatting=False,
+            ),
+            5,
+        )
 
-    def _getBoundsCoords(self, posn, xsetting='xmin', ysetting='ymin',
-                         x2setting='xmax', y2setting='ymax'):
+    def _getBoundsCoords(
+        self, posn, xsetting="xmin", ysetting="ymin", x2setting="xmax", y2setting="ymax"
+    ):
         """Calculate bounds coordinates from axes or relative values.
 
         If the rectangle has a graph parent with axes, bounds are converted
@@ -282,7 +339,7 @@ class Rectangle(BoxShape):
         ymax = s.get(y2setting).getFloatArray(self.document)
         if xmin is None or ymin is None or xmax is None or ymax is None:
             return None, None, None, None
-        if hasattr(self.parent, 'getAxes'):
+        if hasattr(self.parent, "getAxes"):
             axes = self.parent.getAxes((s.xAxis, s.yAxis))
             if axes[0] is not None and axes[1] is not None:
                 xmin = axes[0].dataToPlotterCoords(posn, xmin)
@@ -291,10 +348,10 @@ class Rectangle(BoxShape):
                 ymax = axes[1].dataToPlotterCoords(posn, ymax)
                 return xmin, ymin, xmax, ymax
         # no graph axes: fractional coordinates within the plot position
-        xmin = posn[0] + (posn[2]-posn[0])*xmin
-        ymin = posn[3] - (posn[3]-posn[1])*ymin
-        xmax = posn[0] + (posn[2]-posn[0])*xmax
-        ymax = posn[3] - (posn[3]-posn[1])*ymax
+        xmin = posn[0] + (posn[2] - posn[0]) * xmin
+        ymin = posn[3] - (posn[3] - posn[1]) * ymin
+        xmax = posn[0] + (posn[2] - posn[0]) * xmax
+        ymax = posn[3] - (posn[3] - posn[1]) * ymax
         return xmin, ymin, xmax, ymax
 
     def _getBoundsFromGraph(self, posn, xmin_plt, xmax_plt, ymin_plt, ymax_plt):
@@ -304,7 +361,7 @@ class Rectangle(BoxShape):
         xmax_plt = N.array(xmax_plt)
         ymin_plt = N.array(ymin_plt)
         ymax_plt = N.array(ymax_plt)
-        if hasattr(self.parent, 'getAxes'):
+        if hasattr(self.parent, "getAxes"):
             axes = self.parent.getAxes((s.xAxis, s.yAxis))
             if axes[0] is not None and axes[1] is not None:
                 xmin = axes[0].plotterToDataCoords(posn, xmin_plt)
@@ -313,10 +370,10 @@ class Rectangle(BoxShape):
                 ymax = axes[1].plotterToDataCoords(posn, ymax_plt)
                 return xmin, xmax, ymin, ymax
         # no graph axes: fractional inverse
-        xmin = (xmin_plt - posn[0]) / (posn[2]-posn[0])
-        xmax = (xmax_plt - posn[0]) / (posn[2]-posn[0])
-        ymin = (ymin_plt - posn[3]) / (posn[1]-posn[3])
-        ymax = (ymax_plt - posn[3]) / (posn[1]-posn[3])
+        xmin = (xmin_plt - posn[0]) / (posn[2] - posn[0])
+        xmax = (xmax_plt - posn[0]) / (posn[2] - posn[0])
+        ymin = (ymin_plt - posn[3]) / (posn[1] - posn[3])
+        ymax = (ymax_plt - posn[3]) / (posn[1] - posn[3])
         return xmin, xmax, ymin, ymax
 
     def drawShape(self, painter, rect):
@@ -329,7 +386,7 @@ class Rectangle(BoxShape):
 
         utils.brushExtFillPath(painter, s.Fill, path, stroke=painter.pen())
 
-    def draw(self, posn, phelper, outerbounds = None):
+    def draw(self, posn, phelper, outerbounds=None):
         """Plot the key on a plotter."""
 
         s = self.settings
@@ -338,7 +395,7 @@ class Rectangle(BoxShape):
             return
 
         # Determine position mode
-        if s.rectPosition == 'bounds':
+        if s.rectPosition == "bounds":
             # Use explicit bounds
             xmin, ymin, xmax, ymax = self._getBoundsCoords(posn)
             if xmin is None or ymin is None or xmax is None or ymax is None:
@@ -350,17 +407,18 @@ class Rectangle(BoxShape):
                 return
 
             # Get rotation (use default if not provided)
-            rotate = s.get('rotate').getFloatArray(d) or [0.0]
+            rotate = s.get("rotate").getFloatArray(d) or [0.0]
 
             clip = None
             if s.clip:
                 clip = qt.QRectF(
-                    qt.QPointF(posn[0], posn[1]), qt.QPointF(posn[2], posn[3]))
+                    qt.QPointF(posn[0], posn[1]), qt.QPointF(posn[2], posn[3])
+                )
             painter = phelper.painter(self, posn, clip=clip)
             rects = []
             with painter:
                 if not s.Border.hide:
-                    painter.setPen(s.get('Border').makeQPen(painter))
+                    painter.setPen(s.get("Border").makeQPen(painter))
                 else:
                     painter.setPen(qt.QPen(qt.Qt.PenStyle.NoPen))
 
@@ -379,23 +437,22 @@ class Rectangle(BoxShape):
                     painter.translate(x_center, y_center)
                     if r != 0:
                         painter.rotate(r)
-                    self.drawShape(
-                        painter, qt.QRectF(-wp*0.5, -hp*0.5, wp, hp))
+                    self.drawShape(painter, qt.QRectF(-wp * 0.5, -hp * 0.5, wp, hp))
                     painter.restore()
 
             # interactive control boxes (only when bounds are not datasets)
             isnotdataset = (
-                not s.get('xmin').isDataset(d) and
-                not s.get('ymin').isDataset(d) and
-                not s.get('xmax').isDataset(d) and
-                not s.get('ymax').isDataset(d)
+                not s.get("xmin").isDataset(d)
+                and not s.get("ymin").isDataset(d)
+                and not s.get("xmax").isDataset(d)
+                and not s.get("ymax").isDataset(d)
             )
             controlgraphitems = []
             if isnotdataset:
                 for idx, (cx, cy, wp, hp, r) in enumerate(rects):
                     cgi = controlgraph.ControlResizableBox(
-                        self, phelper, [cx, cy], [wp, hp], r,
-                        allowrotate=True)
+                        self, phelper, [cx, cy], [wp, hp], r, allowrotate=True
+                    )
                     cgi.index = idx
                     cgi.widgetposn = posn
                     controlgraphitems.append(cgi)
@@ -413,7 +470,7 @@ class Rectangle(BoxShape):
         x_center = cgi.posn[0] + cgi.dims[0] * 0.5
         y_center = cgi.posn[1] + cgi.dims[1] * 0.5
 
-        if s.rectPosition == 'bounds':
+        if s.rectPosition == "bounds":
             # Calculate bounds in plotter coords
             xmin_plt = cgi.posn[0]
             xmax_plt = cgi.posn[0] + cgi.dims[0]
@@ -421,25 +478,32 @@ class Rectangle(BoxShape):
             ymax_plt = cgi.posn[1] + cgi.dims[1]
 
             # Convert to data coords
-            xmin_data, xmax_data, ymin_data, ymax_data = \
-                self._getBoundsFromGraph(cgi.widgetposn, xmin_plt, xmax_plt, ymin_plt, ymax_plt)
+            xmin_data, xmax_data, ymin_data, ymax_data = self._getBoundsFromGraph(
+                cgi.widgetposn, xmin_plt, xmax_plt, ymin_plt, ymax_plt
+            )
             if xmin_data is None:
                 return
 
             # Get or create arrays
-            xmin_arr = list(s.get('xmin').getFloatArray(self.document) or [])
-            xmax_arr = list(s.get('xmax').getFloatArray(self.document) or [])
-            ymin_arr = list(s.get('ymin').getFloatArray(self.document) or [])
-            ymax_arr = list(s.get('ymax').getFloatArray(self.document) or [])
+            xmin_arr = list(s.get("xmin").getFloatArray(self.document) or [])
+            xmax_arr = list(s.get("xmax").getFloatArray(self.document) or [])
+            ymin_arr = list(s.get("ymin").getFloatArray(self.document) or [])
+            ymax_arr = list(s.get("ymax").getFloatArray(self.document) or [])
 
-            idx = min(cgi.index, max(len(xmin_arr), len(xmax_arr),
-                                     len(ymin_arr), len(ymax_arr)) - 1)
+            idx = min(
+                cgi.index,
+                max(len(xmin_arr), len(xmax_arr), len(ymin_arr), len(ymax_arr)) - 1,
+            )
 
             # Ensure arrays are long enough
-            while len(xmin_arr) <= idx: xmin_arr.append(0.0)
-            while len(xmax_arr) <= idx: xmax_arr.append(1.0)
-            while len(ymin_arr) <= idx: ymin_arr.append(0.0)
-            while len(ymax_arr) <= idx: ymax_arr.append(1.0)
+            while len(xmin_arr) <= idx:
+                xmin_arr.append(0.0)
+            while len(xmax_arr) <= idx:
+                xmax_arr.append(1.0)
+            while len(ymin_arr) <= idx:
+                ymin_arr.append(0.0)
+            while len(ymax_arr) <= idx:
+                ymax_arr.append(1.0)
 
             xmin_arr[idx] = float(xmin_data[0])
             xmax_arr[idx] = float(xmax_data[0])
@@ -447,22 +511,26 @@ class Rectangle(BoxShape):
             ymax_arr[idx] = float(ymax_data[0])
 
             operations = (
-                document.OperationSettingSet(s.get('xmin'), xmin_arr),
-                document.OperationSettingSet(s.get('xmax'), xmax_arr),
-                document.OperationSettingSet(s.get('ymin'), ymin_arr),
-                document.OperationSettingSet(s.get('ymax'), ymax_arr),
+                document.OperationSettingSet(s.get("xmin"), xmin_arr),
+                document.OperationSettingSet(s.get("xmax"), xmax_arr),
+                document.OperationSettingSet(s.get("ymin"), ymin_arr),
+                document.OperationSettingSet(s.get("ymax"), ymax_arr),
             )
             self.document.applyOperation(
-                document.OperationMultiple(operations, descr=_('adjust rectangle bounds')) )
+                document.OperationMultiple(
+                    operations, descr=_("adjust rectangle bounds")
+                )
+            )
         else:
             # Use center + size (original BoxShape behavior)
             BoxShape.updateControlItem(self, cgi)
 
+
 class Ellipse(BoxShape):
     """Draw an ellipse."""
 
-    typename = 'ellipse'
-    description = _('Ellipse')
+    typename = "ellipse"
+    description = _("Ellipse")
     allowusercreation = True
 
     def drawShape(self, painter, rect):
@@ -471,11 +539,12 @@ class Ellipse(BoxShape):
         path.addEllipse(rect)
         utils.brushExtFillPath(painter, s.Fill, path, stroke=painter.pen())
 
+
 class ImageFile(BoxShape):
     """Draw an image."""
 
-    typename = 'imagefile'
-    description = _('Image file')
+    typename = "imagefile"
+    description = _("Image file")
     allowusercreation = True
 
     def __init__(self, parent, name=None):
@@ -486,53 +555,71 @@ class ImageFile(BoxShape):
         self.cachestat = None
         self.cacheembeddata = None
 
-        self.addAction( widget.Action(
-            'embed', self.actionEmbed,
-            descr=_(
-                'Embed image in Veusz document '
-                'to remove dependency on external file'),
-            usertext=_('Embed image')) )
+        self.addAction(
+            widget.Action(
+                "embed",
+                self.actionEmbed,
+                descr=_(
+                    "Embed image in Veusz document "
+                    "to remove dependency on external file"
+                ),
+                usertext=_("Embed image"),
+            )
+        )
 
     @classmethod
     def addSettings(klass, s):
         """Construct list of settings."""
         BoxShape.addSettings(s)
 
-        s.add( setting.ImageFilename(
-            'filename', '',
-            descr=_('Image filename'),
-            usertext=_('Filename'),
-            formatting=False),
-            posn=0 )
+        s.add(
+            setting.ImageFilename(
+                "filename",
+                "",
+                descr=_("Image filename"),
+                usertext=_("Filename"),
+                formatting=False,
+            ),
+            posn=0,
+        )
 
-        s.add( setting.Str(
-            'embeddedImageData', '',
-            descr=_(
-                'Embedded base 64-encoded image data, '
-                'used if filename set to {embedded}'),
-            usertext=_('Embedded data'),
-            hidden=True) )
+        s.add(
+            setting.Str(
+                "embeddedImageData",
+                "",
+                descr=_(
+                    "Embedded base 64-encoded image data, "
+                    "used if filename set to {embedded}"
+                ),
+                usertext=_("Embedded data"),
+                hidden=True,
+            )
+        )
 
-        s.add( setting.Bool(
-            'aspect', True,
-            descr=_('Preserve aspect ratio'),
-            usertext=_('Preserve aspect'),
-            formatting=True),
-            posn=0 )
-        s.Border.get('hide').newDefault(True)
+        s.add(
+            setting.Bool(
+                "aspect",
+                True,
+                descr=_("Preserve aspect ratio"),
+                usertext=_("Preserve aspect"),
+                formatting=True,
+            ),
+            posn=0,
+        )
+        s.Border.get("hide").newDefault(True)
 
     def actionEmbed(self):
         """Embed external image into veusz document."""
 
         s = self.settings
 
-        if s.filename == '{embedded}':
+        if s.filename == "{embedded}":
             print("Data already embedded")
             return
 
         # get data from external file
         try:
-            f = open(s.filename, 'rb')
+            f = open(s.filename, "rb")
             data = f.read()
             f.close()
         except EnvironmentError:
@@ -540,16 +627,16 @@ class ImageFile(BoxShape):
             return
 
         # convert to base 64 to make it nicer in the saved file
-        encoded = codecs.encode(data, 'base64').decode('ascii')
+        encoded = codecs.encode(data, "base64").decode("ascii")
 
         # now put embedded data in hidden setting
         ops = [
-            document.OperationSettingSet(s.get('filename'), '{embedded}'),
-            document.OperationSettingSet(
-                s.get('embeddedImageData'), encoded)
+            document.OperationSettingSet(s.get("filename"), "{embedded}"),
+            document.OperationSettingSet(s.get("embeddedImageData"), encoded),
         ]
         self.document.applyOperation(
-            document.OperationMultiple(ops, descr=_('embed image')) )
+            document.OperationMultiple(ops, descr=_("embed image"))
+        )
 
     def updateCachedImage(self):
         """Update cache."""
@@ -564,7 +651,7 @@ class ImageFile(BoxShape):
         self.cacheimage = qt.QImage()
 
         # convert the embedded data from base64 and load into the image
-        decoded = codecs.decode(s.embeddedImageData.encode('ascii'), 'base64')
+        decoded = codecs.decode(s.embeddedImageData.encode("ascii"), "base64")
         self.cacheimage.loadFromData(decoded)
 
         # we cache the data we have decoded
@@ -579,26 +666,27 @@ class ImageFile(BoxShape):
 
         # check to see whether image needs reloading
         image = None
-        if s.filename != '' and os.path.isfile(s.filename):
-            if (self.cachefilename != s.filename or
-                os.stat(s.filename) != self.cachestat):
+        if s.filename != "" and os.path.isfile(s.filename):
+            if (
+                self.cachefilename != s.filename
+                or os.stat(s.filename) != self.cachestat
+            ):
                 # update the image cache
                 self.updateCachedImage()
                 # clear any embedded image data
-                self.settings.get('embeddedImageData').set('')
+                self.settings.get("embeddedImageData").set("")
             image = self.cacheimage
 
         # or needs recreating from embedded data
-        if s.filename == '{embedded}':
+        if s.filename == "{embedded}":
             if s.embeddedImageData is not self.cacheembeddata:
                 self.updateCachedEmbedded()
             image = self.cacheimage
 
         # if no image, then use default image
-        if ( not image or image.isNull() or
-             image.width() == 0 or image.height() == 0 ):
+        if not image or image.isNull() or image.width() == 0 or image.height() == 0:
             # load replacement image
-            fname = os.path.join(utils.imagedir, 'button_imagefile.svg')
+            fname = os.path.join(utils.imagedir, "button_imagefile.svg")
             r = qt.QSvgRenderer(fname)
             r.render(painter, rect)
 
@@ -613,22 +701,28 @@ class ImageFile(BoxShape):
 
                 if xr > yr:
                     rect = qt.QRectF(
-                        rect.left()+(rect.width()-irect.width()*yr)*0.5,
-                        rect.top(), irect.width()*yr, rect.height())
+                        rect.left() + (rect.width() - irect.width() * yr) * 0.5,
+                        rect.top(),
+                        irect.width() * yr,
+                        rect.height(),
+                    )
                 else:
                     rect = qt.QRectF(
                         rect.left(),
-                        rect.top()+(rect.height()-irect.height()*xr)*0.5,
-                        rect.width(), irect.height()*xr)
+                        rect.top() + (rect.height() - irect.height() * xr) * 0.5,
+                        rect.width(),
+                        irect.height() * xr,
+                    )
 
             # finally draw image
             painter.drawImage(rect, image, irect)
 
+
 class SVGFile(BoxShape):
     """Draw an scalable vector graphic."""
 
-    typename = 'svgfile'
-    description = _('Scalable vector graphic file')
+    typename = "svgfile"
+    description = _("Scalable vector graphic file")
     allowusercreation = True
 
     def __init__(self, parent, name=None):
@@ -639,69 +733,87 @@ class SVGFile(BoxShape):
         self.cachestat = None
         self.cacheembeddata = None
 
-        self.addAction( widget.Action(
-            'embed', self.actionEmbed,
-            descr=_(
-                'Embed scalable vector graphic in Veusz document '
-                'to remove dependency on external file'),
-            usertext=_('Embed SVG')) )
+        self.addAction(
+            widget.Action(
+                "embed",
+                self.actionEmbed,
+                descr=_(
+                    "Embed scalable vector graphic in Veusz document "
+                    "to remove dependency on external file"
+                ),
+                usertext=_("Embed SVG"),
+            )
+        )
 
     @classmethod
     def addSettings(klass, s):
         """Construct list of settings."""
         BoxShape.addSettings(s)
 
-        s.add( setting.SVGFilename(
-            'filename', '',
-            descr=_('SVG filename'),
-            usertext=_('Filename'),
-            formatting=False),
-            posn=0 )
+        s.add(
+            setting.SVGFilename(
+                "filename",
+                "",
+                descr=_("SVG filename"),
+                usertext=_("Filename"),
+                formatting=False,
+            ),
+            posn=0,
+        )
 
-        s.add( setting.Str(
-            'embeddedSVGData', '',
-            descr=_(
-                'Embedded scalable vector graphic data, '
-                'used if filename set to {embedded}'),
-            usertext=_('Embedded data'),
-            hidden=True) )
+        s.add(
+            setting.Str(
+                "embeddedSVGData",
+                "",
+                descr=_(
+                    "Embedded scalable vector graphic data, "
+                    "used if filename set to {embedded}"
+                ),
+                usertext=_("Embedded data"),
+                hidden=True,
+            )
+        )
 
-        s.add( setting.Bool(
-            'aspect', True,
-            descr=_('Preserve aspect ratio'),
-            usertext=_('Preserve aspect'),
-            formatting=True),
-            posn=0 )
-        s.Border.get('hide').newDefault(True)
+        s.add(
+            setting.Bool(
+                "aspect",
+                True,
+                descr=_("Preserve aspect ratio"),
+                usertext=_("Preserve aspect"),
+                formatting=True,
+            ),
+            posn=0,
+        )
+        s.Border.get("hide").newDefault(True)
 
     def actionEmbed(self):
         """Embed external vector graphic into veusz document."""
 
         s = self.settings
 
-        if s.filename == '{embedded}':
+        if s.filename == "{embedded}":
             print("Data already embedded")
             return
 
         # get data from external file
         try:
-            with open(s.filename, 'rb') as f:
+            with open(s.filename, "rb") as f:
                 data = f.read()
         except EnvironmentError:
             print("Could not find file. Not embedding.")
             return
 
         # convert to base 64 to make it nicer in the saved file
-        encoded = codecs.encode(data, 'base64').decode('ascii')
+        encoded = codecs.encode(data, "base64").decode("ascii")
 
         # now put embedded data in hidden setting
         ops = [
-            document.OperationSettingSet(s.get('filename'), '{embedded}'),
-            document.OperationSettingSet(
-                s.get('embeddedSVGData'), encoded)
+            document.OperationSettingSet(s.get("filename"), "{embedded}"),
+            document.OperationSettingSet(s.get("embeddedSVGData"), encoded),
         ]
         self.document.applyOperation(
-            document.OperationMultiple(ops, descr=_('embed SVG')) )
+            document.OperationMultiple(ops, descr=_("embed SVG"))
+        )
 
     def updateCachedImage(self):
         """Update cache."""
@@ -716,7 +828,7 @@ class SVGFile(BoxShape):
         self.cacheimage = qt.QSvgRenderer()
 
         # convert the embedded data from base64 and load into the SVG image
-        binarized = qt.QByteArray.fromBase64(s.embeddedSVGData.encode('ascii'))
+        binarized = qt.QByteArray.fromBase64(s.embeddedSVGData.encode("ascii"))
         self.cacheimage.load(binarized)
 
         # we cache the data we have decoded
@@ -731,26 +843,32 @@ class SVGFile(BoxShape):
 
         # check to see whether image needs reloading
         image = None
-        if s.filename != '' and os.path.isfile(s.filename):
-            if (self.cachefilename != s.filename or
-                os.stat(s.filename) != self.cachestat):
+        if s.filename != "" and os.path.isfile(s.filename):
+            if (
+                self.cachefilename != s.filename
+                or os.stat(s.filename) != self.cachestat
+            ):
                 # update the image cache
                 self.updateCachedImage()
                 # clear any embedded image data
-                self.settings.get('embeddedSVGData').set('')
+                self.settings.get("embeddedSVGData").set("")
             image = self.cacheimage
 
         # or needs recreating from embedded data
-        if s.filename == '{embedded}':
+        if s.filename == "{embedded}":
             if s.embeddedSVGData is not self.cacheembeddata:
                 self.updateCachedEmbedded()
             image = self.cacheimage
 
         # if no image, then use default image
-        if ( not image or not image.isValid() or
-             image.viewBox().width() == 0 or image.viewBox().height() == 0 ):
+        if (
+            not image
+            or not image.isValid()
+            or image.viewBox().width() == 0
+            or image.viewBox().height() == 0
+        ):
             # load replacement image
-            fname = os.path.join(utils.imagedir, 'button_svgfile.svg')
+            fname = os.path.join(utils.imagedir, "button_svgfile.svg")
             r = qt.QSvgRenderer(fname)
             r.render(painter, rect)
 
@@ -765,16 +883,22 @@ class SVGFile(BoxShape):
 
                 if xr > yr:
                     rect = qt.QRectF(
-                        rect.left()+(rect.width()-irect.width()*yr)*0.5,
-                        rect.top(), irect.width()*yr, rect.height())
+                        rect.left() + (rect.width() - irect.width() * yr) * 0.5,
+                        rect.top(),
+                        irect.width() * yr,
+                        rect.height(),
+                    )
                 else:
                     rect = qt.QRectF(
                         rect.left(),
-                        rect.top()+(rect.height()-irect.height()*xr)*0.5,
-                        rect.width(), irect.height()*xr)
+                        rect.top() + (rect.height() - irect.height() * xr) * 0.5,
+                        rect.width(),
+                        irect.height() * xr,
+                    )
 
             # finally draw image
             image.render(painter, rect)
+
 
 document.thefactory.register(Ellipse)
 document.thefactory.register(Rectangle)

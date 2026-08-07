@@ -26,49 +26,49 @@ from .. import utils
 from . import defn_csv
 from . import base
 
+
 def _(text, disambiguation=None, context="Import_CSV"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
-csv_delimiters = [',', '{tab}', '{space}', '|', ':', ';']
-csv_text_delimiters = ['"', "'"]
-csv_locales = [_('System'), _('English'), _('European')]
 
-csv_delimiter_map = {
-    '{tab}': '\t',
-    '{space}': ' '
-}
+csv_delimiters = [",", "{tab}", "{space}", "|", ":", ";"]
+csv_text_delimiters = ['"', "'"]
+csv_locales = [_("System"), _("English"), _("European")]
+
+csv_delimiter_map = {"{tab}": "\t", "{space}": " "}
+
 
 def csvLocaleIndexToLocale(idx):
     """Convert index to text locale."""
-    return (qt.QLocale().name(), 'en_US', 'de_DE')[idx]
+    return (qt.QLocale().name(), "en_US", "de_DE")[idx]
+
 
 class ImportTabCSV(importdialog.ImportTab):
     """For importing data from CSV files."""
 
-    resource = 'import_csv.ui'
-    filetypes = ('.csv', '.tsv')
-    filefilter = _('CSV files')
+    resource = "import_csv.ui"
+    filetypes = (".csv", ".tsv")
+    filefilter = _("CSV files")
 
     def loadUi(self):
         """Load user interface and setup panel."""
         importdialog.ImportTab.loadUi(self)
         self.csvhelpbutton.clicked.connect(self.slotHelp)
-        self.csvdelimitercombo.editTextChanged.connect(
-            self.dialog.slotUpdatePreview)
-        self.csvskipwhitespacecheck.stateChanged.connect(
-            self.dialog.slotUpdatePreview)
+        self.csvdelimitercombo.editTextChanged.connect(self.dialog.slotUpdatePreview)
+        self.csvskipwhitespacecheck.stateChanged.connect(self.dialog.slotUpdatePreview)
         self.csvtextdelimitercombo.editTextChanged.connect(
-            self.dialog.slotUpdatePreview)
+            self.dialog.slotUpdatePreview
+        )
         self.csvdelimitercombo.default = csv_delimiters
         self.csvtextdelimitercombo.default = csv_text_delimiters
         self.csvdatefmtcombo.default = [
-            'YYYY-MM-DD|T|hh:mm:ss',
-            'DD/MM/YY| |hh:mm:ss',
-            'M/D/YY| |hh:mm:ss'
+            "YYYY-MM-DD|T|hh:mm:ss",
+            "DD/MM/YY| |hh:mm:ss",
+            "M/D/YY| |hh:mm:ss",
         ]
         self.csvnumfmtcombo.defaultlist = csv_locales
-        self.csvheadermodecombo.defaultlist = [_('Multiple'), _('1st row'), _('None')]
-        self.csvdirectioncombo.defaultlist = [_('Columns'), _('Rows')]
+        self.csvheadermodecombo.defaultlist = [_("Multiple"), _("1st row"), _("None")]
+        self.csvdirectioncombo.defaultlist = [_("Columns"), _("Rows")]
 
     def reset(self):
         """Reset controls."""
@@ -81,17 +81,18 @@ class ImportTabCSV(importdialog.ImportTab):
         self.csvblanksdatacheck.setChecked(False)
         self.csvnumfmtcombo.setCurrentIndex(0)
         self.csvdatefmtcombo.setEditText(
-            defn_csv.ImportParamsCSV.defaults['dateformat'])
+            defn_csv.ImportParamsCSV.defaults["dateformat"]
+        )
         self.csvheadermodecombo.setCurrentIndex(0)
 
     def slotHelp(self):
         """Asked for help."""
-        d = veuszdialog.VeuszDialog(self.dialog.mainwindow, 'importhelpcsv.ui')
+        d = veuszdialog.VeuszDialog(self.dialog.mainwindow, "importhelpcsv.ui")
         self.dialog.mainwindow.showDialog(d)
 
     def getCSVDelimiter(self):
         """Get CSV delimiter, converting friendly names."""
-        delim = str( self.csvdelimitercombo.text() )
+        delim = str(self.csvdelimitercombo.text())
         if delim in csv_delimiter_map:
             delim = csv_delimiter_map[delim]
         return delim
@@ -100,7 +101,7 @@ class ImportTabCSV(importdialog.ImportTab):
         """CSV preview - show first few rows"""
 
         t = self.previewtablecsv
-        t.verticalHeader().show() # restore from a previous import
+        t.verticalHeader().show()  # restore from a previous import
         t.horizontalHeader().show()
         t.horizontalHeader().setStretchLastSection(False)
         t.clear()
@@ -126,7 +127,8 @@ class ImportTabCSV(importdialog.ImportTab):
                 delimiter=delimiter,
                 quotechar=textdelimiter,
                 skipinitialspace=skipwhitespace,
-                encoding=encoding )
+                encoding=encoding,
+            )
 
             # construct list of rows
             rows = []
@@ -136,7 +138,7 @@ class ImportTabCSV(importdialog.ImportTab):
                     row = next(reader)
                     rows.append(row)
                     numcols = max(numcols, len(row))
-                rows.append(['…'])
+                rows.append(["…"])
                 numcols = max(numcols, 1)
             except StopIteration:
                 pass
@@ -169,14 +171,12 @@ class ImportTabCSV(importdialog.ImportTab):
             return
 
         skipwhitespace = self.csvskipwhitespacecheck.isChecked()
-        numericlocale = csvLocaleIndexToLocale(
-            self.csvnumfmtcombo.currentIndex() )
+        numericlocale = csvLocaleIndexToLocale(self.csvnumfmtcombo.currentIndex())
         headerignore = self.csvignorehdrspin.value()
         rowsignore = self.csvignoretopspin.value()
         blanksaredata = self.csvblanksdatacheck.isChecked()
         dateformat = self.csvdatefmtcombo.currentText()
-        headermode = ('multi', '1st', 'none')[
-            self.csvheadermodecombo.currentIndex()]
+        headermode = ("multi", "1st", "none")[self.csvheadermodecombo.currentIndex()]
 
         # create import parameters and operation objects
         params = defn_csv.ImportParamsCSV(
@@ -192,7 +192,8 @@ class ImportTabCSV(importdialog.ImportTab):
             numericlocale=numericlocale,
             dateformat=dateformat,
             headermode=headermode,
-            prefix=prefix, suffix=suffix,
+            prefix=prefix,
+            suffix=suffix,
             tags=tags,
             linked=linked,
         )
@@ -204,7 +205,7 @@ class ImportTabCSV(importdialog.ImportTab):
             doc.applyOperation(op)
 
             # feature feedback
-            utils.feedback.importcts['csv'] += 1
+            utils.feedback.importcts["csv"] += 1
 
         except (base.ImportingError, csv.Error) as e:
             qt.QMessageBox.warning(self, _("Veusz"), str(e))
@@ -225,4 +226,5 @@ class ImportTabCSV(importdialog.ImportTab):
             item = qt.QTableWidgetItem(l)
             t.setItem(i, 0, item)
 
-importdialog.registerImportTab(_('CS&V'), ImportTabCSV)
+
+importdialog.registerImportTab(_("CS&V"), ImportTabCSV)
