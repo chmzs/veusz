@@ -31,4 +31,15 @@ ignore = [
     "F811",  # redefined unused      (37 pre-existing)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# F401 on these files is PROTECTED: the imports have initialization
+# side-effects (widget/command registration, UI loading) that ruff
+# misreports as unused. `ruff check --fix` deleting them has caused
+# two regressions (embed_test crash, dialog crash) — see
+# dev-docs/HANDOVER-2026-08-07.md section 6. Do not remove.
+"veusz/windows/simplewindow.py" = ["F401"]
+"veusz/qtall.py" = ["F401"]
+"veusz/veusz_main.py" = ["F401"]
+"tests/runselftest.py" = ["F401"]
+
 # ruff format . is enabled in pixi.toml; nothing extra needed here.
