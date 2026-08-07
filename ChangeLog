@@ -3,9 +3,13 @@ Changes in 4.2.1.2:
   * Fix Windows taskbar icon display (combine SVG with multi-size PNG fallbacks)
   * Fix Windows installer _socket.pyd missing issue (ensure standard library modules included)
   * Fix Windows installer numpy nested directory structure preservation
-  * Fix Windows installer recursive uninstall cleanup (RMDir /r)
+  * Fix Windows installer uninstall hanging (do not RMDir /r over running uninst.exe)
+  * Bundle Qt translations in installer/portable zip (8 languages, incl. zh_CN)
+  * Translation browse dialog defaults to bundled translations folder and shows .qm files
   * Simplify pixi.toml dependencies (conda only for python/qt6-main/pyqt6, rest via pip)
   * Update NSIS installer to use veusz.ico for installer/uninstaller icons
+  * Fix 2 undefined-name bugs (DisabledIconEngine.clone, import-error dialog)
+  * Ruff clean: resolve F401/F841/F821 across the codebase; protect side-effect imports
 
 Changes in 4.2.1.1:
   * Fix 'mean' fillto actually fills to mean of plotted y values
