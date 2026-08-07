@@ -415,6 +415,12 @@ rm veusz/plugins/__pycache__/*.pyc
 | `veusz/utils/extbrushfilling.py` | 修改 | 集成渐变填充 |
 | `veusz/setting/setting.py` | 修改 | FillSet.normalize() 扩展 |
 | `veusz/plugins/__init__.py` | 临时修改 | LOESS 插件（已移除） |
+| `veusz/widgets/xypie.py` | 重命名 | `proportions.py` → `xypie.py`，`ProportionalScatter` → `XYPie`，typename `proportions` → `xypie` |
+| `veusz/widgets/__init__.py` | 修改 | `from .xypie import XYPie` |
+| `veusz/windows/treeeditwindow.py` | 修改 | widget 列表/action `proportions` → `xypie`，且移到 `bar` 之后 |
+| `icons/button_xypie.svg` | 重命名+重绘 | `button_proportions.svg` → `button_xypie.svg`，16×16 笛卡尔 + 四饼图纯色版 |
+| `examples/xypie.vsz` | 重命名 | `proportional.vsz` → `xypie.vsz`，序列化 `Add("xypie")` |
+| `tests/selftests/test_gradient_fill.py` | 修改 | `TestProportionalScatter` → `TestXYPie` |
 
 ---
 

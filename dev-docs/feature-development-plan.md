@@ -41,8 +41,8 @@
 | F8 | **Grid 批量加标签插件** | `toolsplugin.py` | `工具 → General → Add labels to grid graphs`，序列标签 + 前后缀 + 相对位置 |
 | F9 | **35 个渐变预设** | `gradient.py` | 9 发散型 + 22 顺序型 + 4 兼容，支持 midpoint 重映射 |
 | F10 | **CSV 伴生文件** | `mainwindow.py` | Save As 可选导出被引用数据集为 CSV，含来源注释 |
-| F11 | **ProportionalScatter 增强** | `proportions.py` | donut 修复、barMode(stacked/grouped)、格式面板(Fill/Line/Font/标签) |
-| F12 | **ProportionalScatter 菜单入口** | `treeeditwindow.py` + `icons/button_proportions.svg` | 插入菜单/工具栏可直接创建 |
+| F11 | **XYPie 增强** | `xypie.py` | donut 修复、barMode(stacked/grouped)、格式面板(Fill/Line/Font/标签) |
+| F12 | **XYPie 菜单入口** | `treeeditwindow.py` + `icons/button_xypie.svg` | 插入菜单/工具栏可直接创建 |
 
 ### 关键架构位置
 
@@ -248,7 +248,7 @@ UI 控件也没暴露透明度滑块。因此 `config.transparency` 恒为 0。
 ### 批次 8（进行中）：饼图作为散点（比例点）— 详细方案见 `dev-docs/plans/2026-08-05.md`
 - **背景**：古植物考古数据——每遗址一个饼图点，多作物占比分片，大小 ∝ 总样本量(√n)
 - **已实现（MVP）✅**：
-  - 新 `ProportionalScatter` widget（`veusz/widgets/proportions.py`，typename `proportions`）
+  - 新 `XYPie` widget（`veusz/widgets/xypie.py`，typename `xypie`）
   - 三种 glyph：`pie`（drawPie）/ `donut`（内圆孔路径）/ `bar`（微型堆叠条）
   - `scalePoints` 数据集 → 半径∝√n（面积正比）；`wedgeData` 多占比数据集
   - 每点循环 `_CATEGORICAL` 调色板分色；0% 片跳过；可设 outline

@@ -34,16 +34,16 @@ from .. import utils
 from . import plotters
 
 
-def _(text, disambiguation=None, context='ProportionalScatter'):
+def _(text, disambiguation=None, context="XYPie"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
 
-class ProportionalScatter(plotters.GenericPlotter):
+class XYPie(plotters.GenericPlotter):
     """Plot proportional data as pie/donut/bar glyphs at each point."""
 
-    typename = 'proportions'
-    description = _('Proportional scatter (pie/donut/bar)')
+    typename = "xypie"
+    description = _("X/Y pie scatter (pie/donut/bar)")
     allowusercreation = True
 
     @classmethod
@@ -51,103 +51,206 @@ class ProportionalScatter(plotters.GenericPlotter):
         """Construct list of settings."""
         plotters.GenericPlotter.addSettings(s)
 
-        s.add(setting.DatasetExtended(
-            'xData', '',
-            descr=_('Dataset or expression giving x positions'),
-            usertext=_('X data')), 1)
-        s.add(setting.DatasetExtended(
-            'yData', '',
-            descr=_('Dataset or expression giving y positions'),
-            usertext=_('Y data')), 2)
-        s.add(setting.DatasetExtended(
-            'scalePoints', '',
-            descr=_('Scale glyph area by dataset (radius ~ sqrt(value))'),
-            usertext=_('Scale glyphs')), 3)
-        s.add(setting.Datasets(
-            'wedgeData', (),
-            descr=_('Datasets giving the proportions of each slice'),
-            usertext=_('Wedge data')), 4)
-        s.add(setting.Strings(
-            'wedgeLabels', (),
-            descr=_('Labels for each wedge (empty = use dataset names)'),
-            usertext=_('Wedge labels')), 5)
-        s.add(setting.DatasetOrStr(
-            'labels', '',
-            descr=_('Dataset or string giving axis labels for each point. '
-                    'Requires the corresponding axis to be in "labels" mode.'),
-            usertext=_('Axis labels')), 6)
+        s.add(
+            setting.DatasetExtended(
+                "xData",
+                "",
+                descr=_("Dataset or expression giving x positions"),
+                usertext=_("X data"),
+            ),
+            1,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "yData",
+                "",
+                descr=_("Dataset or expression giving y positions"),
+                usertext=_("Y data"),
+            ),
+            2,
+        )
+        s.add(
+            setting.DatasetExtended(
+                "scalePoints",
+                "",
+                descr=_("Scale glyph area by dataset (radius ~ sqrt(value))"),
+                usertext=_("Scale glyphs"),
+            ),
+            3,
+        )
+        s.add(
+            setting.Datasets(
+                "wedgeData",
+                (),
+                descr=_("Datasets giving the proportions of each slice"),
+                usertext=_("Wedge data"),
+            ),
+            4,
+        )
+        s.add(
+            setting.Strings(
+                "wedgeLabels",
+                (),
+                descr=_("Labels for each wedge (empty = use dataset names)"),
+                usertext=_("Wedge labels"),
+            ),
+            5,
+        )
+        s.add(
+            setting.DatasetOrStr(
+                "labels",
+                "",
+                descr=_(
+                    "Dataset or string giving axis labels for each point. "
+                    'Requires the corresponding axis to be in "labels" mode.'
+                ),
+                usertext=_("Axis labels"),
+            ),
+            6,
+        )
 
-        s.add(setting.DistancePt(
-            'markerSize', '5pt',
-            descr=_('Base size of the largest glyph'),
-            usertext=_('Glyph size')), 6)
+        s.add(
+            setting.DistancePt(
+                "markerSize",
+                "5pt",
+                descr=_("Base size of the largest glyph"),
+                usertext=_("Glyph size"),
+            ),
+            6,
+        )
 
-        s.add(setting.Choice(
-            'glyph', ('pie', 'donut', 'bar'), 'pie',
-            descr=_('Glyph type: pie, donut (hollow centre) or bar'),
-            usertext=_('Glyph')), 7)
-        s.add(setting.Float(
-            'innerRadius', 0.4, minval=0., maxval=0.95,
-            descr=_('Donut inner radius as a fraction of the outer radius'),
-            usertext=_('Donut inner radius')), 8)
-        s.add(setting.Choice(
-            'barDirection', ('horizontal', 'vertical'), 'horizontal',
-            descr=_('Direction of the mini bar glyph (stacked mode)'),
-            usertext=_('Bar direction')), 9)
-        s.add(setting.Choice(
-            'barMode', ('stacked', 'grouped'), 'stacked',
-            descr=_('Bar glyph mode: stacked (segments in one bar) or '
-                    'grouped (separate bars side by side)'),
-            usertext=_('Bar mode')), 10)
+        s.add(
+            setting.Choice(
+                "glyph",
+                ("pie", "donut", "bar"),
+                "pie",
+                descr=_("Glyph type: pie, donut (hollow centre) or bar"),
+                usertext=_("Glyph"),
+            ),
+            7,
+        )
+        s.add(
+            setting.Float(
+                "innerRadius",
+                0.4,
+                minval=0.0,
+                maxval=0.95,
+                descr=_("Donut inner radius as a fraction of the outer radius"),
+                usertext=_("Donut inner radius"),
+            ),
+            8,
+        )
+        s.add(
+            setting.Choice(
+                "barDirection",
+                ("horizontal", "vertical"),
+                "horizontal",
+                descr=_("Direction of the mini bar glyph (stacked mode)"),
+                usertext=_("Bar direction"),
+            ),
+            9,
+        )
+        s.add(
+            setting.Choice(
+                "barMode",
+                ("stacked", "grouped"),
+                "stacked",
+                descr=_(
+                    "Bar glyph mode: stacked (segments in one bar) or "
+                    "grouped (separate bars side by side)"
+                ),
+                usertext=_("Bar mode"),
+            ),
+            10,
+        )
 
-        s.add(setting.Bool(
-            'outline', True,
-            descr=_('Draw a border around the glyph'),
-            usertext=_('Outline')), 11)
+        s.add(
+            setting.Bool(
+                "outline",
+                True,
+                descr=_("Draw a border around the glyph"),
+                usertext=_("Outline"),
+            ),
+            11,
+        )
 
-        s.add(setting.FillSet(
-            'Fill',
-            [('solid', '#1f77b4', False), ('solid', '#ff7f0e', False),
-             ('solid', '#2ca02c', False), ('solid', '#d62728', False),
-             ('solid', '#9467bd', False), ('solid', '#8c564b', False),
-             ('solid', '#e377c2', False), ('solid', '#7f7f7f', False),
-             ('solid', '#bcbd22', False), ('solid', '#17becf', False)],
-            descr=_('Fill styles per wedge (cycled)'),
-            usertext=_('Fill styles')), 12)
+        s.add(
+            setting.FillSet(
+                "Fill",
+                [
+                    ("solid", "#1f77b4", False),
+                    ("solid", "#ff7f0e", False),
+                    ("solid", "#2ca02c", False),
+                    ("solid", "#d62728", False),
+                    ("solid", "#9467bd", False),
+                    ("solid", "#8c564b", False),
+                    ("solid", "#e377c2", False),
+                    ("solid", "#7f7f7f", False),
+                    ("solid", "#bcbd22", False),
+                    ("solid", "#17becf", False),
+                ],
+                descr=_("Fill styles per wedge (cycled)"),
+                usertext=_("Fill styles"),
+            ),
+            12,
+        )
 
-        s.add(setting.Line(
-            'Line',
-            descr=_('Outline line for each wedge'),
-            usertext=_('Outline line')), 13)
+        s.add(
+            setting.Line(
+                "Line",
+                descr=_("Outline line for each wedge"),
+                usertext=_("Outline line"),
+            ),
+            13,
+        )
 
-        s.add(setting.Bool(
-            'wedgeLabelShow', False,
-            descr=_('Show wedge labels'),
-            usertext=_('Show labels')), 14)
+        s.add(
+            setting.Bool(
+                "wedgeLabelShow",
+                False,
+                descr=_("Show wedge labels"),
+                usertext=_("Show labels"),
+            ),
+            14,
+        )
 
-        s.add(setting.Choice(
-            'labelPosnHorz', ('left', 'centre', 'right'), 'centre',
-            descr=_('Horizontal alignment of wedge labels'),
-            usertext=_('Label align horiz')), 15)
+        s.add(
+            setting.Choice(
+                "labelPosnHorz",
+                ("left", "centre", "right"),
+                "centre",
+                descr=_("Horizontal alignment of wedge labels"),
+                usertext=_("Label align horiz"),
+            ),
+            15,
+        )
 
-        s.add(setting.Choice(
-            'labelPosnVert', ('top', 'centre', 'bottom'), 'centre',
-            descr=_('Vertical alignment of wedge labels'),
-            usertext=_('Label align vert')), 16)
+        s.add(
+            setting.Choice(
+                "labelPosnVert",
+                ("top", "centre", "bottom"),
+                "centre",
+                descr=_("Vertical alignment of wedge labels"),
+                usertext=_("Label align vert"),
+            ),
+            16,
+        )
 
-        s.add(setting.Text(
-            'Font',
-            descr=_('Font for wedge labels'),
-            usertext=_('Label font')), 17)
+        s.add(
+            setting.Text(
+                "Font", descr=_("Font for wedge labels"), usertext=_("Label font")
+            ),
+            17,
+        )
 
     def affectsAxisRange(self):
         """This widget provides range information about these axes."""
         s = self.settings
-        return ((s.xAxis, 'sx'), (s.yAxis, 'sy'))
+        return ((s.xAxis, "sx"), (s.yAxis, "sy"))
 
     def getRange(self, axis, depname, axrange):
         """Update axis range from x/y data."""
-        dataname = {'sx': 'xData', 'sy': 'yData'}[depname]
+        dataname = {"sx": "xData", "sy": "yData"}[depname]
         data = self.settings.get(dataname).getData(self.document)
         if data:
             data.updateRangeAuto(axrange, axis.settings.log)
@@ -155,14 +258,14 @@ class ProportionalScatter(plotters.GenericPlotter):
     def getAxisLabels(self, direction):
         """Provide text labels for categorical axis (mode='labels')."""
         s = self.settings
-        text = s.get('labels').getData(self.document, checknull=True)
-        xv = s.get('xData').getData(self.document)
-        yv = s.get('yData').getData(self.document)
+        text = s.get("labels").getData(self.document, checknull=True)
+        xv = s.get("xData").getData(self.document)
+        yv = s.get("yData").getData(self.document)
         if text is None:
             return (None, None)
-        if direction == 'horizontal' and xv is not None:
+        if direction == "horizontal" and xv is not None:
             return (text, xv.data)
-        elif direction == 'vertical' and yv is not None:
+        elif direction == "vertical" and yv is not None:
             return (text, yv.data)
         return (None, None)
 
@@ -178,7 +281,7 @@ class ProportionalScatter(plotters.GenericPlotter):
         names = self._wedgeNames()
         if idx < len(names):
             return names[idx]
-        return ''
+        return ""
 
     def getNumberKeys(self):
         if self.settings.key:
@@ -218,7 +321,7 @@ class ProportionalScatter(plotters.GenericPlotter):
     def _getRadii(self, npts, markersize):
         """Per-point radii, area proportional to scalePoints (radius~sqrt)."""
         s = self.settings
-        scalev = s.get('scalePoints').getData(self.document)
+        scalev = s.get("scalePoints").getData(self.document)
         if scalev is not None and scalev.data is not None:
             scales = N.asarray(scalev.data, dtype=float)[:npts]
             smax = N.nanmax(scales) if len(scales) else 0.0
@@ -232,8 +335,8 @@ class ProportionalScatter(plotters.GenericPlotter):
         s = self.settings
         d = self.document
 
-        xv = s.get('xData').getData(d)
-        yv = s.get('yData').getData(d)
+        xv = s.get("xData").getData(d)
+        yv = s.get("yData").getData(d)
         if xv is None or yv is None or xv.data is None or yv.data is None:
             return
         npts = min(len(xv.data), len(yv.data))
@@ -246,7 +349,7 @@ class ProportionalScatter(plotters.GenericPlotter):
 
         xplt = axes[0].dataToPlotterCoords(posn, xv.data[:npts])
         yplt = axes[1].dataToPlotterCoords(posn, yv.data[:npts])
-        markersize = s.get('markerSize').convert(painter)
+        markersize = s.get("markerSize").convert(painter)
         radii = self._getRadii(npts, markersize)
 
         painter.save()
@@ -262,16 +365,16 @@ class ProportionalScatter(plotters.GenericPlotter):
     def _drawGlyph(self, painter, cx, cy, radius, vals):
         """Draw one glyph (pie/donut/bar) centred at (cx, cy)."""
         glyph = self.settings.glyph
-        if glyph == 'bar':
+        if glyph == "bar":
             self._drawBarGlyph(painter, cx, cy, radius, vals)
-        elif glyph == 'donut':
+        elif glyph == "donut":
             self._drawDonutGlyph(painter, cx, cy, radius, vals)
         else:
             self._drawPieGlyph(painter, cx, cy, radius, vals)
 
     def _wedgeBrush(self, idx):
         """Return the BrushExtended fill for wedge idx (cycles)."""
-        return self.settings.get('Fill').returnBrushExtended(idx)
+        return self.settings.get("Fill").returnBrushExtended(idx)
 
     def _outlinePen(self, painter):
         """QPen for glyph outline (NoPen when hidden)."""
@@ -279,7 +382,7 @@ class ProportionalScatter(plotters.GenericPlotter):
             return self.settings.Line.makeQPenWHide(painter)
         except setting.ReferenceBase.ResolveException:
             # fall back when not attached to a document tree
-            return qt.QPen(qt.QColor('#000000'), 0.5)
+            return qt.QPen(qt.QColor("#000000"), 0.5)
 
     def _fillWedge(self, painter, idx, path):
         """Fill a wedge path with its brush and outline.
@@ -289,14 +392,13 @@ class ProportionalScatter(plotters.GenericPlotter):
         fill for bare QPainter instances (e.g. unit tests).
         """
         pen = self._outlinePen(painter)
-        if hasattr(painter, 'docColor'):
-            utils.brushExtFillPath(painter, self._wedgeBrush(idx), path,
-                                   stroke=pen)
+        if hasattr(painter, "docColor"):
+            utils.brushExtFillPath(painter, self._wedgeBrush(idx), path, stroke=pen)
         else:
             brush = self._wedgeBrush(idx)
-            color = qt.QColor(brush.get('color').val)
+            color = qt.QColor(brush.get("color").val)
             if brush.transparency > 0:
-                color.setAlphaF((100 - brush.transparency) / 100.)
+                color.setAlphaF((100 - brush.transparency) / 100.0)
             painter.setBrush(color)
             painter.setPen(pen)
             painter.drawPath(path)
@@ -306,13 +408,15 @@ class ProportionalScatter(plotters.GenericPlotter):
         pen = self.settings.Font.makeQPen(painter)
         painter.setPen(pen)
         font = self.settings.Font.makeQFont(painter)
-        ah = {'left': 1, 'centre': 0, 'right': -1}[self.settings.labelPosnHorz]
-        av = {'top': -1, 'centre': 0, 'bottom': 1}[self.settings.labelPosnVert]
-        utils.Renderer(painter, font, x, y, label, ah, av, 0.0,
-                       doc=self.document).render()
+        ah = {"left": 1, "centre": 0, "right": -1}[self.settings.labelPosnHorz]
+        av = {"top": -1, "centre": 0, "bottom": 1}[self.settings.labelPosnVert]
+        utils.Renderer(
+            painter, font, x, y, label, ah, av, 0.0, doc=self.document
+        ).render()
 
-    def _drawWedgeLabel(self, painter, cx, cy, radius, inner_frac,
-                        start16, span16, idx):
+    def _drawWedgeLabel(
+        self, painter, cx, cy, radius, inner_frac, start16, span16, idx
+    ):
         """Render the label for a pie/donut wedge at its sector centroid."""
         label = self._wedgeLabel(idx)
         if not (self.settings.wedgeLabelShow and label):
@@ -326,7 +430,7 @@ class ProportionalScatter(plotters.GenericPlotter):
             if delta < 1e-9 or not N.isfinite(delta):
                 return
             if ro > ri:
-                factor = (ro ** 3 - ri ** 3) / (ro ** 2 - ri ** 2)
+                factor = (ro**3 - ri**3) / (ro**2 - ri**2)
             else:
                 factor = ro
             rcen = (2.0 / 3.0) * factor * (N.sin(delta / 2.0) / (delta / 2.0))
@@ -350,8 +454,8 @@ class ProportionalScatter(plotters.GenericPlotter):
         total = float(N.nansum(N.abs(vals)))
         if total <= 0:
             return
-        horizontal = self.settings.barDirection == 'horizontal'
-        grouped = self.settings.barMode == 'grouped'
+        horizontal = self.settings.barDirection == "horizontal"
+        grouped = self.settings.barMode == "grouped"
         size = radius * 2
         n = len(vals)
 
@@ -459,9 +563,10 @@ class ProportionalScatter(plotters.GenericPlotter):
             path.arcTo(inner_rect, (start16 + span16) / 16.0, -span16 / 16.0)
             path.closeSubpath()
             self._fillWedge(painter, idx, path)
-            self._drawWedgeLabel(painter, cx, cy, radius, inner_frac,
-                                 start16, span16, idx)
+            self._drawWedgeLabel(
+                painter, cx, cy, radius, inner_frac, start16, span16, idx
+            )
             start16 += span16
 
 
-document.thefactory.register(ProportionalScatter)
+document.thefactory.register(XYPie)

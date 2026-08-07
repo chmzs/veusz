@@ -53,7 +53,7 @@ pixi run test        # 单元测试（pytest）
 
 示例：
 - `feat(gradient): add gradientCenterValue support for diverging colormaps`
-- `fix(widget): prevent donut line from origin in ProportionalScatter`
+- `fix(widget): prevent donut line from origin in XYPie`
 
 ## 3. 代码风格
 

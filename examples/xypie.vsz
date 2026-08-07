@@ -38,7 +38,7 @@ Set('max', 9)
 Set('direction', 'vertical')
 To('..')
 
-Add('proportions', name='prop1', autoadd=False)
+Add('xypie', name='prop1', autoadd=False)
 To('prop1')
 Set('xData', 'age')
 Set('yData', 'ypos')

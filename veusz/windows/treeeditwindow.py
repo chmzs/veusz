@@ -33,9 +33,11 @@ from .. import setting
 
 from .widgettree import WidgetTreeModel, WidgetTreeView
 
-def _(text, disambiguation=None, context='TreeEditWindow'):
+
+def _(text, disambiguation=None, context="TreeEditWindow"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
+
 
 class SettingsProxy:
     """Object to handle communication between widget/settings
@@ -82,6 +84,7 @@ class SettingsProxy:
     def resetToDefault(self, name):
         """Reset setting to default."""
 
+
 class SettingsProxySingle(SettingsProxy):
     """A proxy wrapping settings for a single widget."""
 
@@ -99,7 +102,7 @@ class SettingsProxySingle(SettingsProxy):
         for n in s.getNames():
             o = s.get(n)
             if isinstance(o, setting.Settings):
-                retn.append( SettingsProxySingle(self.document, o) )
+                retn.append(SettingsProxySingle(self.document, o))
             else:
                 retn.append(o)
         return retn
@@ -122,9 +125,8 @@ class SettingsProxySingle(SettingsProxy):
     def onSettingChanged(self, control, setting, val):
         """Change setting in document."""
         if setting.val != val:
-            self.document.applyOperation(
-                document.OperationSettingSet(setting, val))
-            
+            self.document.applyOperation(document.OperationSettingSet(setting, val))
+
     def onSettingChangedIteratively(self, control, setting, vals):
         """Change setting iteratively with multiple input values."""
         val = vals[0]
@@ -154,13 +156,13 @@ class SettingsProxySingle(SettingsProxy):
     def resetToDefault(self, name):
         """Reset setting to default."""
         setn = self.settings.get(name)
-        self.document.applyOperation(
-            document.OperationSettingSet(setn, setn.default))
+        self.document.applyOperation(document.OperationSettingSet(setn, setn.default))
+
 
 class SettingsProxyMulti(SettingsProxy):
     """A proxy wrapping settings for multiple widgets."""
 
-    def __init__(self, document, widgets, _root=''):
+    def __init__(self, document, widgets, _root=""):
         """Initialise settings proxy.
         widgets is a list of widgets to proxy for."""
         self.document = document
@@ -173,7 +175,7 @@ class SettingsProxyMulti(SettingsProxy):
     def _getSettingsAtLevel(self):
         """Return settings of widgets at level given."""
         if self._root:
-            levels = self._root.split('/')
+            levels = self._root.split("/")
         else:
             levels = []
         setns = []
@@ -210,9 +212,8 @@ class SettingsProxyMulti(SettingsProxy):
                 # construct new proxy settings (adding on name of root)
                 newroot = n
                 if self._root:
-                    newroot = self._root + '/' + newroot
-                v = SettingsProxyMulti(
-                    self.document, self.widgets, _root=newroot)
+                    newroot = self._root + "/" + newroot
+                v = SettingsProxyMulti(self.document, self.widgets, _root=newroot)
             else:
                 # use setting from first settings as template
                 v = o
@@ -223,20 +224,19 @@ class SettingsProxyMulti(SettingsProxy):
     def childProxyList(self):
         """Make a list of proxy settings."""
         if self._cachechild is None:
-            self._cachechild = self._objList(
-                (setting.Settings, setting.Setting) )
+            self._cachechild = self._objList((setting.Settings, setting.Setting))
         return self._cachechild
 
     def settingsProxyList(self):
         """Get list of settings proxy."""
         if self._cachesettings is None:
-            self._cachesettings = self._objList( (setting.Settings,) )
+            self._cachesettings = self._objList((setting.Settings,))
         return self._cachesettings
 
     def settingList(self):
         """Set list of common Setting objects for each widget."""
         if self._cachesetting is None:
-            self._cachesetting = self._objList( (setting.Setting,) )
+            self._cachesetting = self._objList((setting.Setting,))
         return self._cachesetting
 
     def actionsList(self):
@@ -257,31 +257,33 @@ class SettingsProxyMulti(SettingsProxy):
         ops = []
         sname = setting.name
         if self._root:
-            sname = self._root + '/' + sname
+            sname = self._root + "/" + sname
         for w in self.widgets:
-            s = self.document.resolveSettingPath(None, w.path+'/'+sname)
+            s = self.document.resolveSettingPath(None, w.path + "/" + sname)
             if s.val != val:
                 ops.append(document.OperationSettingSet(s, val))
         # apply all operations
         if ops:
             self.document.applyOperation(
-                document.OperationMultiple(ops, descr=_('change settings')))
-            
+                document.OperationMultiple(ops, descr=_("change settings"))
+            )
+
     def onSettingChangedIteratively(self, control, setting, vals):
         """Change a setting of widgets iteratively with multiple values."""
         ops = []
         sname = setting.name
         if self._root:
-            sname = self._root + '/' + sname
+            sname = self._root + "/" + sname
         for i, w in enumerate(self.widgets):
             val = vals[i % len(vals)]
-            s = self.document.resolveSettingPath(None, w.path + '/' + sname)
+            s = self.document.resolveSettingPath(None, w.path + "/" + sname)
             if s.val != val:
                 ops.append(document.OperationSettingSet(s, val))
         # apply all operations
         if ops:
             self.document.applyOperation(
-                document.OperationMultiple(ops, descr=_('change settings')))
+                document.OperationMultiple(ops, descr=_("change settings"))
+            )
 
     def onAction(self, action, console):
         """Run actions with same name."""
@@ -323,17 +325,18 @@ class SettingsProxyMulti(SettingsProxy):
             setn = s.get(name)
             ops.append(document.OperationSettingSet(setn, setn.default))
         self.document.applyOperation(
-            document.OperationMultiple(ops, descr=_("reset to default")))
+            document.OperationMultiple(ops, descr=_("reset to default"))
+        )
+
 
 class VisibilityButton(qt.QPushButton):
     """Button for toggling 'hide' settings."""
 
     def __init__(self, setnsproxy, setn, *args, **argsv):
         qt.QPushButton.__init__(self, *args, **argsv)
-        self.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(
-            qt.QSizePolicy.Policy.Minimum, qt.QSizePolicy.Policy.Minimum)
-        self.setIconSize(qt.QSize(24,12))
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(qt.QSizePolicy.Policy.Minimum, qt.QSizePolicy.Policy.Minimum)
+        self.setIconSize(qt.QSize(24, 12))
         self.setFlat(True)
         self.setFocusPolicy(qt.Qt.FocusPolicy.NoFocus)
 
@@ -349,11 +352,11 @@ class VisibilityButton(qt.QPushButton):
         """Update state given current setting."""
         hidden = self.setn.get()
         if hidden:
-            icon = 'veusz-eye-grey'
-            tooltip = _('Hidden (click to show; set hide to False)')
+            icon = "veusz-eye-grey"
+            tooltip = _("Hidden (click to show; set hide to False)")
         else:
-            icon = 'veusz-eye'
-            tooltip = _('Visible (click to hide; set hide to True)')
+            icon = "veusz-eye"
+            tooltip = _("Visible (click to hide; set hide to True)")
 
         self.setIcon(utils.getIcon(icon))
         self.setToolTip(tooltip)
@@ -363,26 +366,26 @@ class VisibilityButton(qt.QPushButton):
         hidden = self.setn.get()
         self.setnsproxy.onSettingChanged(None, self.setn, not hidden)
 
+
 class PropertyList(qt.QWidget):
     """Edit the widget properties using a set of controls."""
 
-    def __init__(self, document, showformatsettings=True,
-                 *args):
+    def __init__(self, document, showformatsettings=True, *args):
         qt.QWidget.__init__(self, *args)
         self.document = document
         self.showformatsettings = showformatsettings
 
         self.layout = qt.QGridLayout(self)
-        self.layout.setSpacing( self.layout.spacing()//2 )
-        self.layout.setContentsMargins(4,4,4,4)
+        self.layout.setSpacing(self.layout.spacing() // 2)
+        self.layout.setContentsMargins(4, 4, 4, 4)
 
         self.childlist = []
-        self.setncntrls = {}     # map setting name to controls
+        self.setncntrls = {}  # map setting name to controls
 
     def getConsole(self):
         """Find console window. This is horrible: HACK."""
         win = self.parent()
-        while not hasattr(win, 'console'):
+        while not hasattr(win, "console"):
             win = win.parent()
         return win.console
 
@@ -400,8 +403,8 @@ class PropertyList(qt.QWidget):
             button = qt.QPushButton(text)
             button.setToolTip(action.descr)
             button.clicked.connect(
-                lambda checked=True, a=action:
-                setnsproxy.onAction(a, self.getConsole()))
+                lambda checked=True, a=action: setnsproxy.onAction(a, self.getConsole())
+            )
 
             self.layout.addWidget(button, row, 1)
             self.childlist.append(button)
@@ -416,11 +419,12 @@ class PropertyList(qt.QWidget):
             lab = SettingLabel(self.document, setn, setnsproxy)
             self.layout.addWidget(lab, row, 0)
             self.childlist.append(lab)
-            
+
             cntrl.sigSettingChanged.connect(setnsproxy.onSettingChanged)
             if isinstance(cntrl, setting.ControlDataset):
                 cntrl.sigSettingChangedIteratively.connect(
-                    setnsproxy.onSettingChangedIteratively)
+                    setnsproxy.onSettingChangedIteratively
+                )
             self.layout.addWidget(cntrl, row, 1)
             self.childlist.append(cntrl)
             self.setncntrls[setn.name] = (lab, cntrl)
@@ -437,13 +441,12 @@ class PropertyList(qt.QWidget):
 
         # this is a label with a + button by this side
         setnlab = SettingLabel(self.document, slist[0], grpdsetting)
-        expandbutton = qt.QPushButton(
-            "+", checkable=True, flat=True, maximumWidth=16)
+        expandbutton = qt.QPushButton("+", checkable=True, flat=True, maximumWidth=16)
 
         l = qt.QHBoxLayout(spacing=0)
-        l.setContentsMargins(0,0,0,0)
-        l.addWidget( expandbutton )
-        l.addWidget( setnlab )
+        l.setContentsMargins(0, 0, 0, 0)
+        l.addWidget(expandbutton)
+        l.addWidget(setnlab)
         lw = qt.QWidget()
         lw.setLayout(l)
         self.layout.addWidget(lw, row, 0)
@@ -470,15 +473,16 @@ class PropertyList(qt.QWidget):
                 grp_row += 1
 
         grpwidget = qt.QFrame(
-            frameShape = qt.QFrame.Shape.Panel,
-            frameShadow = qt.QFrame.Shadow.Raised,
-            visible=False )
+            frameShape=qt.QFrame.Shape.Panel,
+            frameShadow=qt.QFrame.Shadow.Raised,
+            visible=False,
+        )
         grpwidget.setLayout(l)
 
         def ontoggle(checked):
             """Toggle button text and make grp visible/invisible."""
-            expandbutton.setText( ("+","-")[checked] )
-            grpwidget.setVisible( checked )
+            expandbutton.setText(("+", "-")[checked])
+            grpwidget.setVisible(checked)
 
         expandbutton.toggled.connect(ontoggle)
 
@@ -488,8 +492,9 @@ class PropertyList(qt.QWidget):
         row += 1
         return row
 
-    def updateProperties(self, setnsproxy, title=None, showformatting=True,
-                         onlyformatting=False):
+    def updateProperties(
+        self, setnsproxy, title=None, showformatting=True, onlyformatting=False
+    ):
         """Update the list of controls with new ones for the SettingsProxy."""
 
         # keep a reference to keep it alive
@@ -517,23 +522,25 @@ class PropertyList(qt.QWidget):
         names = [x.name for x in setlist]
 
         # we special case hide by always showing it at the top
-        hideidx = utils.listIndex(names, 'hide')
+        hideidx = utils.listIndex(names, "hide")
 
         # add a title if requested
         if title is not None:
             lab = qt.QLabel(title[0], toolTip=title[1])
             lab.setSizePolicy(
-                qt.QSizePolicy.Policy.Expanding, qt.QSizePolicy.Policy.Minimum)
+                qt.QSizePolicy.Policy.Expanding, qt.QSizePolicy.Policy.Minimum
+            )
 
             titlewidget = qt.QFrame(
-                frameShape=qt.QFrame.Shape.Panel, frameShadow=qt.QFrame.Shadow.Sunken)
+                frameShape=qt.QFrame.Shape.Panel, frameShadow=qt.QFrame.Shadow.Sunken
+            )
             titlelayout = qt.QHBoxLayout()
             titlelayout.setSpacing(0)
             if hideidx >= 0:
                 button = VisibilityButton(setnsproxy, setlist[hideidx])
                 titlelayout.addWidget(button)
             titlelayout.addWidget(lab)
-            titlelayout.setContentsMargins(0,0,0,0)
+            titlelayout.setContentsMargins(0, 0, 0, 0)
             titlewidget.setLayout(titlelayout)
 
             self.layout.addWidget(titlewidget, row, 0, 1, -1)
@@ -555,27 +562,36 @@ class PropertyList(qt.QWidget):
                 # only add if formatting setting and formatting allowed
                 # and not formatting and not formatting not allowed
                 nonlocal row
-                if ( isinstance(setn, setting.Setting) and (
+                if (
+                    isinstance(setn, setting.Setting)
+                    and (
                         (setn.formatting and (showformatting or onlyformatting))
-                        or (not setn.formatting and not onlyformatting)) and
-                     not setn.hidden ):
+                        or (not setn.formatting and not onlyformatting)
+                    )
+                    and not setn.hidden
+                ):
                     row = self._addControl(setnsproxy, setn, row)
-                elif ( isinstance(setn, SettingsProxy) and
-                       setn.setnsmode() == 'groupedsetting' and
-                       not onlyformatting ):
+                elif (
+                    isinstance(setn, SettingsProxy)
+                    and setn.setnsmode() == "groupedsetting"
+                    and not onlyformatting
+                ):
                     row = self._addGroupedSettingsControl(setn, row)
 
             # else add settings proper as a list
             for name, setn in zip(names, setlist):
-                if name != 'hide':
+                if name != "hide":
                     addrow(setn)
 
             if hideidx >= 0:
                 addrow(setlist[hideidx])
 
         # add empty widget to take rest of space
-        w = qt.QWidget( sizePolicy=qt.QSizePolicy(
-            qt.QSizePolicy.Policy.Maximum, qt.QSizePolicy.Policy.MinimumExpanding) )
+        w = qt.QWidget(
+            sizePolicy=qt.QSizePolicy(
+                qt.QSizePolicy.Policy.Maximum, qt.QSizePolicy.Policy.MinimumExpanding
+            )
+        )
         self.layout.addWidget(w, row, 0)
         self.childlist.append(w)
 
@@ -584,11 +600,12 @@ class PropertyList(qt.QWidget):
 
     def showHideSettings(self, setnshow, setnhide):
         """Show or hide controls for settings."""
-        for vis, setns in ( (True, setnshow), (False, setnhide) ):
+        for vis, setns in ((True, setnshow), (False, setnhide)):
             for setn in setns:
                 if setn in self.setncntrls:
                     for cntrl in self.setncntrls[setn]:
                         cntrl.setVisible(vis)
+
 
 class TabbedFormatting(qt.QTabWidget):
     """Class to have tabbed set of settings."""
@@ -606,8 +623,7 @@ class TabbedFormatting(qt.QTabWidget):
         setnslist = setnsproxy.settingsProxyList()
 
         # add formatting settings if necessary
-        numformat = len(
-            [setn for setn in setnsproxy.settingList() if setn.formatting] )
+        numformat = len([setn for setn in setnsproxy.settingList() if setn.formatting])
         if numformat > 0:
             # add on a formatting tab
             setnslist.insert(0, setnsproxy)
@@ -629,25 +645,25 @@ class TabbedFormatting(qt.QTabWidget):
         self.hide_map = {}
 
         for subset in setnslist:
-            if subset.setnsmode() not in ('formatting', 'widgetsettings'):
+            if subset.setnsmode() not in ("formatting", "widgetsettings"):
                 continue
             self.tabsubsetns.append(subset)
 
             hidesetn = None
             for s in subset.settingList():
-                if s.name == 'hide':
+                if s.name == "hide":
                     hidesetn = s
                     break
 
             # details of tab
             if subset is setnsproxy:
                 # main tab formatting, so this is special
-                pixmap = 'settings_main'
-                tabname = title = _('Main')
-                tooltip = _('Main formatting')
+                pixmap = "settings_main"
+                tabname = title = _("Main")
+                tooltip = _("Main formatting")
             else:
                 # others
-                if hasattr(subset, 'pixmap'):
+                if hasattr(subset, "pixmap"):
                     pixmap = subset.pixmap()
                 else:
                     pixmap = None
@@ -656,7 +672,7 @@ class TabbedFormatting(qt.QTabWidget):
 
             # hide name in tab
             if not shownames:
-                tabname = ''
+                tabname = ""
 
             self.tabtitles.append(title)
             self.tabtooltips.append(tooltip)
@@ -667,8 +683,7 @@ class TabbedFormatting(qt.QTabWidget):
             # tab icon updates to visible/invisible depending on
             # whether subsetting is hidden or not
             if hidesetn is not None:
-                hidesetn.onmodified.onModified.connect(
-                    hide_mapper.map)
+                hidesetn.onmodified.onModified.connect(hide_mapper.map)
                 hide_mapper.setMapping(hidesetn.onmodified, indx)
 
             self.hide_map[indx] = (pixmap, hidesetn)
@@ -702,7 +717,8 @@ class TabbedFormatting(qt.QTabWidget):
         plist.updateProperties(
             subsetn,
             title=(self.tabtitles[tab], self.tabtooltips[tab]),
-            onlyformatting=mainsettings)
+            onlyformatting=mainsettings,
+        )
 
         # create scrollable area
         scroll = qt.QScrollArea()
@@ -711,11 +727,12 @@ class TabbedFormatting(qt.QTabWidget):
 
         # layout for tab widget
         layout = qt.QVBoxLayout()
-        layout.setContentsMargins(2,2,2,2)
+        layout.setContentsMargins(2, 2, 2, 2)
         layout.addWidget(scroll)
 
         # finally use layout containing items for tab
         self.widget(tab).setLayout(layout)
+
 
 class FormatDock(qt.QDockWidget):
     """A window for formatting the current widget.
@@ -761,8 +778,9 @@ class FormatDock(qt.QDockWidget):
         self.layout.addWidget(self.tabwidget)
 
         # wrap tab from zero to max number
-        tab = max( min(self.tabwidget.count()-1, tab), 0 )
+        tab = max(min(self.tabwidget.count() - 1, tab), 0)
         self.tabwidget.setCurrentIndex(tab)
+
 
 class PropertiesDock(qt.QDockWidget):
     """A window for editing properties for widgets."""
@@ -790,6 +808,7 @@ class PropertiesDock(qt.QDockWidget):
         """Update properties when selected widgets change."""
         self.proplist.updateProperties(setnsproxy, showformatting=False)
 
+
 class TreeEditDock(qt.QDockWidget):
     """A dock window presenting widgets as a tree."""
 
@@ -813,20 +832,19 @@ class TreeEditDock(qt.QDockWidget):
 
         # receive change in selection
         self.treeview.selectionModel().selectionChanged.connect(
-            self.slotTreeItemsSelected)
+            self.slotTreeItemsSelected
+        )
 
         # set tree as main widget
         self.setWidget(self.treeview)
 
         # toolbar to create widgets
-        self.addtoolbar = qt.QToolBar(
-            _("Insert toolbar - Veusz"), parentwin)
+        self.addtoolbar = qt.QToolBar(_("Insert toolbar - Veusz"), parentwin)
         # note wrong description!: backwards compatibility
         self.addtoolbar.setObjectName("veuszeditingtoolbar")
 
         # toolbar for editting widgets
-        self.edittoolbar = qt.QToolBar(
-            _("Edit toolbar - Veusz"), parentwin)
+        self.edittoolbar = qt.QToolBar(_("Edit toolbar - Veusz"), parentwin)
         self.edittoolbar.setObjectName("veuszedittoolbar")
 
         self._constructToolbarMenu()
@@ -838,8 +856,7 @@ class TreeEditDock(qt.QDockWidget):
         self.selectWidget(document.basewidget)
 
         # update paste button when clipboard changes
-        qt.QApplication.clipboard().dataChanged.connect(
-            self.updatePasteButton)
+        qt.QApplication.clipboard().dataChanged.connect(self.updatePasteButton)
         self.updatePasteButton()
 
         # make context menu
@@ -849,20 +866,25 @@ class TreeEditDock(qt.QDockWidget):
         m = self.contextmenu = qt.QMenu(self)
 
         # selection
-        m.addMenu(self.parentwin.menus['edit.select'])
+        m.addMenu(self.parentwin.menus["edit.select"])
         m.addSeparator()
 
         # actions on widget(s)
         for act in (
-                'edit.cut', 'edit.copy', 'edit.copy_as_image', 'edit.paste',
-                'edit.moveup', 'edit.movedown', 'edit.delete',
-                'edit.rename'
+            "edit.cut",
+            "edit.copy",
+            "edit.copy_as_image",
+            "edit.paste",
+            "edit.moveup",
+            "edit.movedown",
+            "edit.delete",
+            "edit.rename",
         ):
             m.addAction(self.vzactions[act])
 
         m.addSeparator()
-        m.addAction(self.vzactions['edit.show'])
-        m.addAction(self.vzactions['edit.hide'])
+        m.addAction(self.vzactions["edit.show"])
+        m.addAction(self.vzactions["edit.hide"])
 
     def slotDocumentWiped(self):
         """If the document is wiped, reselect root widget."""
@@ -877,13 +899,15 @@ class TreeEditDock(qt.QDockWidget):
         # get selected widgets
         self.selwidgets = swidget = [
             self.treemodel.getWidget(idx)
-            for idx in self.treeview.selectionModel().selectedRows() ]
+            for idx in self.treeview.selectionModel().selectedRows()
+        ]
 
         if len(swidget) == 0:
             setnsproxy = None
         elif len(swidget) == 1:
             setnsproxy = SettingsProxySingle(
-                self.document, swidget[0].settings, actions=swidget[0].actions)
+                self.document, swidget[0].settings, actions=swidget[0].actions
+            )
         else:
             setnsproxy = SettingsProxyMulti(self.document, swidget)
 
@@ -923,8 +947,8 @@ class TreeEditDock(qt.QDockWidget):
             selw = self.selwidgets[0]
 
         # has to be visible if is to be enabled (yuck)
-        self.vzactions['add.nonorthpoint'].setVisible(True)
-        self.vzactions['add.point3d'].setVisible(True)
+        self.vzactions["add.nonorthpoint"].setVisible(True)
+        self.vzactions["add.point3d"].setVisible(True)
 
         # check whether each button can have this widget
         # (or a parent) as parent
@@ -933,43 +957,46 @@ class TreeEditDock(qt.QDockWidget):
             while w is not None and not wc.willAllowParent(w):
                 w = w.parent
 
-            self.vzactions['add.%s' % wc.typename].setEnabled(w is not None)
+            self.vzactions["add.%s" % wc.typename].setEnabled(w is not None)
 
-        self.vzactions['add.axismenu'].setEnabled(
-            self.vzactions['add.axis'].isEnabled())
+        self.vzactions["add.axismenu"].setEnabled(
+            self.vzactions["add.axis"].isEnabled()
+        )
 
         # exclusive widgets
-        nonorth = self.vzactions['add.nonorthpoint'].isEnabled()
-        in3dgraph = self.vzactions['add.point3d'].isEnabled()
-        self.vzactions['add.nonorthpoint'].setVisible(nonorth)
-        self.vzactions['add.point3d'].setVisible(in3dgraph)
-        self.vzactions['add.xy'].setVisible(not nonorth and not in3dgraph)
-        self.vzactions['add.nonorthfunc'].setVisible(nonorth)
-        self.vzactions['add.function'].setVisible(not nonorth and not in3dgraph)
-        self.vzactions['add.function3d'].setVisible(in3dgraph)
-        self.vzactions['add.axismenu'].setVisible(not in3dgraph)
-        self.vzactions['add.axis3d'].setVisible(in3dgraph)
-        self.vzactions['add.image'].setVisible(not in3dgraph)
-        self.vzactions['add.surface3d'].setVisible(in3dgraph)
-        self.vzactions['add.contour'].setVisible(not in3dgraph)
-        self.vzactions['add.volume3d'].setVisible(in3dgraph)
+        nonorth = self.vzactions["add.nonorthpoint"].isEnabled()
+        in3dgraph = self.vzactions["add.point3d"].isEnabled()
+        self.vzactions["add.nonorthpoint"].setVisible(nonorth)
+        self.vzactions["add.point3d"].setVisible(in3dgraph)
+        self.vzactions["add.xy"].setVisible(not nonorth and not in3dgraph)
+        self.vzactions["add.nonorthfunc"].setVisible(nonorth)
+        self.vzactions["add.function"].setVisible(not nonorth and not in3dgraph)
+        self.vzactions["add.function3d"].setVisible(in3dgraph)
+        self.vzactions["add.axismenu"].setVisible(not in3dgraph)
+        self.vzactions["add.axis3d"].setVisible(in3dgraph)
+        self.vzactions["add.image"].setVisible(not in3dgraph)
+        self.vzactions["add.surface3d"].setVisible(in3dgraph)
+        self.vzactions["add.contour"].setVisible(not in3dgraph)
+        self.vzactions["add.volume3d"].setVisible(in3dgraph)
 
         # certain actions shouldn't work on root
-        isnotroot = not any([isinstance(w, widgets.Root)
-                             for w in self.selwidgets])
+        isnotroot = not any([isinstance(w, widgets.Root) for w in self.selwidgets])
 
-        for act in ('edit.cut', 'edit.copy', 'edit.copy_as_image', 'edit.delete',
-                    'edit.moveup', 'edit.movedown', 'edit.rename'):
+        for act in (
+            "edit.cut",
+            "edit.copy",
+            "edit.copy_as_image",
+            "edit.delete",
+            "edit.moveup",
+            "edit.movedown",
+            "edit.rename",
+        ):
             self.vzactions[act].setEnabled(isnotroot)
 
         # show or hide widgets
-        hidden = [
-            w.settings.hide
-            for w in self.selwidgets if 'hide' in w.settings
-        ]
-        self.vzactions['edit.show'].setEnabled(any(hidden))
-        self.vzactions['edit.hide'].setEnabled(
-            len(hidden)>0 and not all(hidden))
+        hidden = [w.settings.hide for w in self.selwidgets if "hide" in w.settings]
+        self.vzactions["edit.show"].setEnabled(any(hidden))
+        self.vzactions["edit.hide"].setEnabled(len(hidden) > 0 and not all(hidden))
 
         self.updatePasteButton()
 
@@ -979,168 +1006,246 @@ class TreeEditDock(qt.QDockWidget):
         def slotklass(klass):
             return lambda: self.slotMakeWidgetButton(klass)
 
-        iconsize = setting.settingdb['toolbar_size']
-        self.addtoolbar.setIconSize( qt.QSize(iconsize, iconsize) )
-        self.edittoolbar.setIconSize( qt.QSize(iconsize, iconsize) )
+        iconsize = setting.settingdb["toolbar_size"]
+        self.addtoolbar.setIconSize(qt.QSize(iconsize, iconsize))
+        self.edittoolbar.setIconSize(qt.QSize(iconsize, iconsize))
 
         self.addslots = {}
         self.vzactions = actions = self.parentwin.vzactions
         for widgettype in (
-                'page', 'grid', 'graph', 'axis',
-                'axis-broken', 'axis-function',
-                'xy', 'bar', 'histo', 'fit', 'function', 'boxplot',
-                'image', 'contour', 'vectorfield',
-                'key', 'label', 'colorbar',
-                'rect', 'ellipse', 'imagefile', 'svgfile',
-                'line', 'polygon', 'polar', 'ternary',
-                'nonorthpoint', 'nonorthfunc',
-                'covariance',
-                'proportions',
-                'scene3d',
-                'graph3d', 'function3d', 'point3d', 'axis3d',
-                'surface3d', 'volume3d'
+            "page",
+            "grid",
+            "graph",
+            "axis",
+            "axis-broken",
+            "axis-function",
+            "xy",
+            "bar",
+            "histo",
+            "fit",
+            "function",
+            "boxplot",
+            "image",
+            "contour",
+            "vectorfield",
+            "key",
+            "label",
+            "colorbar",
+            "rect",
+            "ellipse",
+            "imagefile",
+            "svgfile",
+            "line",
+            "polygon",
+            "polar",
+            "ternary",
+            "nonorthpoint",
+            "nonorthfunc",
+            "covariance",
+            "xypie",
+            "scene3d",
+            "graph3d",
+            "function3d",
+            "point3d",
+            "axis3d",
+            "surface3d",
+            "volume3d",
         ):
-
             wc = document.thefactory.getWidgetClass(widgettype)
             slot = slotklass(wc)
             self.addslots[wc] = slot
 
-            actionname = 'add.' + widgettype
+            actionname = "add." + widgettype
             actions[actionname] = utils.makeAction(
                 self,
-                wc.description, _('Add %s') % widgettype,
+                wc.description,
+                _("Add %s") % widgettype,
                 slot,
-                icon='button_%s' % widgettype)
+                icon="button_%s" % widgettype,
+            )
 
         a = utils.makeAction
-        actions.update({
-            'edit.cut': a(
-                self, _('Cut the selected widget'), _('Cu&t'),
-                self.slotWidgetCut,
-                icon='veusz-edit-cut', key='Ctrl+X'),
-            'edit.copy': a(
-                self, _('Copy the selected widget'), _('&Copy'),
-                self.slotWidgetCopy,
-                icon='kde-edit-copy', key='Ctrl+C'),
-            'edit.copy_as_image': a(
-                self, _('Copy the current page as svg image'), _('&Copy as Image'),
-                self.slotWidgetCopyAsImage,
-                icon='kde-edit-copy', key='Ctrl+Alt+C'),
-            'edit.paste': a(
-                self, _('Paste widget from the clipboard'), _('&Paste'),
-                self.slotWidgetPaste,
-                icon='kde-edit-paste', key='Ctrl+V'),
-            'edit.moveup': a(
-                self, _('Move the selected widget up'), _('Move &up'),
-                lambda: self.slotWidgetMove(-1),
-                icon='kde-go-up', key='Ctrl+Shift+PgUp'),
-            'edit.movedown': a(
-                self, _('Move the selected widget down'), _('Move d&own'),
-                lambda: self.slotWidgetMove(1),
-                icon='kde-go-down', key='Ctrl+Shift+PgDown'),
-            'edit.delete': a(
-                self, _('Remove selected widgets'), _('&Delete'),
-                self.slotWidgetDelete,
-                icon='kde-edit-delete'),
-            'edit.rename': a(
-                self, _('Renames the selected widget'), _('&Rename'),
-                self.slotWidgetRename,
-                icon='kde-edit-rename'),
-            'edit.show': a(
-                self, _('Show selected widgets'), _('Show'),
-                self.slotWidgetShow,
-                key='Ctrl+]'),
-            'edit.hide': a(
-                self, _('Hide selected widgets'), _('Hide'),
-                self.slotWidgetHide,
-                key='Ctrl+['),
-
-            'add.shapemenu': a(
-                self, _('Add a shape to the plot'), _('Shape'),
-                self.slotShowShapeMenu,
-                icon='veusz-shape-menu'),
-
-            'add.axismenu': a(
-                self, _('Add an axis to the plot'), _('Axis'),
-                None,
-                icon='button_axis'),
-        })
+        actions.update(
+            {
+                "edit.cut": a(
+                    self,
+                    _("Cut the selected widget"),
+                    _("Cu&t"),
+                    self.slotWidgetCut,
+                    icon="veusz-edit-cut",
+                    key="Ctrl+X",
+                ),
+                "edit.copy": a(
+                    self,
+                    _("Copy the selected widget"),
+                    _("&Copy"),
+                    self.slotWidgetCopy,
+                    icon="kde-edit-copy",
+                    key="Ctrl+C",
+                ),
+                "edit.copy_as_image": a(
+                    self,
+                    _("Copy the current page as svg image"),
+                    _("&Copy as Image"),
+                    self.slotWidgetCopyAsImage,
+                    icon="kde-edit-copy",
+                    key="Ctrl+Alt+C",
+                ),
+                "edit.paste": a(
+                    self,
+                    _("Paste widget from the clipboard"),
+                    _("&Paste"),
+                    self.slotWidgetPaste,
+                    icon="kde-edit-paste",
+                    key="Ctrl+V",
+                ),
+                "edit.moveup": a(
+                    self,
+                    _("Move the selected widget up"),
+                    _("Move &up"),
+                    lambda: self.slotWidgetMove(-1),
+                    icon="kde-go-up",
+                    key="Ctrl+Shift+PgUp",
+                ),
+                "edit.movedown": a(
+                    self,
+                    _("Move the selected widget down"),
+                    _("Move d&own"),
+                    lambda: self.slotWidgetMove(1),
+                    icon="kde-go-down",
+                    key="Ctrl+Shift+PgDown",
+                ),
+                "edit.delete": a(
+                    self,
+                    _("Remove selected widgets"),
+                    _("&Delete"),
+                    self.slotWidgetDelete,
+                    icon="kde-edit-delete",
+                ),
+                "edit.rename": a(
+                    self,
+                    _("Renames the selected widget"),
+                    _("&Rename"),
+                    self.slotWidgetRename,
+                    icon="kde-edit-rename",
+                ),
+                "edit.show": a(
+                    self,
+                    _("Show selected widgets"),
+                    _("Show"),
+                    self.slotWidgetShow,
+                    key="Ctrl+]",
+                ),
+                "edit.hide": a(
+                    self,
+                    _("Hide selected widgets"),
+                    _("Hide"),
+                    self.slotWidgetHide,
+                    key="Ctrl+[",
+                ),
+                "add.shapemenu": a(
+                    self,
+                    _("Add a shape to the plot"),
+                    _("Shape"),
+                    self.slotShowShapeMenu,
+                    icon="veusz-shape-menu",
+                ),
+                "add.axismenu": a(
+                    self,
+                    _("Add an axis to the plot"),
+                    _("Axis"),
+                    None,
+                    icon="button_axis",
+                ),
+            }
+        )
 
         # list of widget-generating actions for menu and toolbar
         widgetactions = (
-            'add.page',
-            'add.grid',
-            'add.graph',
-            'add.axismenu',
-            'add.axis3d',
-            'add.xy',
-            'add.nonorthpoint',
-            'add.point3d',
-            'add.bar',
-            'add.histo',
-            'add.fit',
-            'add.function',
-            'add.nonorthfunc',
-            'add.function3d',
-            'add.boxplot',
-            'add.image',
-            'add.surface3d',
-            'add.contour',
-            'add.volume3d',
-            'add.vectorfield',
-            'add.key',
-            'add.label',
-            'add.colorbar',
-            'add.polar',
-            'add.ternary',
-            'add.scene3d',
-            'add.graph3d',
-            'add.covariance',
-            'add.shapemenu',
-            'add.proportions',
+            "add.page",
+            "add.grid",
+            "add.graph",
+            "add.axismenu",
+            "add.axis3d",
+            "add.xy",
+            "add.nonorthpoint",
+            "add.point3d",
+            "add.bar",
+            "add.xypie",
+            "add.histo",
+            "add.fit",
+            "add.function",
+            "add.nonorthfunc",
+            "add.function3d",
+            "add.boxplot",
+            "add.image",
+            "add.surface3d",
+            "add.contour",
+            "add.volume3d",
+            "add.vectorfield",
+            "add.key",
+            "add.label",
+            "add.colorbar",
+            "add.polar",
+            "add.ternary",
+            "add.scene3d",
+            "add.graph3d",
+            "add.covariance",
+            "add.shapemenu",
         )
 
         # separate menus for adding shapes and axis types
         shapemenu = qt.QMenu(self)
-        shapemenu.addActions( [actions[act] for act in (
-            'add.rect',
-            'add.ellipse',
-            'add.line',
-            'add.imagefile',
-            'add.svgfile',
-            'add.polygon',
-        )])
-        actions['add.shapemenu'].setMenu(shapemenu)
+        shapemenu.addActions(
+            [
+                actions[act]
+                for act in (
+                    "add.rect",
+                    "add.ellipse",
+                    "add.line",
+                    "add.imagefile",
+                    "add.svgfile",
+                    "add.polygon",
+                )
+            ]
+        )
+        actions["add.shapemenu"].setMenu(shapemenu)
 
         axismenu = qt.QMenu(self)
-        axismenu.addActions( [actions[act] for act in (
-            'add.axis',
-            'add.axis-broken',
-            'add.axis-function',
-        )])
-        actions['add.axismenu'].setMenu(axismenu)
-        actions['add.axismenu'].triggered.connect(actions['add.axis'].trigger)
+        axismenu.addActions(
+            [
+                actions[act]
+                for act in (
+                    "add.axis",
+                    "add.axis-broken",
+                    "add.axis-function",
+                )
+            ]
+        )
+        actions["add.axismenu"].setMenu(axismenu)
+        actions["add.axismenu"].triggered.connect(actions["add.axis"].trigger)
 
         menuitems = (
-            ('insert', '', widgetactions),
-            ('edit', '', (
-                'edit.cut',
-                'edit.copy',
-                'edit.copy_as_image',
-                'edit.paste',
-                'edit.delete',
-                'edit.rename',
-                'edit.moveup',
-                'edit.movedown',
-                'edit.show',
-                'edit.hide',
-            )),
+            ("insert", "", widgetactions),
+            (
+                "edit",
+                "",
+                (
+                    "edit.cut",
+                    "edit.copy",
+                    "edit.copy_as_image",
+                    "edit.paste",
+                    "edit.delete",
+                    "edit.rename",
+                    "edit.moveup",
+                    "edit.movedown",
+                    "edit.show",
+                    "edit.hide",
+                ),
+            ),
         )
         utils.constructMenus(
-            self.parentwin.menuBar(),
-            self.parentwin.menus,
-            menuitems,
-            actions
+            self.parentwin.menuBar(), self.parentwin.menus, menuitems, actions
         )
 
         # add actions to toolbar to create widgets
@@ -1148,24 +1253,28 @@ class TreeEditDock(qt.QDockWidget):
 
         # add action to toolbar for editing
         utils.addToolbarActions(
-            self.edittoolbar,  actions,
+            self.edittoolbar,
+            actions,
             (
-                'edit.cut', 'edit.copy', 'edit.paste',
-                'edit.moveup', 'edit.movedown',
-                'edit.delete', 'edit.rename',
-            )
+                "edit.cut",
+                "edit.copy",
+                "edit.paste",
+                "edit.moveup",
+                "edit.movedown",
+                "edit.delete",
+                "edit.rename",
+            ),
         )
 
-        self.parentwin.menus['edit.select'].aboutToShow.connect(
-            self.updateSelectMenu)
+        self.parentwin.menus["edit.select"].aboutToShow.connect(self.updateSelectMenu)
 
     def slotMakeWidgetButton(self, wc):
         """User clicks button to make widget."""
         self.makeWidget(wc.typename)
 
     def slotShowShapeMenu(self):
-        a = self.vzactions['add.shapemenu']
-        a.menu().popup( qt.QCursor.pos() )
+        a = self.vzactions["add.shapemenu"]
+        a.menu().popup(qt.QCursor.pos())
 
     def makeWidget(self, widgettype, autoadd=True, name=None):
         """Called when an add widget button is clicked.
@@ -1186,8 +1295,8 @@ class TreeEditDock(qt.QDockWidget):
 
         # make the new widget and update the document
         w = self.document.applyOperation(
-            document.OperationWidgetAdd(
-                parent, widgettype, autoadd=autoadd, name=name) )
+            document.OperationWidgetAdd(parent, widgettype, autoadd=autoadd, name=name)
+        )
 
         # select the widget
         self.selectWidget(w)
@@ -1211,10 +1320,11 @@ class TreeEditDock(qt.QDockWidget):
     def slotWidgetCopyAsImage(self):
         """Copy current page to the clipboard as image files."""
         # general image extentions and their mime types exportable from document
-        exts = {'svg': ['image/svg+xml'],
-                'png': ['image/png', 'PNG'],
-                'bmp': ['image/x-bmp'],
-                }
+        exts = {
+            "svg": ["image/svg+xml"],
+            "png": ["image/png", "PNG"],
+            "bmp": ["image/x-bmp"],
+        }
 
         def checkDone(export, exts):
             """Check whether exporting pages as images has finished."""
@@ -1228,8 +1338,8 @@ class TreeEditDock(qt.QDockWidget):
                 # set images to QMimeData
                 for ext, mimes in exts.items():
                     try:
-                        fname = os.path.join(tmpdir.name, 'tmp.{}'.format(ext))
-                        with open(fname, 'rb') as fo:
+                        fname = os.path.join(tmpdir.name, "tmp.{}".format(ext))
+                        with open(fname, "rb") as fo:
                             bs = fo.read()
                         for mime in mimes:
                             data.setData(mime, bs)
@@ -1242,21 +1352,23 @@ class TreeEditDock(qt.QDockWidget):
                 tmpdir.cleanup()
 
             except:
-                qt.QMessageBox.critical(self, _("Error - Veusz"), _("Error while exporting images"))
+                qt.QMessageBox.critical(
+                    self, _("Error - Veusz"), _("Error while exporting images")
+                )
             self.checktimer.stop()
 
         # read settings from settingdb
         setdb = setting.settingdb
         export = document.AsyncExport(
             self.document,
-            bitmapdpi=setdb['export_DPI'],
-            pdfdpi=setdb['export_DPI_PDF2'],
-            antialias=setdb['export_antialias'],
-            color=setdb['export_color'],
-            quality=setdb['export_quality'],
-            backcolor=setdb['export_background'],
-            svgtextastext=setdb['export_SVG_text_as_text'],
-            svgdpi=setdb['export_DPI_SVG'],
+            bitmapdpi=setdb["export_DPI"],
+            pdfdpi=setdb["export_DPI_PDF2"],
+            antialias=setdb["export_antialias"],
+            color=setdb["export_color"],
+            quality=setdb["export_quality"],
+            backcolor=setdb["export_background"],
+            svgtextastext=setdb["export_SVG_text_as_text"],
+            svgdpi=setdb["export_DPI_SVG"],
         )
 
         tmpdir = tempfile.TemporaryDirectory()
@@ -1264,7 +1376,7 @@ class TreeEditDock(qt.QDockWidget):
 
         # export images to temporary files
         for ext in exts:
-            fname = os.path.join(tmpdir.name, 'tmp.{}'.format(ext))
+            fname = os.path.join(tmpdir.name, "tmp.{}".format(ext))
             export.add(fname, pages)
 
         # copy images to clipboard after finishing export
@@ -1281,7 +1393,7 @@ class TreeEditDock(qt.QDockWidget):
             show = False
         else:
             show = document.isWidgetMimePastable(self.selwidgets[0], data)
-        self.vzactions['edit.paste'].setEnabled(show)
+        self.vzactions["edit.paste"].setEnabled(show)
 
     def doInitialWidgetSelect(self):
         """Select a sensible initial widget."""
@@ -1324,8 +1436,7 @@ class TreeEditDock(qt.QDockWidget):
         minindex = min(indexes)
 
         # delete selected widget
-        self.document.applyOperation(
-            document.OperationWidgetsDelete(widgets))
+        self.document.applyOperation(document.OperationWidgetsDelete(widgets))
 
         # rebuild list
         widgetlist = []
@@ -1348,7 +1459,7 @@ class TreeEditDock(qt.QDockWidget):
         if len(selected) != 0:
             self.treeview.edit(selected[0])
 
-    def selectWidget(self, widget, mode='new'):
+    def selectWidget(self, widget, mode="new"):
         """Select the associated listviewitem for the widget w in the
         listview.
 
@@ -1363,13 +1474,17 @@ class TreeEditDock(qt.QDockWidget):
         if index is not None:
             self.treeview.scrollTo(index)
 
-            flags = qt.QItemSelectionModel.SelectionFlag.Rows | {
-                'new':  (
-                    qt.QItemSelectionModel.SelectionFlag.ClearAndSelect |
-                    qt.QItemSelectionModel.SelectionFlag.Current),
-                'add': qt.QItemSelectionModel.SelectionFlag.Select,
-                'toggle': qt.QItemSelectionModel.SelectionFlag.Toggle,
-            }[mode]
+            flags = (
+                qt.QItemSelectionModel.SelectionFlag.Rows
+                | {
+                    "new": (
+                        qt.QItemSelectionModel.SelectionFlag.ClearAndSelect
+                        | qt.QItemSelectionModel.SelectionFlag.Current
+                    ),
+                    "add": qt.QItemSelectionModel.SelectionFlag.Select,
+                    "toggle": qt.QItemSelectionModel.SelectionFlag.Toggle,
+                }[mode]
+            )
 
             self.treeview.selectionModel().select(index, flags)
 
@@ -1386,8 +1501,7 @@ class TreeEditDock(qt.QDockWidget):
         w = self.selwidgets[0]
 
         # actually move the widget
-        self.document.applyOperation(
-            document.OperationWidgetMoveUpDown(w, direction) )
+        self.document.applyOperation(document.OperationWidgetMoveUpDown(w, direction))
 
         # re-highlight moved widget
         self.selectWidget(w)
@@ -1395,24 +1509,26 @@ class TreeEditDock(qt.QDockWidget):
     def slotWidgetHide(self):
         """Hide selected widgets."""
         ops = [
-            document.OperationSettingSet(w.settings.get('hide'), True)
+            document.OperationSettingSet(w.settings.get("hide"), True)
             for w in self.selwidgets
-            if 'hide' in w.settings
+            if "hide" in w.settings
         ]
         self.document.applyOperation(
-            document.OperationMultiple(ops, descr=_('hide widgets')))
+            document.OperationMultiple(ops, descr=_("hide widgets"))
+        )
         # update state of action after hiding
         self._enableCorrectButtons()
 
     def slotWidgetShow(self):
         """Hide selected widgets."""
         ops = [
-            document.OperationSettingSet(w.settings.get('hide'), False)
+            document.OperationSettingSet(w.settings.get("hide"), False)
             for w in self.selwidgets
-            if 'hide' in w.settings
+            if "hide" in w.settings
         ]
         self.document.applyOperation(
-            document.OperationMultiple(ops, descr=_('show widgets')))
+            document.OperationMultiple(ops, descr=_("show widgets"))
+        )
         # update state of action after hiding
         self._enableCorrectButtons()
 
@@ -1424,17 +1540,20 @@ class TreeEditDock(qt.QDockWidget):
     def _selectWidgetsTypeAndOrName(self, wtype, wname, root=None):
         """Select widgets with type or name given.
         Give None if you don't care for either."""
+
         def selectwidget(path, w):
             """Select widget if of type or name given."""
-            if ( (wtype is None or w.typename == wtype) and
-                 (wname is None or w.name == wname) ):
+            if (wtype is None or w.typename == wtype) and (
+                wname is None or w.name == wname
+            ):
                 idx = self.treemodel.getWidgetIndex(w)
                 self.treeview.selectionModel().select(
                     idx,
-                    qt.QItemSelectionModel.SelectionFlag.Select |
-                    qt.QItemSelectionModel.SelectionFlag.Rows)
+                    qt.QItemSelectionModel.SelectionFlag.Select
+                    | qt.QItemSelectionModel.SelectionFlag.Rows,
+                )
 
-        self.document.walkNodes(selectwidget, nodetypes=('widget',), root=root)
+        self.document.walkNodes(selectwidget, nodetypes=("widget",), root=root)
 
     def _selectWidgetSiblings(self, w, wtype):
         """Select siblings of widget given with type."""
@@ -1447,12 +1566,13 @@ class TreeEditDock(qt.QDockWidget):
                 idx = self.treemodel.getWidgetIndex(c)
                 self.treeview.selectionModel().select(
                     idx,
-                    qt.QItemSelectionModel.SelectionFlag.Select |
-                    qt.QItemSelectionModel.SelectionFlag.Rows)
+                    qt.QItemSelectionModel.SelectionFlag.Select
+                    | qt.QItemSelectionModel.SelectionFlag.Rows,
+                )
 
     def updateSelectMenu(self):
         """Update edit.select menu."""
-        menu = self.parentwin.menus['edit.select']
+        menu = self.parentwin.menus["edit.select"]
         menu.clear()
 
         if len(self.selwidgets) == 0:
@@ -1464,26 +1584,31 @@ class TreeEditDock(qt.QDockWidget):
 
         # get page widget for selecting on page
         page = widget
-        while page is not None and page.typename != 'page':
+        while page is not None and page.typename != "page":
             page = page.parent
 
         menu.addAction(
             _("All '%s' widgets") % wtype,
-            lambda: self._selectWidgetsTypeAndOrName(wtype, None))
+            lambda: self._selectWidgetsTypeAndOrName(wtype, None),
+        )
         menu.addAction(
             _("Siblings of '%s' with type '%s'") % (name, wtype),
-            lambda: self._selectWidgetSiblings(widget, wtype))
+            lambda: self._selectWidgetSiblings(widget, wtype),
+        )
         menu.addAction(
             _("All '%s' widgets called '%s'") % (wtype, name),
-            lambda: self._selectWidgetsTypeAndOrName(wtype, name))
+            lambda: self._selectWidgetsTypeAndOrName(wtype, name),
+        )
         menu.addAction(
             _("All widgets called '%s'") % name,
-            lambda: self._selectWidgetsTypeAndOrName(None, name))
+            lambda: self._selectWidgetsTypeAndOrName(None, name),
+        )
         if page and page is not widget:
             menu.addAction(
                 _("All widgets called '%s' on page '%s'") % (name, page.name),
-                lambda: self._selectWidgetsTypeAndOrName(
-                    None, name, root=page))
+                lambda: self._selectWidgetsTypeAndOrName(None, name, root=page),
+            )
+
 
 class SettingLabel(qt.QWidget):
     """A label to describe a setting.
@@ -1508,7 +1633,7 @@ class SettingLabel(qt.QWidget):
         self.setnsproxy = setnsproxy
 
         self.layout = qt.QHBoxLayout(self)
-        self.layout.setContentsMargins(2,2,2,2)
+        self.layout.setContentsMargins(2, 2, 2, 2)
 
         if setting.usertext:
             text = setting.usertext
@@ -1531,14 +1656,13 @@ class SettingLabel(qt.QWidget):
 
     def mouseReleaseEvent(self, event):
         """Emit signalClicked(pos) on mouse release."""
-        self.signalClicked.emit( self.mapToGlobal(event.pos()) )
+        self.signalClicked.emit(self.mapToGlobal(event.pos()))
         return qt.QWidget.mouseReleaseEvent(self, event)
 
     def keyReleaseEvent(self, event):
         """Emit signalClicked(pos) on key release."""
         if event.key() == qt.Qt.Key.Key_Space:
-            self.signalClicked.emit(
-                self.mapToGlobal(self.iconlabel.pos()) )
+            self.signalClicked.emit(self.mapToGlobal(self.iconlabel.pos()))
             event.accept()
         else:
             return qt.QWidget.keyReleaseEvent(self, event)
@@ -1558,25 +1682,25 @@ class SettingLabel(qt.QWidget):
         tooltip = self.setting.descr
         if self.setting.isReference():
             paths = self.setting.getReference().getPaths()
-            tooltip += _('\nLinked to: %s') % ', '.join(paths)
+            tooltip += _("\nLinked to: %s") % ", ".join(paths)
         self.setToolTip(tooltip)
 
         # if not default, make label bold
         f = qt.QFont(self.labelicon.font())
         multivalued = self.setnsproxy.multivalued(self.setting.name)
-        f.setBold( (not self.setting.isDefault()) or multivalued )
-        f.setItalic( multivalued )
+        f.setBold((not self.setting.isDefault()) or multivalued)
+        f.setItalic(multivalued)
         self.labelicon.setFont(f)
 
     def updateHighlight(self):
         """Show drop down arrow if item has focus."""
         if self.inmouse or self.infocus or self.inmenu:
-            pixmap = 'veusz-dropdown.svg'
+            pixmap = "veusz-dropdown.svg"
         else:
             if self.setting.isReference() and not self.setting.isDefault():
-                pixmap = 'veusz-dropdown-link.svg'
+                pixmap = "veusz-dropdown-link.svg"
             else:
-                pixmap = 'veusz-dropdown-blank.svg'
+                pixmap = "veusz-dropdown-blank.svg"
 
         self.iconlabel.setPixmap(utils.getPixmap(pixmap))
 
@@ -1620,8 +1744,7 @@ class SettingLabel(qt.QWidget):
         setwidget = self.setting.getWidget()
         if setwidget is None:
             return
-        getWidgetsOfType(
-            self.document.basewidget, setwidget.typename, widgets)
+        getWidgetsOfType(self.document.basewidget, setwidget.typename, widgets)
         widgets = [w.path for w in widgets if w != setwidget]
         widgets.sort()
 
@@ -1630,14 +1753,16 @@ class SettingLabel(qt.QWidget):
         # note setpath needs to include Settings part of path too
         setpath = self.setting.path
         wpath = self.setting.getWidget().path
-        setpath = setpath[len(wpath):]  # includes /
+        setpath = setpath[len(wpath) :]  # includes /
 
         def modifyfn(widget):
             def modify():
                 """Modify the setting for the widget given."""
                 wpath = widget + setpath
                 self.document.applyOperation(
-                    document.OperationSettingSet(wpath, self.setting.get()))
+                    document.OperationSettingSet(wpath, self.setting.get())
+                )
+
             return modify
 
         for widget in widgets:
@@ -1665,36 +1790,27 @@ class SettingLabel(qt.QWidget):
         name = widget.name
 
         popup = qt.QMenu(self)
-        popup.addAction(
-            _('Reset to default'),
-            self.actionResetDefault)
+        popup.addAction(_("Reset to default"), self.actionResetDefault)
 
-        if self.setting.path[:12] != '/StyleSheet/':
+        if self.setting.path[:12] != "/StyleSheet/":
             # settings not relevant for style sheet items
 
-            copyto = popup.addMenu(_('Copy to'))
-            copyto.addAction(
-                _("all '%s' widgets") % wtype,
-                self.actionCopyTypedWidgets)
-            copyto.addAction(
-                _("'%s' siblings") % wtype,
-                self.actionCopyTypedSiblings)
+            copyto = popup.addMenu(_("Copy to"))
+            copyto.addAction(_("all '%s' widgets") % wtype, self.actionCopyTypedWidgets)
+            copyto.addAction(_("'%s' siblings") % wtype, self.actionCopyTypedSiblings)
             copyto.addAction(
                 _("'%s' widgets called '%s'") % (wtype, name),
-                self.actionCopyTypedNamedWidgets)
+                self.actionCopyTypedNamedWidgets,
+            )
             copyto.addSeparator()
             self.addCopyToWidgets(copyto)
 
-            popup.addAction(
-                _('Use as default style'),
-                self.actionSetStyleSheet)
+            popup.addAction(_("Use as default style"), self.actionSetStyleSheet)
 
         # special actions for references
         if self.setting.isReference():
             popup.addSeparator()
-            popup.addAction(
-                _('Unlink setting'),
-                self.actionUnlinkSetting)
+            popup.addAction(_("Unlink setting"), self.actionUnlinkSetting)
 
         self.inmenu = True
         self.updateHighlight()
@@ -1708,29 +1824,29 @@ class SettingLabel(qt.QWidget):
 
     def actionCopyTypedWidgets(self):
         """Copy setting to widgets of same type."""
-        self.document.applyOperation(
-            document.OperationSettingPropagate(self.setting) )
+        self.document.applyOperation(document.OperationSettingPropagate(self.setting))
 
     def actionCopyTypedSiblings(self):
         """Copy setting to siblings of the same type."""
         self.document.applyOperation(
             document.OperationSettingPropagate(
-                self.setting,
-                root=self._clickwidget.parent,
-                maxlevels=1) )
+                self.setting, root=self._clickwidget.parent, maxlevels=1
+            )
+        )
 
     def actionCopyTypedNamedWidgets(self):
         """Copy setting to widgets with the same name and type."""
         self.document.applyOperation(
             document.OperationSettingPropagate(
-                self.setting,
-                widgetname=
-                self._clickwidget.name) )
+                self.setting, widgetname=self._clickwidget.name
+            )
+        )
 
     def actionUnlinkSetting(self):
         """Unlink the setting if it is a reference."""
         self.document.applyOperation(
-            document.OperationSettingSet(self.setting, self.setting.get()) )
+            document.OperationSettingSet(self.setting, self.setting.get())
+        )
 
     def actionSetStyleSheet(self):
         """Use the setting as the default in the stylesheet."""
@@ -1742,8 +1858,8 @@ class SettingLabel(qt.QWidget):
             document.OperationMultiple(
                 [
                     document.OperationSettingSet(sslink, self.setting.get()),
-                    document.OperationSettingSet(
-                        self.setting, self.setting.default)
+                    document.OperationSettingSet(self.setting, self.setting.default),
                 ],
-                descr=_("make default style"))
+                descr=_("make default style"),
+            )
         )
