@@ -1,3 +1,13 @@
+Changes in 4.2.1.3:
+  * X/Y pie scatter (xypie) widget: rework with clean data vs format panels aligned with xy/bar
+  * XYPie: unified Shape/Slice terminology and matching internal fields
+  * XYPie: per-slice error bars on bar shapes (slice dataset err columns or ciMode sources, bar-only)
+  * XYPie: bar geometry now matches the bar widget (grouped bars centred in slots,
+    barfill/groupfill semantics, stacked bars from the baseline, error bars on the bar)
+  * XYPie: multi-row slice data / key text usable in a new document (no more dead empty field)
+  * XYPie: redesign toolbar icon with bar + pie/donut glyphs
+  * Expand xypie example (pie/donut/bar glyph showcases, labels mode)
+
 Changes in 4.2.1.2:
   * Redesign ProportionalScatter toolbar icon with modern color palette and cleaner visual style
   * Fix Windows taskbar icon display (combine SVG with multi-size PNG fallbacks)
