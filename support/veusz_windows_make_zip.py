@@ -28,9 +28,11 @@ def main(argv):
 
     if not os.path.isdir(distdir):
         print(f"ERROR: build output not found at {distdir}")
-        print("Run PyInstaller first: pixi run python -m PyInstaller "
-              "support/veusz_windows_pyinst.spec --distpath support/dist "
-              "--workpath support/build")
+        print(
+            "Run PyInstaller first: pixi run python -m PyInstaller "
+            "support/veusz_windows_pyinst.spec --distpath support/dist "
+            "--workpath support/build"
+        )
         return 1
 
     # Strip the 'veusz_main' root dir so the zip unpacks to veusz.exe etc.
