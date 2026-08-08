@@ -43,30 +43,26 @@ def _shapeShowfn(val):
     """Show/hide shape-specific settings based on the Shape choice.
 
     Return (show, hide) lists of setting names, following the
-    ChoiceSwitch showfn convention. Donut/buffer settings are hidden
-    unless the matching shape is selected.
+    ChoiceSwitch showfn convention. Error-bar / CI settings only apply
+    to the bar shape, so they hide for pie and donut.
     """
+    bar_show = [
+        "barMode",
+        "barDirection",
+        "barfill",
+        "groupfill",
+        "errorstyle",
+        "ciMode",
+        "ciYMin",
+        "ciYMax",
+        "ciYError",
+        "ciMultiplier",
+    ]
     if val == "donut":
-        return (
-            ("innerRadius",),
-            ("barMode", "barDirection", "barfill", "groupfill", "errorstyle"),
-        )
+        return (("innerRadius",), bar_show)
     if val == "bar":
-        return (
-            ("barMode", "barDirection", "barfill", "groupfill", "errorstyle"),
-            ("innerRadius",),
-        )
-    return (
-        (),
-        (
-            "barMode",
-            "barDirection",
-            "barfill",
-            "groupfill",
-            "errorstyle",
-            "innerRadius",
-        ),
-    )
+        return (bar_show, ("innerRadius",))
+    return ((), bar_show + ["innerRadius"])
 
 
 def _ciModeShowfn(val):
@@ -728,13 +724,15 @@ class XYPie(plotters.GenericPlotter):
             highfrac = err_high / total if total else 0.0
 
             # perpendicular position of this bar (x for vertical bars,
-            # y for horizontal bars)
-            slot = size / max(1, n)
+            # y for horizontal bars). grouped bars sit in slots of width
+            # size*groupfill/n (matches _drawBar), centred in each slot.
             if grouped:
+                groupsize = size * groupfill
+                slot = groupsize / max(1, n)
                 barpos = (
-                    cx - size * groupfill / 2 + (idx + 0.5) * slot
+                    cx - groupsize / 2 + (idx + 0.5) * slot
                     if not ishorz
-                    else cy - size * groupfill / 2 + (idx + 0.5) * slot
+                    else cy - groupsize / 2 + (idx + 0.5) * slot
                 )
             else:
                 # stacked bars occupy the whole extent, centred
