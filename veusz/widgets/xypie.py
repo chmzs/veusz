@@ -586,8 +586,10 @@ class XYPie(plotters.GenericPlotter):
     def _drawBar(self, painter, cx, cy, radius, vals, slices, i, axes, widgetposn):
         """Draw mini bars (one per slice), grouped or stacked.
 
-        In grouped mode bars are aligned to the baseline (cy for vertical
-        bars, cx for horizontal). barfill/groupfill control bar thickness.
+        Geometry follows the bar widget: grouped bars are centred in slots
+        of width size*groupfill/n with thickness barfill of the slot;
+        stacked bars form one bar of thickness size*barfill with segments
+        laid end-to-end from the baseline.
         """
         total = float(N.nansum(N.abs(vals)))
         if total <= 0:
@@ -600,42 +602,48 @@ class XYPie(plotters.GenericPlotter):
         barfill = s.get("barfill").val
         groupfill = s.get("groupfill").val
 
-        # usable extent perpendicular to bars / along the bars
-        groupsize = size * groupfill
-        barthick = (size / max(1, n)) * barfill
-
         if grouped:
-            # bars side by side, baseline-aligned, thickness = barfill of slot
+            # bars side by side, centred in their slots; thickness = barfill
+            # of the slot width (mirrors bar.py barDrawGroup)
+            groupsize = size * groupfill
+            slot = groupsize / max(1, n)
+            barthick = slot * barfill
             for idx, v in enumerate(vals):
                 if not N.isfinite(v) or v == 0:
                     continue
                 frac = float(abs(v)) / total
                 if ishorz:
-                    # horizontal bars: extend right from the centre-left line
-                    y0 = cy - groupsize / 2 + idx * (groupsize / n)
+                    # horizontal: grow right from the centre-left baseline
+                    y0 = cy - groupsize / 2 + idx * slot + (slot - barthick) / 2
                     rect = qt.QRectF(cx - size / 2, y0, size * frac, barthick)
                 else:
-                    # vertical bars: extend upward from the baseline (cy)
-                    x0 = cx - groupsize / 2 + idx * (groupsize / n)
+                    # vertical: grow up from the baseline (cy)
+                    x0 = cx - groupsize / 2 + idx * slot + (slot - barthick) / 2
                     rect = qt.QRectF(x0, cy - size * frac, barthick, size * frac)
                 path = qt.QPainterPath()
                 path.addRect(rect)
                 self._fillSlice(painter, idx, path, dataindex=idx)
         else:
-            # stacked bars: segments laid end-to-end along one length
-            posn = -size / 2
+            # stacked: one bar of thickness size*barfill (like bar.py
+            # barDrawStacked: maxwidth*barfill), segments end-to-end
+            barthick = size * barfill
+            posn = 0.0
             for idx, v in enumerate(vals):
                 if not N.isfinite(v) or v == 0:
                     continue
                 frac = float(abs(v)) / total
                 if ishorz:
-                    # horizontal segments stacked from the left centre
+                    # grow right from the left edge, stacked along x
                     rect = qt.QRectF(
                         cx - size / 2 + posn, cy - barthick / 2, size * frac, barthick
                     )
                 else:
+                    # grow up from the bottom edge (baseline at cy+size/2)
                     rect = qt.QRectF(
-                        cx - barthick / 2, cy + posn, barthick, size * frac
+                        cx - barthick / 2,
+                        cy + size / 2 - posn - size * frac,
+                        barthick,
+                        size * frac,
                     )
                 path = qt.QPainterPath()
                 path.addRect(rect)
@@ -679,7 +687,6 @@ class XYPie(plotters.GenericPlotter):
         painter.setPen(pen)
         size = radius * 2
         groupfill = s.get("groupfill").val
-        barfill = s.get("barfill").val
         style = s.get("errorstyle").val
         ends = style == "barends"
         w = ebl.endsize
@@ -725,24 +732,31 @@ class XYPie(plotters.GenericPlotter):
             highfrac = err_high / total if total else 0.0
 
             # perpendicular position of this bar (x for vertical bars,
-            # y for horizontal bars). grouped bars sit in slots of width
-            # size*groupfill/n (matches _drawBar), centred in each slot.
+            # y for horizontal bars). grouped bars are centred in their
+            # slots; the stacked bar occupies the full extent, centred.
             if grouped:
                 groupsize = size * groupfill
                 slot = groupsize / max(1, n)
-                barthick = (size / max(1, n)) * barfill
                 base = cx if not ishorz else cy
-                # bars are left-aligned in their slots with width barthick;
-                # put the error bar on the bar centre (slot centre would be
-                # offset towards the right whenever barfill < 1)
-                barpos = base - groupsize / 2 + idx * slot + barthick / 2
+                barpos = base - groupsize / 2 + (idx + 0.5) * slot
             else:
-                # stacked bars occupy the whole extent, centred
                 barpos = cx if not ishorz else cy
+
+            # value-axis position of the error: grouped uses the slice's own
+            # bar tip; stacked uses the cumulative stack position (bar.py
+            # draws stacked error bars at the cumulative value).
+            if grouped:
+                vfrac = frac
+            else:
+                vfrac = 0.0
+                for j in range(idx + 1):
+                    vj = vals[j]
+                    if N.isfinite(vj) and vj != 0:
+                        vfrac += abs(vj) / total
 
             if ishorz:
                 # horizontal: error along the value (x) axis from the bar tip
-                xb = cx - size / 2 + size * frac
+                xb = cx - size / 2 + size * vfrac
                 y = barpos
                 x_high = xb + size * highfrac
                 x_low = xb - size * lowfrac
@@ -753,9 +767,11 @@ class XYPie(plotters.GenericPlotter):
                     )
                     painter.drawLine(qt.QPointF(x_low, y - w), qt.QPointF(x_low, y + w))
             else:
-                # vertical: error above the bar tip
+                # vertical: error above the value end (bar tip / cumulative
+                # stack top). grouped baseline is cy; stacked baseline is the
+                # bottom edge cy+size/2 (matches _drawBar).
                 x = barpos
-                yb = cy - size * frac  # bar tip (value end)
+                yb = (cy + size / 2 if not grouped else cy) - size * vfrac
                 y_high = yb - size * highfrac
                 y_low = yb + size * lowfrac
                 painter.drawLine(qt.QPointF(x, y_low), qt.QPointF(x, y_high))
