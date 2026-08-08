@@ -679,6 +679,7 @@ class XYPie(plotters.GenericPlotter):
         painter.setPen(pen)
         size = radius * 2
         groupfill = s.get("groupfill").val
+        barfill = s.get("barfill").val
         style = s.get("errorstyle").val
         ends = style == "barends"
         w = ebl.endsize
@@ -686,7 +687,7 @@ class XYPie(plotters.GenericPlotter):
         for idx, (_name, _data, ds) in enumerate(slices):
             if idx >= len(vals):
                 break
-            if not N.isfinite(vals[idx]):
+            if not N.isfinite(vals[idx]) or vals[idx] == 0:
                 continue
             frac = float(abs(vals[idx])) / total if total else 0.0
             # error source depends on ciMode; each slice gets its own
@@ -729,11 +730,12 @@ class XYPie(plotters.GenericPlotter):
             if grouped:
                 groupsize = size * groupfill
                 slot = groupsize / max(1, n)
-                barpos = (
-                    cx - groupsize / 2 + (idx + 0.5) * slot
-                    if not ishorz
-                    else cy - groupsize / 2 + (idx + 0.5) * slot
-                )
+                barthick = (size / max(1, n)) * barfill
+                base = cx if not ishorz else cy
+                # bars are left-aligned in their slots with width barthick;
+                # put the error bar on the bar centre (slot centre would be
+                # offset towards the right whenever barfill < 1)
+                barpos = base - groupsize / 2 + idx * slot + barthick / 2
             else:
                 # stacked bars occupy the whole extent, centred
                 barpos = cx if not ishorz else cy
