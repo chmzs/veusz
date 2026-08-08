@@ -1,5 +1,5 @@
 # Veusz saved document (version 4.2.1.2)
-# Saved at 2026-08-08T08:51:38.855934
+# Saved at 2026-08-08T09:20:11.956596
 
 SetCompatLevel(0)
 AddImportPath('I:\\Veusz_dev\\veusz\\examples')
@@ -225,6 +225,7 @@ To('..')
 Add('xypie', name='prop1', autoadd=False)
 To('prop1')
 Set('shape', 'bar')
+Set('barfill', 0.75)
 Set('xData', 'age')
 Set('yData', 'ypos')
 Set('scalePoints', [])
@@ -242,6 +243,8 @@ Set('Label/labelOffset', '1pt')
 Set('Label/posnHorz', 'left')
 Set('Label/posnVert', 'centre')
 Set('ErrorBarLine/color', 'red')
+Set('ErrorBarLine/width', '1pt')
+Set('ErrorBarLine/endsize', 2.0)
 To('..')
 To('..')
 To('..')
