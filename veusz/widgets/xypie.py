@@ -39,6 +39,46 @@ def _(text, disambiguation=None, context="XYPie"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
 
+class XYPieFill(setting.Settings):
+    """Fill of each pie/donut/bar wedge (cycled per wedge)."""
+
+    def __init__(self, name, **args):
+        setting.Settings.__init__(self, name, **args)
+        self.add(
+            setting.FillSet(
+                "fills",
+                [
+                    ("solid", "#1f77b4", False),
+                    ("solid", "#ff7f0e", False),
+                    ("solid", "#2ca02c", False),
+                    ("solid", "#d62728", False),
+                    ("solid", "#9467bd", False),
+                    ("solid", "#8c564b", False),
+                    ("solid", "#e377c2", False),
+                    ("solid", "#7f7f7f", False),
+                    ("solid", "#bcbd22", False),
+                    ("solid", "#17becf", False),
+                ],
+                descr=_("Fill styles per wedge (cycled)"),
+                usertext=_("Fill styles"),
+            )
+        )
+
+
+class XYPieLine(setting.Settings):
+    """Outline line for each wedge."""
+
+    def __init__(self, name, **args):
+        setting.Settings.__init__(self, name, **args)
+        self.add(
+            setting.Line(
+                "line",
+                descr=_("Outline line for each wedge"),
+                usertext=_("Outline line"),
+            )
+        )
+
+
 class XYPie(plotters.GenericPlotter):
     """Plot proportional data as pie/donut/bar glyphs at each point."""
 
@@ -51,6 +91,7 @@ class XYPie(plotters.GenericPlotter):
         """Construct list of settings."""
         plotters.GenericPlotter.addSettings(s)
 
+        # --- position data ---
         s.add(
             setting.DatasetExtended(
                 "xData",
@@ -73,15 +114,18 @@ class XYPie(plotters.GenericPlotter):
             setting.DatasetExtended(
                 "scalePoints",
                 "",
-                descr=_("Scale glyph area by dataset (radius ~ sqrt(value))"),
+                descr=_("Dataset giving total sample size per point "
+                        "(glyph area scales with it)"),
                 usertext=_("Scale glyphs"),
             ),
             3,
         )
+
+        # --- wedge (slice) data ---
         s.add(
             setting.Datasets(
                 "wedgeData",
-                (),
+                ("",),
                 descr=_("Datasets giving the proportions of each slice"),
                 usertext=_("Wedge data"),
             ),
@@ -90,12 +134,14 @@ class XYPie(plotters.GenericPlotter):
         s.add(
             setting.Strings(
                 "wedgeLabels",
-                (),
+                ("",),
                 descr=_("Labels for each wedge (empty = use dataset names)"),
                 usertext=_("Wedge labels"),
             ),
             5,
         )
+
+        # --- labels on axes ---
         s.add(
             setting.DatasetOrStr(
                 "labels",
@@ -109,6 +155,7 @@ class XYPie(plotters.GenericPlotter):
             6,
         )
 
+        # --- glyph appearance ---
         s.add(
             setting.DistancePt(
                 "markerSize",
@@ -116,9 +163,8 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Base size of the largest glyph"),
                 usertext=_("Glyph size"),
             ),
-            6,
+            7,
         )
-
         s.add(
             setting.Choice(
                 "glyph",
@@ -127,7 +173,7 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Glyph type: pie, donut (hollow centre) or bar"),
                 usertext=_("Glyph"),
             ),
-            7,
+            8,
         )
         s.add(
             setting.Float(
@@ -138,7 +184,7 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Donut inner radius as a fraction of the outer radius"),
                 usertext=_("Donut inner radius"),
             ),
-            8,
+            9,
         )
         s.add(
             setting.Choice(
@@ -148,7 +194,7 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Direction of the mini bar glyph (stacked mode)"),
                 usertext=_("Bar direction"),
             ),
-            9,
+            10,
         )
         s.add(
             setting.Choice(
@@ -161,9 +207,8 @@ class XYPie(plotters.GenericPlotter):
                 ),
                 usertext=_("Bar mode"),
             ),
-            10,
+            11,
         )
-
         s.add(
             setting.Bool(
                 "outline",
@@ -171,39 +216,20 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Draw a border around the glyph"),
                 usertext=_("Outline"),
             ),
-            11,
-        )
-
-        s.add(
-            setting.FillSet(
-                "Fill",
-                [
-                    ("solid", "#1f77b4", False),
-                    ("solid", "#ff7f0e", False),
-                    ("solid", "#2ca02c", False),
-                    ("solid", "#d62728", False),
-                    ("solid", "#9467bd", False),
-                    ("solid", "#8c564b", False),
-                    ("solid", "#e377c2", False),
-                    ("solid", "#7f7f7f", False),
-                    ("solid", "#bcbd22", False),
-                    ("solid", "#17becf", False),
-                ],
-                descr=_("Fill styles per wedge (cycled)"),
-                usertext=_("Fill styles"),
-            ),
             12,
         )
 
+        # --- appearance groups (nested settings, like bar) ---
         s.add(
-            setting.Line(
-                "Line",
-                descr=_("Outline line for each wedge"),
-                usertext=_("Outline line"),
-            ),
-            13,
+            XYPieFill("Fill", descr=_("Fill of each wedge"), usertext=_("Fill")),
+            pixmap="settings_bgfill",
+        )
+        s.add(
+            XYPieLine("Line", descr=_("Outline line"), usertext=_("Line")),
+            pixmap="settings_border",
         )
 
+        # --- wedge labels on glyphs ---
         s.add(
             setting.Bool(
                 "wedgeLabelShow",
@@ -213,7 +239,6 @@ class XYPie(plotters.GenericPlotter):
             ),
             14,
         )
-
         s.add(
             setting.Choice(
                 "labelPosnHorz",
@@ -224,7 +249,6 @@ class XYPie(plotters.GenericPlotter):
             ),
             15,
         )
-
         s.add(
             setting.Choice(
                 "labelPosnVert",
@@ -235,7 +259,6 @@ class XYPie(plotters.GenericPlotter):
             ),
             16,
         )
-
         s.add(
             setting.Text(
                 "Font", descr=_("Font for wedge labels"), usertext=_("Label font")
@@ -379,12 +402,12 @@ class XYPie(plotters.GenericPlotter):
 
     def _wedgeBrush(self, idx):
         """Return the BrushExtended fill for wedge idx (cycles)."""
-        return self.settings.get("Fill").returnBrushExtended(idx)
+        return self.settings.get("Fill").get("fills").returnBrushExtended(idx)
 
     def _outlinePen(self, painter):
         """QPen for glyph outline (NoPen when hidden)."""
         try:
-            return self.settings.Line.makeQPenWHide(painter)
+            return self.settings.get("Line").get("line").makeQPenWHide(painter)
         except setting.ReferenceBase.ResolveException:
             # fall back when not attached to a document tree
             return qt.QPen(qt.QColor("#000000"), 0.5)
