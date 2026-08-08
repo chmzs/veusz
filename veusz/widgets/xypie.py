@@ -39,8 +39,21 @@ def _(text, disambiguation=None, context="XYPie"):
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
 
-class XYPieFill(setting.Settings):
-    """Fill of each pie/donut/bar wedge (cycled per wedge)."""
+def _shapeShowfn(val):
+    """Show/hide glyph-structure settings based on the Shape choice.
+
+    Return (show, hide) lists of setting names, following the
+    ChoiceSwitch showfn convention.
+    """
+    if val == "donut":
+        return (("innerRadius",), ("barMode", "barDirection"))
+    if val == "bar":
+        return (("barMode", "barDirection"), ("innerRadius",))
+    return ((), ("innerRadius", "barMode", "barDirection"))
+
+
+class WedgeFill(setting.Settings):
+    """Fill of each slice (cycled per slice)."""
 
     def __init__(self, name, **args):
         setting.Settings.__init__(self, name, **args)
@@ -59,23 +72,40 @@ class XYPieFill(setting.Settings):
                     ("solid", "#bcbd22", False),
                     ("solid", "#17becf", False),
                 ],
-                descr=_("Fill styles per wedge (cycled)"),
-                usertext=_("Fill styles"),
+                descr=_("Fill styles per slice (cycled)"),
+                usertext=_("Slice fill"),
             )
         )
 
 
-class XYPieLine(setting.Settings):
-    """Outline line for each wedge."""
+class WedgeLabel(setting.Text):
+    """Wedge label settings: font (from Text) plus show and alignment."""
 
     def __init__(self, name, **args):
-        setting.Settings.__init__(self, name, **args)
+        setting.Text.__init__(self, name, **args)
         self.add(
-            setting.Line(
-                "line",
-                descr=_("Outline line for each wedge"),
-                usertext=_("Outline line"),
-            )
+            setting.Bool(
+                "show", False, descr=_("Show slice labels"), usertext=_("Show labels")
+            ),
+            0,
+        )
+        self.add(
+            setting.AlignHorz(
+                "posnHorz",
+                "centre",
+                descr=_("Horizontal alignment of labels"),
+                usertext=_("Align horz"),
+            ),
+            1,
+        )
+        self.add(
+            setting.AlignVert(
+                "posnVert",
+                "centre",
+                descr=_("Vertical alignment of labels"),
+                usertext=_("Align vert"),
+            ),
+            2,
         )
 
 
@@ -91,7 +121,7 @@ class XYPie(plotters.GenericPlotter):
         """Construct list of settings."""
         plotters.GenericPlotter.addSettings(s)
 
-        # --- position data ---
+        # --- properties: position data ---
         s.add(
             setting.DatasetExtended(
                 "xData",
@@ -99,7 +129,7 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Dataset or expression giving x positions"),
                 usertext=_("X data"),
             ),
-            1,
+            0,
         )
         s.add(
             setting.DatasetExtended(
@@ -108,72 +138,32 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Dataset or expression giving y positions"),
                 usertext=_("Y data"),
             ),
-            2,
+            1,
         )
         s.add(
             setting.DatasetExtended(
                 "scalePoints",
                 "",
-                descr=_("Dataset giving total sample size per point "
-                        "(glyph area scales with it)"),
-                usertext=_("Scale glyphs"),
-            ),
-            3,
-        )
-
-        # --- wedge (slice) data ---
-        s.add(
-            setting.Datasets(
-                "wedgeData",
-                ("",),
-                descr=_("Datasets giving the proportions of each slice"),
-                usertext=_("Wedge data"),
-            ),
-            4,
-        )
-        s.add(
-            setting.Strings(
-                "wedgeLabels",
-                ("",),
-                descr=_("Labels for each wedge (empty = use dataset names)"),
-                usertext=_("Wedge labels"),
-            ),
-            5,
-        )
-
-        # --- labels on axes ---
-        s.add(
-            setting.DatasetOrStr(
-                "labels",
-                "",
                 descr=_(
-                    "Dataset or string giving axis labels for each point. "
-                    'Requires the corresponding axis to be in "labels" mode.'
+                    "Dataset giving total sample size per point "
+                    "(glyph area scales with it)"
                 ),
-                usertext=_("Axis labels"),
+                usertext=_("Scale shapes"),
             ),
-            6,
+            2,
         )
 
-        # --- glyph appearance ---
+        # --- properties: glyph structure ---
         s.add(
-            setting.DistancePt(
-                "markerSize",
-                "5pt",
-                descr=_("Base size of the largest glyph"),
-                usertext=_("Glyph size"),
-            ),
-            7,
-        )
-        s.add(
-            setting.Choice(
+            setting.ChoiceSwitch(
                 "glyph",
                 ("pie", "donut", "bar"),
                 "pie",
-                descr=_("Glyph type: pie, donut (hollow centre) or bar"),
-                usertext=_("Glyph"),
+                showfn=_shapeShowfn,
+                descr=_("Shape to draw at each point"),
+                usertext=_("Shape"),
             ),
-            8,
+            3,
         )
         s.add(
             setting.Float(
@@ -184,17 +174,7 @@ class XYPie(plotters.GenericPlotter):
                 descr=_("Donut inner radius as a fraction of the outer radius"),
                 usertext=_("Donut inner radius"),
             ),
-            9,
-        )
-        s.add(
-            setting.Choice(
-                "barDirection",
-                ("horizontal", "vertical"),
-                "horizontal",
-                descr=_("Direction of the mini bar glyph (stacked mode)"),
-                usertext=_("Bar direction"),
-            ),
-            10,
+            4,
         )
         s.add(
             setting.Choice(
@@ -202,68 +182,92 @@ class XYPie(plotters.GenericPlotter):
                 ("stacked", "grouped"),
                 "stacked",
                 descr=_(
-                    "Bar glyph mode: stacked (segments in one bar) or "
+                    "Bar shape mode: stacked (segments in one bar) or "
                     "grouped (separate bars side by side)"
                 ),
-                usertext=_("Bar mode"),
+                usertext=_("Mode"),
+            ),
+            5,
+        )
+        s.add(
+            setting.Choice(
+                "barDirection",
+                ("horizontal", "vertical"),
+                "horizontal",
+                descr=_("Direction of the mini bar shape (stacked mode)"),
+                usertext=_("Direction"),
+            ),
+            6,
+        )
+
+        # --- properties: slice (wedge) data ---
+        s.add(
+            setting.Datasets(
+                "wedgeData",
+                ("",),
+                descr=_("Datasets giving the proportions of each slice"),
+                usertext=_("Slice data"),
+            ),
+            7,
+        )
+        s.add(
+            setting.Strings(
+                "wedgeLabels",
+                ("",),
+                descr=_("Labels for each slice (empty = use dataset names)"),
+                usertext=_("Slice labels"),
+            ),
+            8,
+        )
+        s.add(
+            setting.DatasetOrStr(
+                "labels",
+                "",
+                descr=_(
+                    "Dataset or string giving axis labels for each point. "
+                    'Requires the corresponding axis to be in "labels" mode.'
+                ),
+                usertext=_("Labels"),
+            ),
+            9,
+        )
+
+        # replace single key text with per-slice key texts
+        s.remove("key")
+        s.add(
+            setting.Strings(
+                "keys",
+                ("",),
+                descr=_("Key text for each slice (empty = use slice labels)"),
+                usertext=_("Key text"),
+            ),
+            10,
+        )
+
+        # --- format main: shape size ---
+        s.add(
+            setting.DistancePt(
+                "markerSize",
+                "5pt",
+                descr=_("Base size of the largest shape"),
+                usertext=_("Shape size"),
+                formatting=True,
             ),
             11,
         )
-        s.add(
-            setting.Bool(
-                "outline",
-                True,
-                descr=_("Draw a border around the glyph"),
-                usertext=_("Outline"),
-            ),
-            12,
-        )
 
-        # --- appearance groups (nested settings, like bar) ---
+        # --- format pages: fill, line, label ---
         s.add(
-            XYPieFill("Fill", descr=_("Fill of each wedge"), usertext=_("Fill")),
+            WedgeFill("Fill", descr=_("Fill of each slice"), usertext=_("Fill")),
             pixmap="settings_bgfill",
         )
         s.add(
-            XYPieLine("Line", descr=_("Outline line"), usertext=_("Line")),
+            setting.Line("Line", descr=_("Outline line"), usertext=_("Line")),
             pixmap="settings_border",
         )
-
-        # --- wedge labels on glyphs ---
         s.add(
-            setting.Bool(
-                "wedgeLabelShow",
-                False,
-                descr=_("Show wedge labels"),
-                usertext=_("Show labels"),
-            ),
-            14,
-        )
-        s.add(
-            setting.Choice(
-                "labelPosnHorz",
-                ("left", "centre", "right"),
-                "centre",
-                descr=_("Horizontal alignment of wedge labels"),
-                usertext=_("Label align horiz"),
-            ),
-            15,
-        )
-        s.add(
-            setting.Choice(
-                "labelPosnVert",
-                ("top", "centre", "bottom"),
-                "centre",
-                descr=_("Vertical alignment of wedge labels"),
-                usertext=_("Label align vert"),
-            ),
-            16,
-        )
-        s.add(
-            setting.Text(
-                "Font", descr=_("Font for wedge labels"), usertext=_("Label font")
-            ),
-            17,
+            WedgeLabel("Label", descr=_("Slice label font"), usertext=_("Label")),
+            pixmap="settings_axislabel",
         )
 
     def affectsAxisRange(self):
@@ -307,11 +311,18 @@ class XYPie(plotters.GenericPlotter):
         return ""
 
     def getNumberKeys(self):
-        if self.settings.key:
-            return len(self._wedgeNames()) or 1
-        return 0
+        """Number of key entries = non-empty key texts, else slice count."""
+        if not self._wedgeNames():
+            return 0
+        keys = self.settings.keys
+        nonempty = [k for k in keys if k]
+        return len(nonempty) or len(self._wedgeNames())
 
     def getKeyText(self, number):
+        """Return key text for entry number (falls back to slice label)."""
+        keys = self.settings.keys
+        if number < len(keys) and keys[number]:
+            return keys[number]
         return self._wedgeLabel(number)
 
     def drawKeySymbol(self, number, painter, x, y, width, height):
@@ -327,8 +338,9 @@ class XYPie(plotters.GenericPlotter):
     def _getWedgeData(self):
         """Resolve wedge datasets into a list of numeric arrays (or None).
 
-        Filters out empty-name entries so that a Datasets control that
-        contains a trailing empty string does not crash.
+        Missing or empty-name datasets are skipped silently (like bar's
+        lengths); only return None when every wedge dataset is missing or
+        empty, so one bad entry does not hide the whole plot.
         """
         names = self._wedgeNames()
         if not names:
@@ -337,9 +349,9 @@ class XYPie(plotters.GenericPlotter):
         for name in names:
             ds = self.document.getData(name)
             if ds is None or ds.data is None:
-                return None
+                continue
             out.append(N.asarray(ds.data, dtype=float))
-        return out
+        return out or None
 
     def _getRadii(self, npts, markersize):
         """Per-point radii, area proportional to scalePoints (radius~sqrt)."""
@@ -405,9 +417,9 @@ class XYPie(plotters.GenericPlotter):
         return self.settings.get("Fill").get("fills").returnBrushExtended(idx)
 
     def _outlinePen(self, painter):
-        """QPen for glyph outline (NoPen when hidden)."""
+        """QPen for slice outline (NoPen when line hidden)."""
         try:
-            return self.settings.get("Line").get("line").makeQPenWHide(painter)
+            return self.settings.Line.makeQPenWHide(painter)
         except setting.ReferenceBase.ResolveException:
             # fall back when not attached to a document tree
             return qt.QPen(qt.QColor("#000000"), 0.5)
@@ -431,13 +443,21 @@ class XYPie(plotters.GenericPlotter):
             painter.setPen(pen)
             painter.drawPath(path)
 
+    def _labelVisible(self):
+        """Is slice label visible (settings exist and show is on)?"""
+        try:
+            return self.settings.Label.show
+        except AttributeError:
+            return False
+
     def _renderLabel(self, painter, x, y, label):
-        """Render a wedge/bar label at (x, y) with the Font settings."""
-        pen = self.settings.Font.makeQPen(painter)
+        """Render a slice label at (x, y) with the Label settings."""
+        label_s = self.settings.Label
+        pen = label_s.makeQPen(painter)
         painter.setPen(pen)
-        font = self.settings.Font.makeQFont(painter)
-        ah = {"left": 1, "centre": 0, "right": -1}[self.settings.labelPosnHorz]
-        av = {"top": -1, "centre": 0, "bottom": 1}[self.settings.labelPosnVert]
+        font = label_s.makeQFont(painter)
+        ah = {"left": 1, "centre": 0, "right": -1}[label_s.posnHorz]
+        av = {"top": -1, "centre": 0, "bottom": 1}[label_s.posnVert]
         utils.Renderer(
             painter, font, x, y, label, ah, av, 0.0, doc=self.document
         ).render()
@@ -447,7 +467,7 @@ class XYPie(plotters.GenericPlotter):
     ):
         """Render the label for a pie/donut wedge at its sector centroid."""
         label = self._wedgeLabel(idx)
-        if not (self.settings.wedgeLabelShow and label):
+        if not (self._labelVisible() and label):
             return
         painter.save()
         try:
@@ -470,7 +490,7 @@ class XYPie(plotters.GenericPlotter):
 
     def _drawBarLabel(self, painter, rect, label):
         """Draw a label centred in a bar segment rectangle."""
-        if not (self.settings.wedgeLabelShow and label):
+        if not (self._labelVisible() and label):
             return
         painter.save()
         try:

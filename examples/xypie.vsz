@@ -47,7 +47,7 @@ Set('wedgeData', ('pctMillet', 'pctFoxtail'))
 Set('wedgeLabels', ('Millet', 'Foxtail'))
 Set('markerSize', '8pt')
 Set('glyph', 'pie')
-Set('key', 'Crop Proportions')
+Set('keys', ('Crop Proportions',))
 To('..')
 
 To('..')
