@@ -569,92 +569,6 @@ class TestBarCI(unittest.TestCase):
         self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
         self.assertEqual(mx.tolist(), [11.0, 21.0, 31.0])
 
-    def test_fillci_default_hidden(self):
-        """The CI fill band must be hidden unless the user enables it."""
-        bp = self._make_plotter()
-        self.assertTrue(bp.settings.FillCI.hide)
-
-    def test_calc_ci_std(self):
-        """_calcCI wires the bar's ciMode settings into the bounds."""
-        bp = self._make_plotter()
-        bp.settings.ciMode = "std"
-        bp.settings.ciYError = "errds"
-        bp.settings.ciMultiplier = 2.0
-        vals = N.array([10.0, 20.0, 30.0])
-        mn, mx = bp._calcCI({}, vals)
-        self.assertEqual(mn.tolist(), [8.0, 16.0, 24.0])
-        self.assertEqual(mx.tolist(), [12.0, 24.0, 36.0])
-
-    def test_calc_ci_default_serr(self):
-        """_calcCI falls back to dataset serr columns when no ciMode."""
-        bp = self._make_plotter()
-        vals = N.array([10.0, 20.0, 30.0])
-        dset = {"serr": N.array([1.0, 1.0, 1.0])}
-        mn, mx = bp._calcCI(dset, vals)
-        self.assertIsNotNone(mn)
-        self.assertEqual(mn.tolist(), [9.0, 19.0, 29.0])
-
-    def test_stacked_calls_drawCIBand(self):
-        """barDrawStacked must render CI bands anchored to each stacked segment."""
-        bp = self._make_plotter()
-        bp.settings.FillCI.hide = False
-        dsvals = [{"data": N.array([2.0, 2.0])}, {"data": N.array([3.0, 3.0])}]
-
-        class MockAxis:
-            def __init__(self, isx):
-                self.isx = isx
-
-            def dataToPlotterCoords(self, posn, vals):
-                return N.asarray(vals, dtype=float) * (1.0 if self.isx else 10.0)
-
-        axes = [MockAxis(True), MockAxis(False)]
-        posns = N.array([1.0, 2.0])
-        calls = []
-
-        def fake_drawCIBand(painter, p1, p2, mn, mx, axes_, wp):
-            calls.append(N.array(mn))
-
-        bp.plotBars = lambda *a, **k: None
-        bp.drawErrorBars = lambda *a, **k: None
-        bp.drawCIBand = fake_drawCIBand
-        bp.barDrawStacked(
-            object(),
-            posns,
-            4.0,
-            dsvals,
-            axes,
-            (0, 0, 100, 100),
-            self.qt.QRectF(0, 0, 100, 100),
-        )
-        self.assertEqual(len(calls), 2)
-        # ds0 sits on its own base -> band [2,2]; ds1 on top -> band [5,5]
-        self.assertEqual(N.array(calls[0]).tolist(), [2.0, 2.0])
-        self.assertEqual(N.array(calls[1]).tolist(), [5.0, 5.0])
-
-    def test_drawCIBand_short_bounds_no_crash(self):
-        """drawCIBand must not IndexError when custom bounds are shorter than bars."""
-        import veusz.widgets.bar as bar_mod
-
-        bp = self._make_plotter()
-
-        class MockAxis:
-            def dataToPlotterCoords(self, posn, vals):
-                return N.asarray(vals, dtype=float) * 10.0
-
-        axes = [MockAxis(), MockAxis()]
-        painted = []
-        orig = bar_mod.utils.brushExtFillPath
-        bar_mod.utils.brushExtFillPath = lambda *a, **k: painted.append(1)
-        try:
-            posns1 = N.array([0.0, 1.0, 2.0])
-            posns2 = N.array([4.0, 5.0, 6.0])
-            mn = N.array([0.5, 0.6])  # shorter than the 3 bars
-            mx = N.array([1.5, 1.6])
-            bp.drawCIBand(object(), posns1, posns2, mn, mx, axes, (0, 0, 100, 100))
-        finally:
-            bar_mod.utils.brushExtFillPath = orig
-        self.assertEqual(len(painted), 2)
-
 
 class TestXYPie(unittest.TestCase):
     """Test the XYPie widget (pie/donut/bar glyphs)."""
@@ -691,8 +605,8 @@ class TestXYPie(unittest.TestCase):
         prop.settings.xData = "x"
         prop.settings.yData = "y"
         prop.settings.scalePoints = "n"
-        prop.settings.wedgeData = ("pctA", "pctB")
-        prop.settings.markerSize = "10pt"
+        prop.settings.sliceData = ("pctA", "pctB")
+        prop.settings.shapeSize = "10pt"
         return prop
 
     @staticmethod
@@ -709,8 +623,8 @@ class TestXYPie(unittest.TestCase):
 
         return MockAxis(True), MockAxis(False)
 
-    def _render_nonwhite(self, prop, glyph):
-        prop.settings.glyph = glyph
+    def _render_nonwhite(self, prop, shape):
+        prop.settings.shape = shape
         img = self.qt.QImage(300, 300, self.qt.QImage.Format.Format_ARGB32)
         img.fill(self.qt.QColor(255, 255, 255))
         p = self.qt.QPainter(img)
@@ -755,8 +669,8 @@ class TestXYPie(unittest.TestCase):
         prop.document = d
         prop.settings.xData = "x"
         prop.settings.yData = "y"
-        prop.settings.wedgeData = ("a", "b")
-        prop.settings.markerSize = "10pt"
+        prop.settings.sliceData = ("a", "b")
+        prop.settings.shapeSize = "10pt"
         self.assertEqual(self._render_nonwhite(prop, "pie"), 0)
 
     def test_short_scale_points_no_crash(self):
@@ -776,8 +690,8 @@ class TestXYPie(unittest.TestCase):
         prop.settings.xData = "x"
         prop.settings.yData = "y"
         prop.settings.scalePoints = "n"
-        prop.settings.wedgeData = ("a", "b")
-        prop.settings.markerSize = "10pt"
+        prop.settings.sliceData = ("a", "b")
+        prop.settings.shapeSize = "10pt"
         # must render without IndexError; points without scale get default size
         self.assertGreater(self._render_nonwhite(prop, "pie"), 0)
 
@@ -863,9 +777,7 @@ class TestRenderExamples2D(unittest.TestCase):
         from veusz import widgets  # noqa: F401  register widget types (side-effect)
         import veusz.windows.mainwindow  # noqa: F401  full init
 
-        example_dir = os.path.join(
-            os.path.dirname(__file__), "..", "..", "examples"
-        )
+        example_dir = os.path.join(os.path.dirname(__file__), "..", "..", "examples")
         files = [
             f
             for f in glob.glob(os.path.join(example_dir, "*.vsz"))
@@ -884,14 +796,11 @@ class TestRenderExamples2D(unittest.TestCase):
                 try:
                     doc.load(f, mode="vsz")
                     ifc = document.CommandInterface(doc)
-                    out = os.path.join(
-                        tmpdir, os.path.basename(f) + ".svg"
-                    )
+                    out = os.path.join(tmpdir, os.path.basename(f) + ".svg")
                     ifc.Export(out)
                 except Exception as e:  # noqa: BLE001 - report any render failure
                     failed.append(
-                        "%s: %s: %s"
-                        % (os.path.basename(f), type(e).__name__, e)
+                        "%s: %s: %s" % (os.path.basename(f), type(e).__name__, e)
                     )
         finally:
             import shutil

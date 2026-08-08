@@ -17,11 +17,11 @@
 #
 ##############################################################################
 
-"""Proportional scatter plot.
+"""XY pie scatter plot.
 
-Draws each (x, y) point as a pie / donut / bar glyph showing the
+Draws each (x, y) point as a pie / donut / bar shape showing the
 proportion of several datasets (e.g. crop shares per site). Point size
-is scaled so the glyph area is proportional to a dataset (usually the
+is scaled so the shape area is proportional to a dataset (usually the
 total sample size), i.e. radius ~ sqrt(n).
 """
 
@@ -34,25 +34,52 @@ from .. import utils
 from . import plotters
 
 
-def _(text, disambiguation=None, context="XYPie"):
+def _(text, disambiguation=None, context="XY"):
     """Translate text."""
     return qt.QCoreApplication.translate(context, text, disambiguation)
 
 
 def _shapeShowfn(val):
-    """Show/hide glyph-structure settings based on the Shape choice.
+    """Show/hide shape-specific settings based on the Shape choice.
 
     Return (show, hide) lists of setting names, following the
-    ChoiceSwitch showfn convention.
+    ChoiceSwitch showfn convention. Donut/buffer settings are hidden
+    unless the matching shape is selected.
     """
     if val == "donut":
-        return (("innerRadius",), ("barMode", "barDirection"))
+        return (
+            ("innerRadius",),
+            ("barMode", "barDirection", "barfill", "groupfill", "errorstyle"),
+        )
     if val == "bar":
-        return (("barMode", "barDirection"), ("innerRadius",))
-    return ((), ("innerRadius", "barMode", "barDirection"))
+        return (
+            ("barMode", "barDirection", "barfill", "groupfill", "errorstyle"),
+            ("innerRadius",),
+        )
+    return (
+        (),
+        (
+            "barMode",
+            "barDirection",
+            "barfill",
+            "groupfill",
+            "errorstyle",
+            "innerRadius",
+        ),
+    )
 
 
-class WedgeFill(setting.Settings):
+def _ciModeShowfn(val):
+    """Show/hide CI error-source settings based on ciMode value."""
+    if val == "custom":
+        return (("ciYMin", "ciYMax"), ("ciYError", "ciMultiplier"))
+    elif val == "std":
+        return (("ciYError", "ciMultiplier"), ("ciYMin", "ciYMax"))
+    else:
+        return ((), ("ciYMin", "ciYMax", "ciYError", "ciMultiplier"))
+
+
+class SliceFill(setting.Settings):
     """Fill of each slice (cycled per slice)."""
 
     def __init__(self, name, **args):
@@ -60,57 +87,46 @@ class WedgeFill(setting.Settings):
         self.add(
             setting.FillSet(
                 "fills",
-                [
-                    ("solid", "#1f77b4", False),
-                    ("solid", "#ff7f0e", False),
-                    ("solid", "#2ca02c", False),
-                    ("solid", "#d62728", False),
-                    ("solid", "#9467bd", False),
-                    ("solid", "#8c564b", False),
-                    ("solid", "#e377c2", False),
-                    ("solid", "#7f7f7f", False),
-                    ("solid", "#bcbd22", False),
-                    ("solid", "#17becf", False),
-                ],
-                descr=_("Fill styles per slice (cycled)"),
+                [("solid", "auto", False)],
+                descr=_("Fill styles for slices (cycled)"),
                 usertext=_("Slice fill"),
             )
         )
 
 
-class WedgeLabel(setting.Text):
-    """Wedge label settings: font (from Text) plus show and alignment."""
+class SliceLine(setting.Settings):
+    """Outline line for each slice (cycled)."""
 
     def __init__(self, name, **args):
-        setting.Text.__init__(self, name, **args)
+        setting.Settings.__init__(self, name, **args)
         self.add(
-            setting.Bool(
-                "show", False, descr=_("Show slice labels"), usertext=_("Show labels")
+            setting.LineSet(
+                "lines",
+                [("solid", "0.5pt", "black", False)],
+                descr=_("Outline lines for slices (cycled)"),
+                usertext=_("Outline line"),
+            )
+        )
+
+
+class SliceLabel(setting.PointLabel):
+    """Per-slice / per-point label settings plus an extra offset."""
+
+    def __init__(self, name, **args):
+        setting.PointLabel.__init__(self, name, **args)
+        self.add(
+            setting.DistancePt(
+                "labelOffset",
+                "0pt",
+                descr=_("Extra label offset from the shape edge"),
+                usertext=_("Label offset"),
             ),
             0,
-        )
-        self.add(
-            setting.AlignHorz(
-                "posnHorz",
-                "centre",
-                descr=_("Horizontal alignment of labels"),
-                usertext=_("Align horz"),
-            ),
-            1,
-        )
-        self.add(
-            setting.AlignVert(
-                "posnVert",
-                "centre",
-                descr=_("Vertical alignment of labels"),
-                usertext=_("Align vert"),
-            ),
-            2,
         )
 
 
 class XYPie(plotters.GenericPlotter):
-    """Plot proportional data as pie/donut/bar glyphs at each point."""
+    """Plot proportional data as pie/donut/bar shapes at each point."""
 
     typename = "xypie"
     description = _("X/Y pie scatter (pie/donut/bar)")
@@ -121,7 +137,7 @@ class XYPie(plotters.GenericPlotter):
         """Construct list of settings."""
         plotters.GenericPlotter.addSettings(s)
 
-        # --- properties: position data ---
+        # --- properties: data ---
         s.add(
             setting.DatasetExtended(
                 "xData",
@@ -146,24 +162,67 @@ class XYPie(plotters.GenericPlotter):
                 "",
                 descr=_(
                     "Dataset giving total sample size per point "
-                    "(glyph area scales with it)"
+                    "(shape area scales with it)"
                 ),
                 usertext=_("Scale shapes"),
             ),
             2,
         )
+        s.add(
+            setting.Datasets(
+                "sliceData",
+                ("",),
+                descr=_("Datasets giving the proportions of each slice"),
+                usertext=_("Slice data"),
+            ),
+            3,
+        )
+        s.add(
+            setting.Strings(
+                "sliceKeyTexts",
+                ("",),
+                descr=_("Key text for each slice (empty = use dataset names)"),
+                usertext=_("Slice key text"),
+            ),
+            4,
+        )
+        s.add(
+            setting.DatasetOrStr(
+                "axisLabels",
+                "",
+                descr=_(
+                    "Dataset or string giving text labels for axis tick labels. "
+                    'Requires the corresponding axis to be in "labels" mode.'
+                ),
+                usertext=_("Axis labels"),
+            ),
+            5,
+        )
+        s.add(
+            setting.DatasetOrStr(
+                "labels",
+                "",
+                descr=_("Dataset or string giving text to label each point"),
+                usertext=_("Labels"),
+            ),
+            6,
+        )
 
-        # --- properties: glyph structure ---
+        # remove single key text from base class; use per-slice key texts
+        s.remove("key")
+
+        # --- format main: shape structure ---
         s.add(
             setting.ChoiceSwitch(
-                "glyph",
+                "shape",
                 ("pie", "donut", "bar"),
                 "pie",
                 showfn=_shapeShowfn,
                 descr=_("Shape to draw at each point"),
                 usertext=_("Shape"),
+                formatting=True,
             ),
-            3,
+            0,
         )
         s.add(
             setting.Float(
@@ -173,81 +232,61 @@ class XYPie(plotters.GenericPlotter):
                 maxval=0.95,
                 descr=_("Donut inner radius as a fraction of the outer radius"),
                 usertext=_("Donut inner radius"),
+                formatting=True,
             ),
-            4,
+            1,
         )
         s.add(
             setting.Choice(
                 "barMode",
-                ("stacked", "grouped"),
-                "stacked",
+                ("grouped", "stacked"),
+                "grouped",
                 descr=_(
-                    "Bar shape mode: stacked (segments in one bar) or "
-                    "grouped (separate bars side by side)"
+                    "Bar mode: grouped (separate bars) or stacked (segments in one bar)"
                 ),
                 usertext=_("Mode"),
+                formatting=True,
             ),
-            5,
+            2,
         )
         s.add(
             setting.Choice(
                 "barDirection",
-                ("horizontal", "vertical"),
-                "horizontal",
-                descr=_("Direction of the mini bar shape (stacked mode)"),
+                ("vertical", "horizontal"),
+                "vertical",
+                descr=_("Direction of the mini bar shape"),
                 usertext=_("Direction"),
+                formatting=True,
             ),
-            6,
-        )
-
-        # --- properties: slice (wedge) data ---
-        s.add(
-            setting.Datasets(
-                "wedgeData",
-                ("",),
-                descr=_("Datasets giving the proportions of each slice"),
-                usertext=_("Slice data"),
-            ),
-            7,
+            3,
         )
         s.add(
-            setting.Strings(
-                "wedgeLabels",
-                ("",),
-                descr=_("Labels for each slice (empty = use dataset names)"),
-                usertext=_("Slice labels"),
+            setting.Float(
+                "barfill",
+                0.75,
+                minval=0.0,
+                maxval=1.0,
+                descr=_("Filling fraction of each bar (between 0 and 1)"),
+                usertext=_("Bar fill"),
+                formatting=True,
             ),
-            8,
+            4,
         )
         s.add(
-            setting.DatasetOrStr(
-                "labels",
-                "",
-                descr=_(
-                    "Dataset or string giving axis labels for each point. "
-                    'Requires the corresponding axis to be in "labels" mode.'
-                ),
-                usertext=_("Labels"),
+            setting.Float(
+                "groupfill",
+                0.9,
+                minval=0.0,
+                maxval=1.0,
+                descr=_("Filling fraction of the group of bars (between 0 and 1)"),
+                usertext=_("Group fill"),
+                formatting=True,
             ),
-            9,
+            5,
         )
-
-        # replace single key text with per-slice key texts
-        s.remove("key")
-        s.add(
-            setting.Strings(
-                "keys",
-                ("",),
-                descr=_("Key text for each slice (empty = use slice labels)"),
-                usertext=_("Key text"),
-            ),
-            10,
-        )
-
-        # --- format main: shape size ---
         s.add(
             setting.DistancePt(
-                "markerSize",
+                "shapeSize",
                 "5pt",
                 descr=_("Base size of the largest shape"),
                 usertext=_("Shape size"),
@@ -255,19 +294,94 @@ class XYPie(plotters.GenericPlotter):
             ),
             11,
         )
-
-        # --- format pages: fill, line, label ---
         s.add(
-            WedgeFill("Fill", descr=_("Fill of each slice"), usertext=_("Fill")),
+            setting.Choice(
+                "errorstyle",
+                ("none", "bar", "barends"),
+                "bar",
+                descr=_("Error bar style to show on bar shapes"),
+                usertext=_("Error style"),
+                formatting=True,
+            ),
+            12,
+        )
+
+        # CI mode: choose the error source for each slice's error bar
+        s.add(
+            setting.ChoiceSwitch(
+                "ciMode",
+                ["", "custom", "std"],
+                "",
+                showfn=_ciModeShowfn,
+                descr=_("Confidence interval mode for slice error bars"),
+                usertext=_("CI mode"),
+                formatting=True,
+            ),
+            13,
+        )
+        s.add(
+            setting.Datasets(
+                "ciYMin",
+                ("",),
+                descr=_("Datasets for minimum y of each slice's error bar"),
+                usertext=_("CI Y min"),
+                formatting=True,
+            ),
+            14,
+        )
+        s.add(
+            setting.Datasets(
+                "ciYMax",
+                ("",),
+                descr=_("Datasets for maximum y of each slice's error bar"),
+                usertext=_("CI Y max"),
+                formatting=True,
+            ),
+            15,
+        )
+        s.add(
+            setting.Datasets(
+                "ciYError",
+                ("",),
+                descr=_(
+                    "Datasets for y error of each slice (y +/- error * multiplier)"
+                ),
+                usertext=_("CI Y error"),
+                formatting=True,
+            ),
+            16,
+        )
+        s.add(
+            setting.Float(
+                "ciMultiplier",
+                1.0,
+                descr=_("Multiplier for error values (e.g. 2 for 2*std)"),
+                usertext=_("CI multiplier"),
+                formatting=True,
+            ),
+            17,
+        )
+
+        # --- format pages: fill, line, label, error bars ---
+        s.add(
+            SliceFill("Fill", descr=_("Fill of each slice"), usertext=_("Fill")),
             pixmap="settings_bgfill",
         )
         s.add(
-            setting.Line("Line", descr=_("Outline line"), usertext=_("Line")),
+            SliceLine("Line", descr=_("Outline lines"), usertext=_("Line")),
             pixmap="settings_border",
         )
         s.add(
-            WedgeLabel("Label", descr=_("Slice label font"), usertext=_("Label")),
+            SliceLabel("Label", descr=_("Point labels"), usertext=_("Label")),
             pixmap="settings_axislabel",
+        )
+        s.add(
+            setting.ErrorBarLine(
+                "ErrorBarLine",
+                descr=_("Error bar line settings"),
+                usertext=_("Error bar line"),
+            ),
+            pixmap="settings_ploterrorline",
         )
 
     def affectsAxisRange(self):
@@ -285,7 +399,7 @@ class XYPie(plotters.GenericPlotter):
     def getAxisLabels(self, direction):
         """Provide text labels for categorical axis (mode='labels')."""
         s = self.settings
-        text = s.get("labels").getData(self.document, checknull=True)
+        text = s.get("axisLabels").getData(self.document, checknull=True)
         xv = s.get("xData").getData(self.document)
         yv = s.get("yData").getData(self.document)
         if text is None:
@@ -296,53 +410,45 @@ class XYPie(plotters.GenericPlotter):
             return (text, yv.data)
         return (None, None)
 
-    def _wedgeNames(self):
-        """Return the list of non-empty wedge dataset names."""
-        return [n for n in self.settings.wedgeData if n]
+    def _sliceNames(self):
+        """Return the list of non-empty slice dataset names."""
+        return [n for n in self.settings.get("sliceData").val if n]
 
-    def _wedgeLabel(self, idx):
-        """Return the label for wedge index idx."""
-        labels = self.settings.wedgeLabels
-        if idx < len(labels) and labels[idx]:
-            return labels[idx]
-        names = self._wedgeNames()
+    def _sliceKeyText(self, idx):
+        """Return the key text for slice idx (falls back to dataset name)."""
+        keys = self.settings.get("sliceKeyTexts").val
+        if idx < len(keys) and keys[idx]:
+            return keys[idx]
+        names = self._sliceNames()
         if idx < len(names):
             return names[idx]
         return ""
 
     def getNumberKeys(self):
-        """Number of key entries = non-empty key texts, else slice count."""
-        if not self._wedgeNames():
-            return 0
-        keys = self.settings.keys
-        nonempty = [k for k in keys if k]
-        return len(nonempty) or len(self._wedgeNames())
+        """Key shows one entry per slice."""
+        return len(self._sliceNames())
 
     def getKeyText(self, number):
-        """Return key text for entry number (falls back to slice label)."""
-        keys = self.settings.keys
-        if number < len(keys) and keys[number]:
-            return keys[number]
-        return self._wedgeLabel(number)
+        """Return key entry text for the slice index given."""
+        return self._sliceKeyText(number)
 
     def drawKeySymbol(self, number, painter, x, y, width, height):
-        """Draw a small colored swatch for one wedge in the key."""
-        n = len(self._wedgeNames())
+        """Draw a small colored swatch for one slice in the key."""
+        n = len(self._sliceNames())
         if number >= n:
             return
         swatch = qt.QRectF(x, y + height * 0.1, width, height * 0.8)
         path = qt.QPainterPath()
         path.addRect(swatch)
-        self._fillWedge(painter, number, path)
+        self._fillSlice(painter, number, path, dataindex=number)
 
-    def _getWedgeData(self):
-        """Resolve wedge datasets into a list of numeric arrays (or None).
+    def _getSliceData(self):
+        """Resolve slice datasets into a list of numeric arrays (or None).
 
-        Missing or empty-name datasets are skipped silently (like bar's
-        lengths); only return None when every wedge dataset is missing or
-        empty, so one bad entry does not hide the whole plot.
+        Missing or empty-name datasets are skipped silently; None is only
+        returned when every slice dataset is missing or empty.
         """
-        names = self._wedgeNames()
+        names = self._sliceNames()
         if not names:
             return None
         out = []
@@ -350,28 +456,25 @@ class XYPie(plotters.GenericPlotter):
             ds = self.document.getData(name)
             if ds is None or ds.data is None:
                 continue
-            out.append(N.asarray(ds.data, dtype=float))
+            out.append((name, N.asarray(ds.data, dtype=float), ds))
         return out or None
 
-    def _getRadii(self, npts, markersize):
+    def _getRadii(self, npts, shapesize):
         """Per-point radii, area proportional to scalePoints (radius~sqrt)."""
         s = self.settings
         scalev = s.get("scalePoints").getData(self.document)
         if scalev is not None and scalev.data is not None and len(scalev.data) > 0:
-            # slice to at most npts; if scalePoints is shorter than the main
-            # data, pad the missing points with the default size so we always
-            # return a full-length array (avoids IndexError in dataDraw)
             scales = N.asarray(scalev.data, dtype=float)[:npts]
             if len(scales) < npts:
                 scales = N.concatenate([scales, N.full(npts - len(scales), N.nan)])
             smax = N.nanmax(scales) if len(scales) else 0.0
             if smax > 0:
-                radii = markersize * N.sqrt(N.abs(scales)) / N.sqrt(smax)
-                return N.where(N.isfinite(radii), radii, markersize)
-        return N.full(npts, markersize)
+                radii = shapesize * N.sqrt(N.abs(scales)) / N.sqrt(smax)
+                return N.where(N.isfinite(radii), radii, shapesize)
+        return N.full(npts, shapesize)
 
     def dataDraw(self, painter, axes, posn, cliprect):
-        """Plot the proportional glyphs."""
+        """Plot the shapes."""
         s = self.settings
         d = self.document
 
@@ -383,59 +486,75 @@ class XYPie(plotters.GenericPlotter):
         if npts == 0:
             return
 
-        wedges = self._getWedgeData()
-        if wedges is None:
+        slices = self._getSliceData()
+        if slices is None:
             return
 
         xplt = axes[0].dataToPlotterCoords(posn, xv.data[:npts])
         yplt = axes[1].dataToPlotterCoords(posn, yv.data[:npts])
-        markersize = s.get("markerSize").convert(painter)
-        radii = self._getRadii(npts, markersize)
+        shapesize = s.get("shapeSize").convert(painter)
+        radii = self._getRadii(npts, shapesize)
 
         painter.save()
 
         for i in range(npts):
-            vals = [w[i] if i < len(w) else N.nan for w in wedges]
+            # slice values in plotter coords for this point
+            vals = [
+                dataslice[i] if i < len(dataslice) else N.nan
+                for _, dataslice, _ in slices
+            ]
             if not N.any(N.isfinite(vals)):
                 continue
-            self._drawGlyph(painter, xplt[i], yplt[i], radii[i], vals)
+            self._drawShape(
+                painter, xplt[i], yplt[i], radii[i], vals, slices, i, axes, posn
+            )
+
+        # per-point labels (independent content) drawn beside each shape
+        textvals = s.get("labels").getData(d, checknull=True)
+        if textvals:
+            self._drawLabels(painter, xplt, yplt, textvals, shapesize, radii)
 
         painter.restore()
 
-    def _drawGlyph(self, painter, cx, cy, radius, vals):
-        """Draw one glyph (pie/donut/bar) centred at (cx, cy)."""
-        glyph = self.settings.glyph
-        if glyph == "bar":
-            self._drawBarGlyph(painter, cx, cy, radius, vals)
-        elif glyph == "donut":
-            self._drawDonutGlyph(painter, cx, cy, radius, vals)
+    def _drawShape(
+        self, painter, cx, cy, radius, vals, slices, pointidx, axes, widgetposn
+    ):
+        """Draw one shape (pie/donut/bar) centred at (cx, cy)."""
+        shape = self.settings.get("shape").val
+        if shape == "bar":
+            self._drawBar(
+                painter, cx, cy, radius, vals, slices, pointidx, axes, widgetposn
+            )
+        elif shape == "donut":
+            self._drawDonut(painter, cx, cy, radius, vals)
         else:
-            self._drawPieGlyph(painter, cx, cy, radius, vals)
+            self._drawPie(painter, cx, cy, radius, vals)
 
-    def _wedgeBrush(self, idx):
-        """Return the BrushExtended fill for wedge idx (cycles)."""
+    def _sliceBrush(self, idx):
+        """Return the BrushExtended fill for slice idx (cycles)."""
         return self.settings.get("Fill").get("fills").returnBrushExtended(idx)
 
-    def _outlinePen(self, painter):
-        """QPen for slice outline (NoPen when line hidden)."""
-        try:
-            return self.settings.Line.makeQPenWHide(painter)
-        except setting.ReferenceBase.ResolveException:
-            # fall back when not attached to a document tree
-            return qt.QPen(qt.QColor("#000000"), 0.5)
+    def _outlinePen(self, painter, idx):
+        """QPen for slice outline (per-slice LineSet)."""
+        return self.settings.get("Line").get("lines").makePen(painter, idx)
 
-    def _fillWedge(self, painter, idx, path):
-        """Fill a wedge path with its brush and outline.
+    def _fillSlice(self, painter, idx, path, dataindex=0):
+        """Fill a slice path with its brush and outline.
 
         Uses brushExtFillPath when the painter supports docColor (Veusz
-        Painter) so gradients/hatching work; falls back to a plain solid
-        fill for bare QPainter instances (e.g. unit tests).
+        Painter) so gradients / 'auto' colouring work; falls back to a
+        plain solid fill for bare QPainter instances (unit tests).
         """
-        pen = self._outlinePen(painter)
+        try:
+            pen = self._outlinePen(painter, idx)
+        except (setting.ReferenceBase.ResolveException, AttributeError):
+            pen = qt.QPen(qt.QColor("#000000"), 0.5)
         if hasattr(painter, "docColor"):
-            utils.brushExtFillPath(painter, self._wedgeBrush(idx), path, stroke=pen)
+            utils.brushExtFillPath(
+                painter, self._sliceBrush(idx), path, stroke=pen, dataindex=dataindex
+            )
         else:
-            brush = self._wedgeBrush(idx)
+            brush = self._sliceBrush(idx)
             color = qt.QColor(brush.get("color").val)
             if brush.transparency > 0:
                 color.setAlphaF((100 - brush.transparency) / 100.0)
@@ -443,139 +562,215 @@ class XYPie(plotters.GenericPlotter):
             painter.setPen(pen)
             painter.drawPath(path)
 
-    def _labelVisible(self):
-        """Is slice label visible (settings exist and show is on)?"""
-        try:
-            return self.settings.Label.show
-        except AttributeError:
-            return False
-
-    def _renderLabel(self, painter, x, y, label):
-        """Render a slice label at (x, y) with the Label settings."""
-        label_s = self.settings.Label
-        pen = label_s.makeQPen(painter)
-        painter.setPen(pen)
-        font = label_s.makeQFont(painter)
-        ah = {"left": 1, "centre": 0, "right": -1}[label_s.posnHorz]
-        av = {"top": -1, "centre": 0, "bottom": 1}[label_s.posnVert]
-        utils.Renderer(
-            painter, font, x, y, label, ah, av, 0.0, doc=self.document
-        ).render()
-
-    def _drawWedgeLabel(
-        self, painter, cx, cy, radius, inner_frac, start16, span16, idx
-    ):
-        """Render the label for a pie/donut wedge at its sector centroid."""
-        label = self._wedgeLabel(idx)
-        if not (self._labelVisible() and label):
+    def _drawLabels(self, painter, xplotter, yplotter, textvals, shapesize, radius):
+        """Draw per-point labels around each shape (port of point.drawLabels)."""
+        s = self.settings
+        lab = s.get("Label")
+        if lab.hide:
             return
-        painter.save()
-        try:
-            delta = abs(span16 / 16.0) * N.pi / 180.0
-            mid = (start16 + span16 / 2.0) / 16.0 * N.pi / 180.0
-            ro = radius
-            ri = radius * float(inner_frac)
-            if delta < 1e-9 or not N.isfinite(delta):
-                return
-            if ro > ri:
-                factor = (ro**3 - ri**3) / (ro**2 - ri**2)
-            else:
-                factor = ro
-            rcen = (2.0 / 3.0) * factor * (N.sin(delta / 2.0) / (delta / 2.0))
-            lx = cx + rcen * N.cos(mid)
-            ly = cy - rcen * N.sin(mid)
-            self._renderLabel(painter, lx, ly, label)
-        finally:
-            painter.restore()
 
-    def _drawBarLabel(self, painter, rect, label):
-        """Draw a label centred in a bar segment rectangle."""
-        if not (self._labelVisible() and label):
-            return
-        painter.save()
-        try:
-            self._renderLabel(painter, rect.center().x(), rect.center().y(), label)
-        finally:
-            painter.restore()
+        labeloffset = lab.get("labelOffset").convert(painter)
+        offset = shapesize * 1.5 + labeloffset
 
-    def _drawBarGlyph(self, painter, cx, cy, radius, vals):
+        deltax = offset * {"left": -1, "centre": 0, "right": 1}[lab.posnHorz]
+        deltay = offset * {"top": -1, "centre": 0, "bottom": 1}[lab.posnVert]
+        alignhorz = {"left": 1, "centre": 0, "right": -1}[lab.posnHorz]
+        alignvert = {"top": -1, "centre": 0, "bottom": 1}[lab.posnVert]
+
+        textpen = lab.makeQPen(painter)
+        painter.setPen(textpen)
+        font = lab.makeQFont(painter)
+        angle = lab.angle
+
+        for x, y, t in zip(xplotter + deltax, yplotter + deltay, textvals):
+            utils.Renderer(
+                painter, font, x, y, t, alignhorz, alignvert, angle, doc=self.document
+            ).render()
+
+    def _drawBar(self, painter, cx, cy, radius, vals, slices, i, axes, widgetposn):
+        """Draw mini bars (one per slice), grouped or stacked.
+
+        In grouped mode bars are aligned to the baseline (cy for vertical
+        bars, cx for horizontal). barfill/groupfill control bar thickness.
+        """
         total = float(N.nansum(N.abs(vals)))
         if total <= 0:
             return
-        horizontal = self.settings.barDirection == "horizontal"
-        grouped = self.settings.barMode == "grouped"
+        s = self.settings
         size = radius * 2
         n = len(vals)
+        ishorz = s.get("barDirection").val == "horizontal"
+        grouped = s.get("barMode").val == "grouped"
+        barfill = s.get("barfill").val
+        groupfill = s.get("groupfill").val
 
-        if horizontal:
-            # Horizontal bars (stacked or grouped)
-            if grouped:
-                bar_h = size / max(1, n)
-                y0 = cy - size / 2
-                for idx, v in enumerate(vals):
-                    if not N.isfinite(v) or v == 0:
-                        continue
-                    frac = abs(v) / total
-                    w = size * frac
-                    rect = qt.QRectF(cx - w / 2, y0 + idx * bar_h, w, bar_h)
-                    path = qt.QPainterPath()
-                    path.addRect(rect)
-                    self._fillWedge(painter, idx, path)
-                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
-            else:
-                # Stacked horizontal
-                x0 = cx - size / 2
-                y0 = cy - size / 2
-                acc = 0.0
-                for idx, v in enumerate(vals):
-                    if not N.isfinite(v) or v == 0:
-                        continue
-                    frac = abs(v) / total
-                    w = size * frac
-                    rect = qt.QRectF(x0 + acc, y0, w, size)
-                    path = qt.QPainterPath()
-                    path.addRect(rect)
-                    self._fillWedge(painter, idx, path)
-                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
-                    acc += w
+        # usable extent perpendicular to bars / along the bars
+        groupsize = size * groupfill
+        barthick = (size / max(1, n)) * barfill
+
+        if grouped:
+            # bars side by side, baseline-aligned, thickness = barfill of slot
+            for idx, v in enumerate(vals):
+                if not N.isfinite(v) or v == 0:
+                    continue
+                frac = float(abs(v)) / total
+                if ishorz:
+                    # horizontal bars: extend right from the centre-left line
+                    y0 = cy - groupsize / 2 + idx * (groupsize / n)
+                    rect = qt.QRectF(cx - size / 2, y0, size * frac, barthick)
+                else:
+                    # vertical bars: extend upward from the baseline (cy)
+                    x0 = cx - groupsize / 2 + idx * (groupsize / n)
+                    rect = qt.QRectF(x0, cy - size * frac, barthick, size * frac)
+                path = qt.QPainterPath()
+                path.addRect(rect)
+                self._fillSlice(painter, idx, path, dataindex=idx)
         else:
-            # Vertical bars (stacked or grouped)
-            if grouped:
-                bar_w = size / max(1, n)
-                x0 = cx - size / 2
-                for idx, v in enumerate(vals):
-                    if not N.isfinite(v) or v == 0:
-                        continue
-                    frac = abs(v) / total
-                    h = size * frac
-                    rect = qt.QRectF(x0 + idx * bar_w, cy - h / 2, bar_w, h)
-                    path = qt.QPainterPath()
-                    path.addRect(rect)
-                    self._fillWedge(painter, idx, path)
-                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
-            else:
-                # Stacked vertical
-                x0 = cx - size / 2
-                y0 = cy - size / 2
-                acc = 0.0
-                for idx, v in enumerate(vals):
-                    if not N.isfinite(v) or v == 0:
-                        continue
-                    frac = abs(v) / total
-                    h = size * frac
-                    rect = qt.QRectF(x0, y0 + acc, size, h)
-                    path = qt.QPainterPath()
-                    path.addRect(rect)
-                    self._fillWedge(painter, idx, path)
-                    self._drawBarLabel(painter, rect, self._wedgeLabel(idx))
-                    acc += h
+            # stacked bars: segments laid end-to-end along one length
+            posn = -size / 2
+            for idx, v in enumerate(vals):
+                if not N.isfinite(v) or v == 0:
+                    continue
+                frac = float(abs(v)) / total
+                if ishorz:
+                    # horizontal segments stacked from the left centre
+                    rect = qt.QRectF(
+                        cx - size / 2 + posn, cy - barthick / 2, size * frac, barthick
+                    )
+                else:
+                    rect = qt.QRectF(
+                        cx - barthick / 2, cy + posn, barthick, size * frac
+                    )
+                path = qt.QPainterPath()
+                path.addRect(rect)
+                self._fillSlice(painter, idx, path, dataindex=idx)
+                posn += size * frac
 
-    def _drawPieGlyph(self, painter, cx, cy, radius, vals):
-        """Draw a pie glyph (full circle slices)."""
+        # per-slice error bars (each slice dataset has its own error)
+        if s.get("errorstyle").val != "none":
+            self._drawBarErrorBars(painter, cx, cy, radius, vals, slices, i, n, total)
+
+    def _sliceMediaDataset(self, setting, sliceidx, ptidx):
+        """Return the value at ptidx of sliceidx-th dataset in a Datasets setting.
+
+        Returns None if the dataset is missing or the index is out of range.
+        """
+        names = [n for n in setting.val if n]
+        if not (0 <= sliceidx < len(names)):
+            return None
+        ds = self.document.getData(names[sliceidx])
+        if ds is None or ds.data is None:
+            return None
+        if not (0 <= ptidx < len(ds.data)):
+            return None
+        return float(ds.data[ptidx])
+
+    def _drawBarErrorBars(self, painter, cx, cy, radius, vals, slices, i, n, total):
+        """Draw one error bar per slice on bar shapes.
+
+        Each slice dataset supplies its own perr/nerr/serr error columns;
+        the error bar sits on top of that slice's bar.
+        """
+        s = self.settings
+        ishorz = s.get("barDirection").val == "horizontal"
+        grouped = s.get("barMode").val == "grouped"
+        ebl = s.get("ErrorBarLine")
+        try:
+            pen = ebl.makeQPenWHide(painter)
+        except (setting.ReferenceBase.ResolveException, AttributeError):
+            # not attached to a document tree (unit tests): no error bars
+            return
+        painter.setPen(pen)
+        size = radius * 2
+        groupfill = s.get("groupfill").val
+        style = s.get("errorstyle").val
+        ends = style == "barends"
+        w = ebl.endsize
+
+        for idx, (_name, _data, ds) in enumerate(slices):
+            if idx >= len(vals):
+                break
+            if not N.isfinite(vals[idx]):
+                continue
+            frac = float(abs(vals[idx])) / total if total else 0.0
+            # error source depends on ciMode; each slice gets its own
+            err_low = err_high = 0.0
+            ci = s.get("ciMode").val
+            if ci == "custom":
+                # use explicit per-slice min/max datasets
+                mn = self._sliceMediaDataset(s.get("ciYMin"), idx, i)
+                mx = self._sliceMediaDataset(s.get("ciYMax"), idx, i)
+                if mn is not None:
+                    err_low = (
+                        max(0.0, abs(vals[idx]) * (1 - mn / vals[idx]))
+                        if vals[idx]
+                        else 0.0
+                    )
+                if mx is not None:
+                    err_high = max(0.0, (mx - vals[idx])) if vals[idx] else 0.0
+            elif ci == "std":
+                # std mode: y +/- error * multiplier
+                err = self._sliceMediaDataset(s.get("ciYError"), idx, i)
+                if err is not None:
+                    mult = s.get("ciMultiplier").val
+                    err_low = err_high = abs(err) * mult
+            else:
+                # default: use the slice dataset's own error columns
+                if ds.serr is not None:
+                    err = float(ds.serr[i]) if i < len(ds.serr) else 0.0
+                    err_low = err_high = err
+                else:
+                    if ds.nerr is not None:
+                        err_low = float(ds.nerr[i]) if i < len(ds.nerr) else 0.0
+                    if ds.perr is not None:
+                        err_high = float(ds.perr[i]) if i < len(ds.perr) else 0.0
+            lowfrac = err_low / total if total else 0.0
+            highfrac = err_high / total if total else 0.0
+
+            # perpendicular position of this bar (x for vertical bars,
+            # y for horizontal bars)
+            slot = size / max(1, n)
+            if grouped:
+                barpos = (
+                    cx - size * groupfill / 2 + (idx + 0.5) * slot
+                    if not ishorz
+                    else cy - size * groupfill / 2 + (idx + 0.5) * slot
+                )
+            else:
+                # stacked bars occupy the whole extent, centred
+                barpos = cx if not ishorz else cy
+
+            if ishorz:
+                # horizontal: error along the value (x) axis from the bar tip
+                xb = cx - size / 2 + size * frac
+                y = barpos
+                x_high = xb + size * highfrac
+                x_low = xb - size * lowfrac
+                painter.drawLine(qt.QPointF(x_low, y), qt.QPointF(x_high, y))
+                if ends:
+                    painter.drawLine(
+                        qt.QPointF(x_high, y - w), qt.QPointF(x_high, y + w)
+                    )
+                    painter.drawLine(qt.QPointF(x_low, y - w), qt.QPointF(x_low, y + w))
+            else:
+                # vertical: error above the bar tip
+                x = barpos
+                yb = cy - size * frac  # bar tip (value end)
+                y_high = yb - size * highfrac
+                y_low = yb + size * lowfrac
+                painter.drawLine(qt.QPointF(x, y_low), qt.QPointF(x, y_high))
+                if ends:
+                    painter.drawLine(
+                        qt.QPointF(x - w, y_high), qt.QPointF(x + w, y_high)
+                    )
+                    painter.drawLine(qt.QPointF(x - w, y_low), qt.QPointF(x + w, y_low))
+
+    def _drawPie(self, painter, cx, cy, radius, vals):
+        """Draw a pie shape (full circle slices)."""
         total = float(N.nansum(N.abs(vals)))
         if total <= 0:
             return
-        start16 = 90 * 16  # Qt starts at 3 o'clock; 90° = 12 o'clock
+        start16 = 90 * 16  # Qt starts at 3 o'clock; 90deg = 12 o'clock
         for idx, v in enumerate(vals):
             if not N.isfinite(v) or v == 0:
                 continue
@@ -586,16 +781,15 @@ class XYPie(plotters.GenericPlotter):
             path.moveTo(cx, cy)
             path.arcTo(rect, start16 / 16.0, span16 / 16.0)
             path.lineTo(cx, cy)
-            self._fillWedge(painter, idx, path)
-            self._drawWedgeLabel(painter, cx, cy, radius, 0.0, start16, span16, idx)
+            self._fillSlice(painter, idx, path, dataindex=idx)
             start16 += span16
 
-    def _drawDonutGlyph(self, painter, cx, cy, radius, vals):
-        """Draw a donut glyph (pie with hollow centre)."""
+    def _drawDonut(self, painter, cx, cy, radius, vals):
+        """Draw a donut shape (pie with hollow centre)."""
         total = float(N.nansum(N.abs(vals)))
         if total <= 0:
             return
-        inner_frac = self.settings.innerRadius
+        inner_frac = self.settings.get("innerRadius").val
         inner_r = radius * inner_frac
         start16 = 90 * 16
         for idx, v in enumerate(vals):
@@ -610,10 +804,7 @@ class XYPie(plotters.GenericPlotter):
             path.arcTo(outer_rect, start16 / 16.0, span16 / 16.0)
             path.arcTo(inner_rect, (start16 + span16) / 16.0, -span16 / 16.0)
             path.closeSubpath()
-            self._fillWedge(painter, idx, path)
-            self._drawWedgeLabel(
-                painter, cx, cy, radius, inner_frac, start16, span16, idx
-            )
+            self._fillSlice(painter, idx, path, dataindex=idx)
             start16 += span16
 
 

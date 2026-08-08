@@ -1,25 +1,59 @@
-# Example: proportional scatter (pie / donut / bar glyphs)
-#
-# Each point is drawn as a pie whose slices show the proportion of several
-# datasets (here: millet vs foxtail millet at archaeological sites). The glyph
-# size is proportional to the total sample size (radius ~ sqrt(n)).
-#
-# Glyph styles — change the "glyph" setting to:
-#   pie   - full circle slices
-#   donut - hollow centre (adjust "innerRadius")
-#   bar   - a mini stacked bar at each point
-#
-# For text axis labels (e.g. site names on y-axis):
-#   1) Import your CSV (which has a string column for site names)
-#   2) Set the y-axis mode to "labels" in the axis settings
-#   3) Set the "labels" field on this widget to your text dataset name
+# Veusz saved document (version 4.2.1.2)
+# Saved at 2026-08-08T08:12:11.210580
 
-SetData('age', [5800, 5600, 5300, 5200, 5100, 4950, 4750, 4600])
-SetData('ypos', [1, 2, 3, 4, 5, 6, 7, 8])
-SetData('n', [1033, 488, 444, 2350, 499, 1502, 78, 1875])
-SetData('pctMillet', [95, 75, 30, 25, 20, 15, 15, 20])
-SetData('pctFoxtail', [5, 25, 70, 75, 80, 85, 85, 80])
-
+SetCompatLevel(0)
+AddImportPath('I:\\Veusz_dev\\veusz\\examples')
+ImportString('age(numeric)','''
+5.800000e+03
+5.600000e+03
+5.300000e+03
+5.200000e+03
+5.100000e+03
+4.950000e+03
+4.750000e+03
+4.600000e+03
+''')
+ImportString('n(numeric)','''
+1.033000e+03
+4.880000e+02
+4.440000e+02
+2.350000e+03
+4.990000e+02
+1.502000e+03
+7.800000e+01
+1.875000e+03
+''')
+ImportString('pctFoxtail(numeric)','''
+5.000000e+00
+2.500000e+01
+7.000000e+01
+7.500000e+01
+8.000000e+01
+8.500000e+01
+8.500000e+01
+8.000000e+01
+''')
+ImportString('pctMillet(numeric)','''
+9.500000e+01
+7.500000e+01
+3.000000e+01
+2.500000e+01
+2.000000e+01
+1.500000e+01
+1.500000e+01
+2.000000e+01
+''')
+ImportString('ypos(numeric)','''
+1.000000e+00
+2.000000e+00
+3.000000e+00
+4.000000e+00
+5.000000e+00
+6.000000e+00
+7.000000e+00
+8.000000e+00
+''')
+Set('StyleSheet/axis-function/autoRange', 'next-tick')
 Add('page', name='page1', autoadd=False)
 To('page1')
 Add('graph', name='graph1', autoadd=False)
@@ -27,28 +61,28 @@ To('graph1')
 Add('axis', name='x', autoadd=False)
 To('x')
 Set('label', 'Age (cal BP)')
-Set('min', 4500)
-Set('max', 6000)
+Set('min', 4500.0)
+Set('max', 6000.0)
 To('..')
 Add('axis', name='y', autoadd=False)
 To('y')
 Set('label', 'Site')
-Set('min', 0)
-Set('max', 9)
+Set('min', 0.0)
+Set('max', 9.0)
 Set('direction', 'vertical')
 To('..')
-
 Add('xypie', name='prop1', autoadd=False)
 To('prop1')
+Set('shape', 'pie')
 Set('xData', 'age')
 Set('yData', 'ypos')
 Set('scalePoints', 'n')
-Set('wedgeData', ('pctMillet', 'pctFoxtail'))
-Set('wedgeLabels', ('Millet', 'Foxtail'))
-Set('markerSize', '8pt')
-Set('glyph', 'pie')
-Set('keys', ('Crop Proportions',))
+Set('sliceData', ('pctMillet', 'pctFoxtail'))
+Set('sliceKeyTexts', ('Millet', 'Foxtail'))
+Set('shapeSize', '8pt')
+Set('labels', 'n')
+Set('Fill/fills', [('solid', '#ff550034', False), ('solid', '#46ba7134', False)])
+Set('Line/lines', [('solid', '0.5pt', 'black', False)])
 To('..')
-
 To('..')
 To('..')

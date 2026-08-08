@@ -60,14 +60,6 @@ class BarFill(setting.Settings):
         )
 
 
-class BarCIFill(setting.BrushExtended):
-    """Filled band showing the confidence interval around bars."""
-
-    def __init__(self, name, **args):
-        setting.BrushExtended.__init__(self, name, **args)
-        self.get("hide").newDefault(True)
-
-
 class BarLine(setting.Settings):
     """Edges of bars."""
 
@@ -262,15 +254,6 @@ class BarPlotter(GenericPlotter):
         s.add(
             BarLine("BarLine", descr=_("Bar line"), usertext=_("Line")),
             pixmap="settings_border",
-        )
-
-        s.add(
-            BarCIFill(
-                "FillCI",
-                descr=_("Confidence interval fill band"),
-                usertext=_("CI fill"),
-            ),
-            pixmap="settings_plotfillbelow",
         )
 
         s.add(
@@ -490,47 +473,6 @@ class BarPlotter(GenericPlotter):
                     painter, posns - w, maxcoord, posns + w, maxcoord
                 )
 
-    def drawCIBand(self, painter, posns1, posns2, minvals, maxvals, axes, widgetposn):
-        """Draw a filled band showing the confidence interval per bar."""
-        s = self.settings
-        ishorz = s.direction == "horizontal"
-        valax = axes[not ishorz]
-        mincoord = valax.dataToPlotterCoords(widgetposn, minvals)
-        maxcoord = valax.dataToPlotterCoords(widgetposn, maxvals)
-        # custom bounds may be shorter than the bar positions; skip leftover
-        # bars rather than raising IndexError
-        n = min(len(posns1), len(mincoord), len(maxcoord))
-        for i in range(n):
-            lo, hi = mincoord[i], maxcoord[i]
-            if lo > hi:
-                lo, hi = hi, lo
-            x1, x2 = posns1[i], posns2[i]
-            if ishorz:
-                rect = qt.QRectF(qt.QPointF(lo, x1), qt.QPointF(hi, x2))
-            else:
-                rect = qt.QRectF(qt.QPointF(x1, lo), qt.QPointF(x2, hi))
-            path = qt.QPainterPath()
-            path.addRect(rect)
-            utils.brushExtFillPath(painter, s.FillCI, path)
-
-    def _calcCI(self, dataset, vals):
-        """Return (minval, maxval) confidence bounds for a dataset row."""
-        s = self.settings
-        mn, mx = self.calculateErrorBars(
-            dataset,
-            vals,
-            ciMode=s.ciMode,
-            ciYMin=s.ciYMin,
-            ciYMax=s.ciYMax,
-            ciYError=s.ciYError,
-            ciMultiplier=s.ciMultiplier,
-        )
-        if mn is None:
-            mn = vals
-        if mx is None:
-            mx = vals
-        return mn, mx
-
     def plotBars(self, painter, s, dsnum, clip, corners):
         """Plot a set of boxes."""
         # get style
@@ -595,11 +537,6 @@ class BarPlotter(GenericPlotter):
                 p = (posns1, zeropt + N.zeros(posns2.shape), posns2, lengthcoord)
 
             self.plotBars(painter, s, dsnum, clip, p)
-
-            # draw confidence interval fill band
-            if not s.FillCI.hide:
-                mn, mx = self._calcCI(dataset, dataset["data"])
-                self.drawCIBand(painter, posns1, posns2, mn, mx, axes, widgetposn)
 
             # draw error bars
             self.drawErrorBars(
@@ -673,16 +610,6 @@ class BarPlotter(GenericPlotter):
                 p = (posns1, zerocoords, posns2, coords)
             self.plotBars(painter, s, dsnum, clip, p)
 
-        # draw confidence interval fill band around each stacked segment
-        if not s.FillCI.hide:
-            for dsnum, dataset in enumerate(dsvals):
-                # anchor this dataset's band at its own cumulative base
-                base = stackedvals[dsnum] - dataset["data"]
-                mn, mx = self._calcCI(dataset, dataset["data"])
-                self.drawCIBand(
-                    painter, posns1, posns2, base + mn, base + mx, axes, widgetposn
-                )
-
         # draw error bars
         for barval, dsval in zip(stackedvals, dsvals):
             self.drawErrorBars(
@@ -741,18 +668,6 @@ class BarPlotter(GenericPlotter):
             pen = s.BarLine.get("lines").makePen(painter, dsnum)
             painter.setPen(pen)
             utils.plotClippedPolyline(painter, clip, poly)
-
-        # draw confidence interval fill band around each stacked segment
-        if not s.FillCI.hide:
-            barwidth = maxwidth * s.barfill
-            posns1 = posns - barwidth * 0.5
-            posns2 = posns1 + barwidth
-            for dsnum, dataset in enumerate(dsvals):
-                base = stackedvals[dsnum] - dataset["data"]
-                mn, mx = self._calcCI(dataset, dataset["data"])
-                self.drawCIBand(
-                    painter, posns1, posns2, base + mn, base + mx, axes, widgetposn
-                )
 
         # draw error bars
         barwidth = maxwidth * s.barfill
